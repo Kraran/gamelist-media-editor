@@ -85,6 +85,8 @@ gamelist-media-editor/
 └── README.md
 ```
 
+<img width="2560" height="1079" alt="image" src="https://github.com/user-attachments/assets/1d450603-27ac-454f-8c75-12e5c1c50a31" />
+
 ## Safety notes
 
 - **Deleting a game removes files from disk** (ROM + media). Always confirm carefully.
@@ -140,6 +142,8 @@ Le favicon SVG (`static/favicon.svg`) est déjà dans le dépôt.
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\Creer-Raccourci.ps1
 ```
+
+<img width="2560" height="1080" alt="image" src="https://github.com/user-attachments/assets/3b871fda-0929-4386-8116-c70ef8efe548" />
 
 ### Ligne de commande
 
