@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gamelist Media Editor</title>
+  <link rel="icon" type="image/x-icon" href="/static/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16.png" />
+  <link rel="apple-touch-icon" sizes="256x256" href="/static/app-icon.png" />
+  <meta name="theme-color" content="#6c5ce7" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header>
+    <h1>🎮 <span>Gamelist</span> Media Editor</h1>
+    <span class="badge" id="game-count">0 jeux</span>
+    <div style="flex:1"></div>
+    <button class="btn btn-danger" id="btn-delete-game" title="Supprime le jeu sélectionné (ROM + médias + entrée XML)" disabled>
+      🗑 Supprimer ce jeu
+    </button>
+    <button class="btn btn-danger" id="btn-purge-regions" title="Supprime toutes les balises &lt;region&gt; du fichier">
+      Supprimer toutes les &lt;region&gt;
+    </button>
+  </header>
+
+  <div class="main">
+    <aside class="sidebar">
+      <div class="search-box">
+        <input type="search" id="search" placeholder="Rechercher un jeu…" autocomplete="off" />
+      </div>
+      <div class="game-list" id="game-list"></div>
+    </aside>
+
+    <section class="content" id="content">
+      <div class="empty-state" id="empty-state">
+        <p style="font-size:2rem;opacity:0.4">🎮</p>
+        <p>Sélectionne un jeu dans la liste<br>puis glisse-dépose tes médias</p>
+      </div>
+
+      <div id="editor" style="display:none; flex:1; flex-direction:column; overflow:hidden;">
+        <div class="game-header">
+          <div class="name-row">
+            <input type="text" id="game-name-input" class="name-input" spellcheck="false" />
+            <button class="btn btn-accent" id="btn-save-name">Enregistrer</button>
+          </div>
+          <div class="meta" id="game-path">—</div>
+        </div>
+
+        <div class="desc-editor" id="desc-editor">
+          <div class="desc-header">
+            <span class="zone-title"><span class="icon">📝</span> Description (desc)</span>
+            <button class="btn btn-accent" id="btn-save-desc">Enregistrer</button>
+          </div>
+          <textarea id="desc-textarea" placeholder="Description du jeu…" spellcheck="true"></textarea>
+        </div>
+
+        <div class="media-grid" id="media-grid"></div>
+
+        <div class="meta-section" id="meta-section">
+          <div class="meta-header">
+            <span class="zone-title"><span class="icon">⚙️</span> Métadonnées</span>
+            <button class="btn btn-accent" id="btn-save-meta">Enregistrer les métadonnées</button>
+          </div>
+          <div class="meta-grid">
+            <div class="meta-field meta-genre-main">
+              <label>Genre principal</label>
+              <select id="meta-genre-main"><option value="">— Choisir —</option></select>
+            </div>
+            <div class="meta-field meta-genre-sub">
+              <label>Sous-genre</label>
+              <select id="meta-genre-sub" disabled><option value="">— Aucun —</option></select>
+            </div>
+            <div class="meta-field">
+              <label>Rating <span class="hint">(0 → 1)</span></label>
+              <input type="number" id="meta-rating" min="0" max="1" step="0.05" placeholder="0.7" />
+            </div>
+            <div class="meta-field">
+              <label>Releasedate</label>
+              <input type="text" id="meta-releasedate" placeholder="19900101T000000" />
+            </div>
+            <div class="meta-field">
+              <label>Developer</label>
+              <input type="text" id="meta-developer" placeholder="Ocean" />
+            </div>
+            <div class="meta-field">
+              <label>Publisher</label>
+              <input type="text" id="meta-publisher" placeholder="Ocean" />
+            </div>
+            <div class="meta-field">
+              <label>Family</label>
+              <input type="text" id="meta-family" placeholder="Barbarian (Palace)" />
+            </div>
+            <div class="meta-field">
+              <label>Players</label>
+              <input type="text" id="meta-players" placeholder="1-2" />
+            </div>
+            <div class="meta-field meta-lang">
+              <label>Lang</label>
+              <div class="lang-row">
+                <input type="text" id="meta-lang" placeholder="fr" maxlength="4" />
+                <span class="lang-flag" id="lang-flag" title="">
+                  <img id="lang-flag-img" src="" alt="" style="display:none" />
+                  <span id="lang-flag-fallback">🌐</span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="status-bar">
+    <span id="status">Prêt</span>
+    <span>Glisse un fichier ou une image depuis un navigateur → zone correspondante</span>
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
