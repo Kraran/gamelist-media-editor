@@ -35,6 +35,17 @@ Drag & drop screenshots, videos, marquees, manuals and box art from your disk or
 python -m pip install -r requirements.txt
 ```
 
+## Icons
+
+After cloning, generate the PNG/ICO files (favicon + Windows shortcut icon):
+
+```bash
+python generate_icons.py
+```
+
+This creates `static/favicon.ico`, `static/favicon-16.png`, `static/favicon-32.png`, `static/app-icon.png`, `icon.ico`, and `icon.png`.
+An SVG favicon (`static/favicon.svg`) is already in the repo and works without this step.
+
 ## Quick start
 
 ### Windows
@@ -64,11 +75,12 @@ The app uses the **folder that contains the XML** as the media root (`images/`, 
 ```
 gamelist-media-editor/
 ├── app.py                 # Flask backend
-├── templates/index.html   # Web UI (self-contained)
+├── templates/index.html   # Web UI
 ├── static/                # Favicon & icons
+├── icon_data/             # Embedded icon payloads
+├── generate_icons.py      # Writes PNG/ICO from icon_data
 ├── Lancer.bat             # Windows launcher
-├── Creer-Raccourci.ps1    # Creates a desktop shortcut (Windows)
-├── icon.ico / icon.png    # Application icon (optional, for shortcuts)
+├── Creer-Raccourci.ps1    # Desktop shortcut (Windows)
 ├── requirements.txt
 └── README.md
 ```
@@ -96,16 +108,11 @@ Glisse-dépose captures, vidéos, marquees, manuels et jaquettes depuis le disqu
 ### Fonctionnalités
 
 - **Glisser-déposer** : `image`, `video`, `marquee`, `manual`, `boxback`
-  - Depuis l’explorateur ou une image dans le navigateur
 - **Renommer** un jeu (`name`) et éditer la **description** (`desc`)
 - **Métadonnées** : rating, releasedate, developer, publisher, family, players, lang, genre
-- **Genre hiérarchique** (genre principal + sous-genre)
-- **Drapeaux** pour le champ `lang`
-- **Liste alphabétique** avec recherche
-- **Suppression de toutes les balises `<region>`**
-- **Suppression complète d’un jeu** (ROM + médias + entrée XML)
-- **Favicon** et **icône d’application**
-- Lanceur Windows (`Lancer.bat`) et script de raccourci Bureau
+- **Genre hiérarchique**, **drapeaux** lang, **liste alphabétique**
+- **Suppression** des `<region>` et suppression complète d’un jeu
+- Lanceur Windows et raccourci Bureau
 
 ### Prérequis
 
@@ -113,13 +120,22 @@ Glisse-dépose captures, vidéos, marquees, manuels et jaquettes depuis le disqu
 python -m pip install -r requirements.txt
 ```
 
+### Icônes
+
+Après le clone, génère les fichiers PNG/ICO :
+
+```bash
+python generate_icons.py
+```
+
+Cela crée le favicon, l’icône d’application et `icon.ico` pour le raccourci Windows.
+Le favicon SVG (`static/favicon.svg`) est déjà dans le dépôt.
+
 ### Démarrage rapide (Windows)
 
 1. Double-clique sur **`Lancer.bat`**
 2. Indique ou glisse-dépose ton `gamelist.xml`
 3. Le navigateur s’ouvre sur [http://127.0.0.1:5050](http://127.0.0.1:5050)
-
-Raccourci Bureau avec icône :
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\Creer-Raccourci.ps1
@@ -131,14 +147,6 @@ powershell -ExecutionPolicy Bypass -File .\Creer-Raccourci.ps1
 python app.py
 python app.py "D:\RetroBat\roms\amstradcpc\gamelist.xml"
 ```
-
-Les dossiers `images/`, `videos/` et `manuals/` sont ceux **à côté** du fichier XML.
-
-### Avertissements
-
-- La suppression d’un jeu **efface des fichiers sur le disque**. Confirme bien.
-- Seuls les chemins situés sous le dossier du XML sont touchés.
-- Serveur de développement uniquement (`127.0.0.1:5050`).
 
 ### Licence
 
