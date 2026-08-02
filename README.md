@@ -32,7 +32,7 @@ Drag & drop screenshots, videos, marquees, manuals and box art from your disk or
 - Packages: `flask`, `lxml`, `requests`
 
 ```bash
-python -m pip install flask lxml requests
+python -m pip install -r requirements.txt
 ```
 
 ## Quick start
@@ -64,20 +64,20 @@ The app uses the **folder that contains the XML** as the media root (`images/`, 
 ```
 gamelist-media-editor/
 ├── app.py                 # Flask backend
-├── templates/index.html   # Web UI
+├── templates/index.html   # Web UI (self-contained)
 ├── static/                # Favicon & icons
 ├── Lancer.bat             # Windows launcher
 ├── Creer-Raccourci.ps1    # Creates a desktop shortcut (Windows)
-├── icon.ico / icon.png    # Application icon
+├── icon.ico / icon.png    # Application icon (optional, for shortcuts)
 ├── requirements.txt
 └── README.md
 ```
 
 ## Safety notes
 
-- Deleting a game **removes files from disk** (ROM + media). Confirm carefully.
-- Only paths under the XML directory are deleted (path traversal is blocked).
-- The development server binds to `127.0.0.1:5050` (local only).
+- **Deleting a game removes files from disk** (ROM + media). Always confirm carefully.
+- Only files under the XML’s folder are touched (path traversal protected).
+- Development server only — bound to `127.0.0.1:5050` (not exposed to the network by default).
 
 ## License
 
@@ -85,36 +85,39 @@ MIT — see [LICENSE](LICENSE).
 
 ---
 
+<a id="français"></a>
+
 ## Français
 
-Application web **locale** pour éditer les médias et métadonnées d'un fichier **`gamelist.xml`** (EmulationStation / RetroBat).
+Application web **locale** pour éditer les **médias et métadonnées** d’un fichier `gamelist.xml` (EmulationStation / RetroBat).
 
-Glisse-dépose captures, vidéos, marquees, manuels et jaquettes depuis le disque ou le web. Modifie noms, descriptions, genres, notes, etc. — sauvegarde immédiate dans le XML.
+Glisse-dépose captures, vidéos, marquees, manuels et jaquettes depuis le disque ou le web. Modifie noms, descriptions, genres, notes — sauvegarde immédiate dans le XML.
 
 ### Fonctionnalités
 
-- **Glisser-déposer** : image, vidéo, marquee, manuel, boxback (fichiers locaux ou depuis un navigateur)
-- **Renommage** des jeux et édition des **descriptions**
+- **Glisser-déposer** : `image`, `video`, `marquee`, `manual`, `boxback`
+  - Depuis l’explorateur ou une image dans le navigateur
+- **Renommer** un jeu (`name`) et éditer la **description** (`desc`)
 - **Métadonnées** : rating, releasedate, developer, publisher, family, players, lang, genre
 - **Genre hiérarchique** (genre principal + sous-genre)
 - **Drapeaux** pour le champ `lang`
 - **Liste alphabétique** avec recherche
 - **Suppression de toutes les balises `<region>`**
-- **Suppression complète d'un jeu** (ROM + médias + entrée XML)
-- **Favicon** et **icône d'application**
+- **Suppression complète d’un jeu** (ROM + médias + entrée XML)
+- **Favicon** et **icône d’application**
 - Lanceur Windows (`Lancer.bat`) et script de raccourci Bureau
 
 ### Prérequis
 
 ```bash
-python -m pip install flask lxml requests
+python -m pip install -r requirements.txt
 ```
 
 ### Démarrage rapide (Windows)
 
 1. Double-clique sur **`Lancer.bat`**
 2. Indique ou glisse-dépose ton `gamelist.xml`
-3. Le navigateur s'ouvre sur [http://127.0.0.1:5050](http://127.0.0.1:5050)
+3. Le navigateur s’ouvre sur [http://127.0.0.1:5050](http://127.0.0.1:5050)
 
 Raccourci Bureau avec icône :
 
@@ -133,7 +136,7 @@ Les dossiers `images/`, `videos/` et `manuals/` sont ceux **à côté** du fichi
 
 ### Avertissements
 
-- La suppression d'un jeu **efface des fichiers sur le disque**. Confirme bien.
+- La suppression d’un jeu **efface des fichiers sur le disque**. Confirme bien.
 - Seuls les chemins situés sous le dossier du XML sont touchés.
 - Serveur de développement uniquement (`127.0.0.1:5050`).
 
