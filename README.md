@@ -3,12 +3,15 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-green.svg)](https://www.python.org/downloads/)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)](#)
+[![Documentation](https://img.shields.io/badge/Documentation-Wiki-brightgreen.svg)](https://github.com/Kraran/gamelist-media-editor/wiki)
 
 **English** | [Français](#français)
 
 Local web application to edit **EmulationStation / RetroBat `gamelist.xml`** media files and metadata.
 
 Drag & drop screenshots, videos, marquees, manuals and box art from your disk or from the web. Edit names, descriptions, genres, ratings and more — with instant save to the XML.
+
+**📚 [Documentation (Wiki)](https://github.com/Kraran/gamelist-media-editor/wiki)** — installation, usage guide, FAQ, troubleshooting
 
 ---
 
@@ -106,6 +109,8 @@ MIT — see [LICENSE](LICENSE).
 Application web **locale** pour éditer les **médias et métadonnées** d’un fichier `gamelist.xml` (EmulationStation / RetroBat).
 
 Glisse-dépose captures, vidéos, marquees, manuels et jaquettes depuis le disque ou le web. Modifie noms, descriptions, genres, notes — sauvegarde immédiate dans le XML.
+
+**📚 [Documentation (Wiki)](https://github.com/Kraran/gamelist-media-editor/wiki)** — installation, guide d’utilisation, FAQ, dépannage
 
 ### Fonctionnalités
 
