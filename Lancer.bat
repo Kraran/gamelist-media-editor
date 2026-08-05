@@ -85,16 +85,18 @@ python app.py "%XML_PATH%"
 set "EXITCODE=%ERRORLEVEL%"
 
 echo.
-if not "%EXITCODE%"=="0" (
-    color 0C
-    echo  [ERREUR] Le programme s'est arrete avec le code %EXITCODE%.
-    echo  Verifie que les paquets Python sont installes :
-    echo    python -m pip install flask lxml requests
-    echo.
-) else (
+if "%EXITCODE%"=="0" (
     color 0A
-    echo  Serveur arrete proprement.
-    echo.
+    echo  Serveur arrete proprement. Fermeture...
+    timeout /t 1 /nobreak >nul
+    endlocal
+    exit /b 0
 )
+
+color 0C
+echo  [ERREUR] Le programme s'est arrete avec le code %EXITCODE%.
+echo  Verifie que les paquets Python sont installes :
+echo    python -m pip install flask lxml requests
+echo.
 pause
 endlocal

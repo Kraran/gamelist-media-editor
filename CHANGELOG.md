@@ -11,7 +11,7 @@
 - Accessibility basics: `aria-*` on list, filters, dialogs; focus-visible styles
 
 ### Changed
-- Safer path resolution for `/media/` (no path traversal; fixed `lstrip("./" )` edge case)
+- Safer path resolution for `/media/` (no path traversal; fixed `lstrip("./")` edge case)
 - URL downloads: hard **50 MB** cap with streaming
 - `Ctrl+S` stops the save chain on the first failure (name → desc → meta)
 - Confirmation modals unified (clear field / quit / destructive actions)
