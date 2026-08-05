@@ -1,5 +1,28 @@
 # Changelog
 
+## [1.0.2] - 2026-08-06
+
+### Added
+- **Reload** button — re-read `gamelist.xml` from disk while keeping the current selection when possible
+- Client-side **upload size limit** (50 MB), aligned with the server
+- Process-level **XML write lock** to serialize saves and backups
+- Auto-delete of the **previous media file** when replacing with a different path/extension (e.g. `.png` → `.jpg`)
+- Genres loaded from **`static/genres.json`** (easier to maintain)
+- Accessibility basics: `aria-*` on list, filters, dialogs; focus-visible styles
+
+### Changed
+- Safer path resolution for `/media/` (no path traversal; fixed `lstrip("./" )` edge case)
+- URL downloads: hard **50 MB** cap with streaming
+- `Ctrl+S` stops the save chain on the first failure (name → desc → meta)
+- Confirmation modals unified (clear field / quit / destructive actions)
+- UI polish: no inline styles, CSS helpers, shutdown screen as a proper class
+- XML parse **cache** (mtime-based) + `get_game_elem` helper
+
+### Fixed
+- Path sanitization that could turn `../x` into a relative path under the media root
+- Filter / list logic consolidated (`getFilteredGames`)
+- Debounced search to avoid re-rendering on every keystroke
+
 ## [1.0.1] - 2026-08-05
 
 ### Added

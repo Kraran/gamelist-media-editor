@@ -2,7 +2,7 @@
 
 Local web app to edit EmulationStation / **RetroBat** `gamelist.xml` media and metadata with drag-and-drop.
 
-**Version 1.0.1** · [Documentation (Wiki)](https://github.com/Kraran/gamelist-media-editor/wiki) · [Releases](https://github.com/Kraran/gamelist-media-editor/releases)
+**Version 1.0.2** · [Documentation (Wiki)](https://github.com/Kraran/gamelist-media-editor/wiki) · [Releases](https://github.com/Kraran/gamelist-media-editor/releases)
 
 ---
 
@@ -10,12 +10,14 @@ Local web app to edit EmulationStation / **RetroBat** `gamelist.xml` media and m
 
 - Drag-and-drop for **image**, **video**, **marquee**, **manual**, **boxback** (local files or URLs)
 - Edit **name**, **description**, **genre** (hierarchical), **rating**, **releasedate**, **developer**, **publisher**, **family**, **players**, **lang** (with flags)
-- Filter games by **missing media** (with counts)
+- Filter games by **missing media** (with live counts)
 - Keyboard navigation (arrows, Page Up/Down, Home/End)
 - Shortcuts: `Ctrl+S` save, `Ctrl+F` search
 - **Tools** panel: manual `.bak` backup, purge all `<region>` tags
+- **Reload** list from disk without restarting the app
 - Delete a game (ROM + media + XML entry) with optional backup
 - **Quit** button stops the server (and closes the console when launched via `Lancer.bat`)
+- Safe media paths, upload size limits (50 MB), XML write lock
 
 ---
 
@@ -56,8 +58,9 @@ python app.py "C:\path\to\gamelist.xml"
 
 1. Point the launcher at your system `gamelist.xml` (media folders `images/`, `videos/`, `manuals/` are expected next to it)
 2. Select a game → drop media into the zones
-3. Edit metadata and save
+3. Edit metadata and save (`Ctrl+S`)
 4. Use **Tools** for global actions (backup, purge regions)
+5. Use **Reload** if you edited the XML outside the app
 
 ---
 
