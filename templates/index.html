@@ -118,6 +118,24 @@
   </div>
   <div class="toast" id="toast"></div>
 
+  <div class="modal-overlay" id="confirm-modal" role="dialog" aria-modal="true">
+    <div class="modal">
+      <h3 id="confirm-title">Confirmer</h3>
+      <div id="confirm-body"></div>
+      <label class="modal-backup">
+        <input type="checkbox" id="confirm-backup" checked />
+        <span>
+          Créer une sauvegarde <code>gamelist.xml.bak</code> avant de continuer
+          <small>Copie du XML actuel à côté du fichier (écrase l’ancien .bak s’il existe)</small>
+        </span>
+      </label>
+      <div class="modal-actions">
+        <button type="button" class="btn" id="confirm-cancel">Annuler</button>
+        <button type="button" class="btn btn-danger" id="confirm-ok">Confirmer</button>
+      </div>
+    </div>
+  </div>
+
   <script src="/static/app.js"></script>
 </body>
 </html>
