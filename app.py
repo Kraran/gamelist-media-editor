@@ -25,6 +25,15 @@ def load_xml():
 def save_xml(tree):
     tree.write(XML_PATH, pretty_print=True, xml_declaration=True, encoding="UTF-8")
 
+def backup_xml():
+    """Copy gamelist.xml to gamelist.xml.bak next to it. Returns backup path."""
+    import shutil
+    if not os.path.isfile(XML_PATH):
+        raise FileNotFoundError(f"XML introuvable : {XML_PATH}")
+    bak_path = XML_PATH + ".bak"
+    shutil.copy2(XML_PATH, bak_path)
+    return bak_path
+
 def sanitize_filename(name):
     name = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "", name).strip(" .")
     return name or "unknown"
@@ -262,6 +271,12 @@ def update_meta(index):
 @app.route("/api/purge-regions", methods=["POST"])
 def purge_regions():
     try:
+        body = request.get_json(silent=True) or {}
+        do_backup = bool(body.get("backup", False))
+        backup_path = None
+        if do_backup:
+            backup_path = backup_xml()
+
         tree = load_xml()
         root = tree.getroot()
         count = 0
@@ -270,7 +285,11 @@ def purge_regions():
                 game.remove(region_elem)
                 count += 1
         save_xml(tree)
-        return jsonify({"success": True, "removed": count})
+        return jsonify({
+            "success": True,
+            "removed": count,
+            "backup": backup_path,
+        })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -278,6 +297,12 @@ def purge_regions():
 def delete_game(index):
     """Supprime ROM + medias + entree XML du jeu."""
     try:
+        body = request.get_json(silent=True) or {}
+        do_backup = bool(body.get("backup", False))
+        backup_path = None
+        if do_backup:
+            backup_path = backup_xml()
+
         tree = load_xml()
         root = tree.getroot()
         games = root.findall("game")
@@ -305,6 +330,7 @@ def delete_game(index):
         return jsonify({
             "success": True, "name": name,
             "deleted_files": deleted_files, "failed_files": failed_files,
+            "backup": backup_path,
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
