@@ -1,0 +1,36 @@
+Gamelist Media Editor - Installation Windows
+============================================
+
+CONTENU
+-------
+  Installer.bat   <- double-clique ici pour installer
+  Install.ps1     script d'installation (appele par le .bat)
+  payload/        fichiers de l'application
+
+INSTALLATION
+------------
+1. Decompresse cette archive ou tu veux (dossier temporaire OK).
+2. Double-clique sur Installer.bat
+3. Choisis le dossier d'installation dans la fenetre
+4. Attends la fin (Python + dependances si besoin).
+5. Un raccourci est cree sur le Bureau et dans le Menu Demarrer.
+
+PREMIER LANCEMENT
+-----------------
+1. Double-clique le raccourci Bureau (ou Lancer.bat).
+2. Indique le chemin de ton gamelist.xml
+3. Le navigateur s'ouvre sur http://127.0.0.1:5050
+
+PYTHON
+------
+1. Python deja present dans le dossier d'install (portable)
+2. Python systeme (PATH)
+3. Installation via winget (Windows 10/11)
+4. Telechargement d'un Python portable (embeddable)
+
+Versions : Python 3.9+
+Dependances : flask, lxml, requests
+
+SITE
+----
+https://github.com/Kraran/gamelist-media-editor
