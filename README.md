@@ -1,162 +1,80 @@
 # Gamelist Media Editor
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-green.svg)](https://www.python.org/downloads/)
-[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)](#)
-[![Documentation](https://img.shields.io/badge/Documentation-Wiki-brightgreen.svg)](https://github.com/Kraran/gamelist-media-editor/wiki)
+Local web app to edit EmulationStation / **RetroBat** `gamelist.xml` media and metadata with drag-and-drop.
 
-**English** | [Français](#français)
-
-Local web application to edit **EmulationStation / RetroBat `gamelist.xml`** media files and metadata.
-
-Drag & drop screenshots, videos, marquees, manuals and box art from your disk or from the web. Edit names, descriptions, genres, ratings and more — with instant save to the XML.
-
-**📚 [Documentation (Wiki)](https://github.com/Kraran/gamelist-media-editor/wiki)** — installation, usage guide, FAQ, troubleshooting
+**Version 1.0.1** · [Documentation (Wiki)](https://github.com/Kraran/gamelist-media-editor/wiki) · [Releases](https://github.com/Kraran/gamelist-media-editor/releases)
 
 ---
 
 ## Features
 
-- **Drag & drop media**: `image`, `video`, `marquee`, `manual`, `boxback`
-  - From the file explorer or by dragging an image from a browser tab
-- **Rename games** (`name`) and edit **descriptions** (`desc`)
-- **Metadata editor**: rating (0–1), releasedate, developer, publisher, family, players, lang, genre
-- **Hierarchical genre picker** (main genre + sub-genre)
-- **Country flags** for the `lang` field (fr, en, eu, wr, …)
-- **Alphabetical game list** with search
-- **Purge all `<region>` tags** from the whole XML (with confirmation)
-- **Delete a game completely**: ROM + media files on disk + XML entry (with confirmation)
-- **Favicon & app icon** included
-- **Windows launcher** (`Lancer.bat`) and desktop shortcut script
-
-## Requirements
-
-- Python **3.8+**
-- Packages: `flask`, `lxml`, `requests`
-
-```bash
-python -m pip install -r requirements.txt
-```
-
-## Icons
-
-After cloning, generate the PNG/ICO files (favicon + Windows shortcut icon):
-
-```bash
-python generate_icons.py
-```
-
-This creates `static/favicon.ico`, `static/favicon-16.png`, `static/favicon-32.png`, `static/app-icon.png`, `icon.ico`, and `icon.png`.
-An SVG favicon (`static/favicon.svg`) is already in the repo and works without this step.
-
-## Quick start
-
-### Windows
-
-1. Double-click **`Lancer.bat`**
-2. Paste or drag-and-drop the path to your `gamelist.xml`
-3. Your browser opens at [http://127.0.0.1:5050](http://127.0.0.1:5050)
-
-Optional — create a desktop shortcut with the app icon:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\Creer-Raccourci.ps1
-```
-
-### Command line (Windows / Linux / macOS)
-
-```bash
-python app.py
-# or with an explicit path:
-python app.py "/path/to/roms/system/gamelist.xml"
-```
-
-The app uses the **folder that contains the XML** as the media root (`images/`, `videos/`, `manuals/`).
-
-## Project layout
-
-```
-gamelist-media-editor/
-├── app.py                 # Flask backend
-├── templates/index.html   # Web UI
-├── static/                # Favicon & icons
-├── icon_data/             # Embedded icon payloads
-├── generate_icons.py      # Writes PNG/ICO from icon_data
-├── Lancer.bat             # Windows launcher
-├── Creer-Raccourci.ps1    # Desktop shortcut (Windows)
-├── requirements.txt
-└── README.md
-```
-
-<img width="2560" height="1079" alt="image" src="https://github.com/user-attachments/assets/1d450603-27ac-454f-8c75-12e5c1c50a31" />
-
-## Safety notes
-
-- **Deleting a game removes files from disk** (ROM + media). Always confirm carefully.
-- Only files under the XML’s folder are touched (path traversal protected).
-- Development server only — bound to `127.0.0.1:5050` (not exposed to the network by default).
-
-## License
-
-MIT — see [LICENSE](LICENSE).
+- Drag-and-drop for **image**, **video**, **marquee**, **manual**, **boxback** (local files or URLs)
+- Edit **name**, **description**, **genre** (hierarchical), **rating**, **releasedate**, **developer**, **publisher**, **family**, **players**, **lang** (with flags)
+- Filter games by **missing media** (with counts)
+- Keyboard navigation (arrows, Page Up/Down, Home/End)
+- Shortcuts: `Ctrl+S` save, `Ctrl+F` search
+- **Tools** panel: manual `.bak` backup, purge all `<region>` tags
+- Delete a game (ROM + media + XML entry) with optional backup
+- **Quit** button stops the server (and closes the console when launched via `Lancer.bat`)
 
 ---
 
-<a id="français"></a>
+## Installation
 
-## Français
+### Option A — Windows Setup (recommended)
 
-Application web **locale** pour éditer les **médias et métadonnées** d’un fichier `gamelist.xml` (EmulationStation / RetroBat).
+1. Download **[GamelistMediaEditor-Windows-Setup.zip](https://github.com/Kraran/gamelist-media-editor/releases/latest)** from the latest release
+2. Extract and run **`Installer.bat`**
+3. Choose an install folder
+4. The installer will:
+   - copy the app
+   - install **Python** if needed (system, winget, or portable)
+   - install `flask`, `lxml`, `requests`
+   - create Desktop + Start Menu shortcuts
 
-Glisse-dépose captures, vidéos, marquees, manuels et jaquettes depuis le disque ou le web. Modifie noms, descriptions, genres, notes — sauvegarde immédiate dans le XML.
+### Option B — Manual
 
-**📚 [Documentation (Wiki)](https://github.com/Kraran/gamelist-media-editor/wiki)** — installation, guide d’utilisation, FAQ, dépannage
-
-### Fonctionnalités
-
-- **Glisser-déposer** : `image`, `video`, `marquee`, `manual`, `boxback`
-- **Renommer** un jeu (`name`) et éditer la **description** (`desc`)
-- **Métadonnées** : rating, releasedate, developer, publisher, family, players, lang, genre
-- **Genre hiérarchique**, **drapeaux** lang, **liste alphabétique**
-- **Suppression** des `<region>` et suppression complète d’un jeu
-- Lanceur Windows et raccourci Bureau
-
-### Prérequis
+1. Download the **source** zip from the [latest release](https://github.com/Kraran/gamelist-media-editor/releases/latest) (or clone this repo)
+2. Install Python 3.9+ from [python.org](https://www.python.org/downloads/) (check *Add to PATH*)
+3. In the app folder:
 
 ```bash
 python -m pip install -r requirements.txt
 ```
 
-### Icônes
-
-Après le clone, génère les fichiers PNG/ICO :
+4. Run **`Lancer.bat`** (Windows) or:
 
 ```bash
-python generate_icons.py
+python app.py "C:\path\to\gamelist.xml"
 ```
 
-Cela crée le favicon, l’icône d’application et `icon.ico` pour le raccourci Windows.
-Le favicon SVG (`static/favicon.svg`) est déjà dans le dépôt.
+5. Open [http://127.0.0.1:5050](http://127.0.0.1:5050)
 
-### Démarrage rapide (Windows)
+---
 
-1. Double-clique sur **`Lancer.bat`**
-2. Indique ou glisse-dépose ton `gamelist.xml`
-3. Le navigateur s’ouvre sur [http://127.0.0.1:5050](http://127.0.0.1:5050)
+## Usage
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\Creer-Raccourci.ps1
-```
+1. Point the launcher at your system `gamelist.xml` (media folders `images/`, `videos/`, `manuals/` are expected next to it)
+2. Select a game → drop media into the zones
+3. Edit metadata and save
+4. Use **Tools** for global actions (backup, purge regions)
 
-<img width="2560" height="1080" alt="image" src="https://github.com/user-attachments/assets/3b871fda-0929-4386-8116-c70ef8efe548" />
+---
 
-### Ligne de commande
+## Requirements
 
-```bash
-python app.py
-python app.py "D:\RetroBat\roms\amstradcpc\gamelist.xml"
-```
+- Python **3.9+**
+- `flask`, `lxml`, `requests` (see `requirements.txt`)
+- Modern browser (Chrome / Edge / Firefox)
 
-### Licence
+---
 
-MIT — voir [LICENSE](LICENSE).
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) and [Releases](https://github.com/Kraran/gamelist-media-editor/releases).
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE)
