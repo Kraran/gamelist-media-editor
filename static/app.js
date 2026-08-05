@@ -55,7 +55,11 @@ if (!relPath) return null;
 return "/media/" + relPath.replace(/^\.\//, "");
 }
 function escapeHtml(str) {
-return String(str).replace(/&/g,"&").replace(/</g,"<").replace(/>/g,">").replace(/"/g,""");
+  return String(str)
+    .replace(/&/g, "&" + "amp;")
+    .replace(/</g, "&" + "lt;")
+    .replace(/>/g, "&" + "gt;")
+    .replace(/"/g, "&" + "quot;");
 }
 function initGenreSelects() {
 const mainSel = document.getElementById("meta-genre-main");
@@ -396,7 +400,7 @@ document.getElementById("btn-purge-regions").addEventListener("click", async () 
   const choice = await askConfirm({
     title: "Supprimer toutes les balises <region> ?",
     bodyHtml:
-      "<p>Toutes les lignes <code><region>…</region></code> de <strong>tous</strong> les jeux seront retirées du fichier XML.</p>" +
+      "<p>Toutes les lignes <code>" + "&" + "lt;region&" + "gt;…&" + "lt;/region&" + "gt;</code> de <strong>tous</strong> les jeux seront retirées du fichier XML.</p>" +
       "<p>Cette action est irréversible sur le fichier courant.</p>",
   });
   if (!choice.confirmed) return;
