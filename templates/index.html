@@ -16,30 +16,45 @@
   <header>
     <h1>🎮 <span>Gamelist</span> Media Editor</h1>
     <span class="badge" id="game-count">0 jeux</span>
-    <div style="flex:1"></div>
+    <div class="header-spacer"></div>
     <button class="btn btn-danger" id="btn-delete-game" title="Supprime le jeu sélectionné (ROM + médias + entrée XML)" disabled>
       🗑 Supprimer ce jeu
     </button>
-    <button class="btn btn-danger" id="btn-purge-regions" title="Supprime toutes les balises <region> du fichier">
-      Supprimer toutes les <region>
+    <button class="btn" id="btn-reload" title="Recharger le gamelist.xml depuis le disque">
+      ↻ Recharger
+    </button>
+    <button class="btn" id="btn-tools" title="Outils et actions globales">
+      ⚙ Outils
+    </button>
+    <button class="btn" id="btn-quit" title="Arrêter le serveur et fermer">
+      ✕ Quitter
     </button>
   </header>
 
   <div class="main">
     <aside class="sidebar">
       <div class="search-box">
-        <input type="search" id="search" placeholder="Rechercher un jeu…" autocomplete="off" />
+        <input type="search" id="search" placeholder="Rechercher un jeu…" autocomplete="off" aria-label="Rechercher un jeu" />
       </div>
-      <div class="game-list" id="game-list"></div>
+      <div class="media-filters" id="media-filters" role="group" aria-label="Filtres médias manquants" title="Filtrer les jeux selon les médias manquants">
+        <button type="button" class="filter-chip active" data-filter="all" aria-pressed="true">Tous<span class="filter-count">0</span></button>
+        <button type="button" class="filter-chip" data-filter="image" aria-pressed="false">Sans image<span class="filter-count">0</span></button>
+        <button type="button" class="filter-chip" data-filter="video" aria-pressed="false">Sans vidéo<span class="filter-count">0</span></button>
+        <button type="button" class="filter-chip" data-filter="marquee" aria-pressed="false">Sans marquee<span class="filter-count">0</span></button>
+        <button type="button" class="filter-chip" data-filter="manual" aria-pressed="false">Sans manuel<span class="filter-count">0</span></button>
+        <button type="button" class="filter-chip" data-filter="boxback" aria-pressed="false">Sans boxback<span class="filter-count">0</span></button>
+        <button type="button" class="filter-chip" data-filter="any" aria-pressed="false">≥1 manquant<span class="filter-count">0</span></button>
+      </div>
+      <div class="game-list" id="game-list" role="listbox" aria-label="Liste des jeux"></div>
     </aside>
 
     <section class="content" id="content">
       <div class="empty-state" id="empty-state">
-        <p style="font-size:2rem;opacity:0.4">🎮</p>
+        <p class="empty-state-icon" aria-hidden="true">🎮</p>
         <p>Sélectionne un jeu dans la liste<br>puis glisse-dépose tes médias</p>
       </div>
 
-      <div id="editor" style="display:none; flex:1; flex-direction:column; overflow:hidden;">
+      <div id="editor" class="editor" hidden>
         <div class="game-header">
           <div class="name-row">
             <input type="text" id="game-name-input" class="name-input" spellcheck="false" />
@@ -101,7 +116,7 @@
               <div class="lang-row">
                 <input type="text" id="meta-lang" placeholder="fr" maxlength="4" />
                 <span class="lang-flag" id="lang-flag" title="">
-                  <img id="lang-flag-img" src="" alt="" style="display:none" />
+                  <img id="lang-flag-img" class="lang-flag-img" src="" alt="" hidden />
                   <span id="lang-flag-fallback">🌐</span>
                 </span>
               </div>
@@ -114,11 +129,11 @@
 
   <div class="status-bar">
     <span id="status">Prêt</span>
-    <span>Glisse un fichier ou une image depuis un navigateur → zone correspondante</span>
+    <span>↑↓ naviguer · Ctrl+S enregistrer · Ctrl+F rechercher · ↻ recharger</span>
   </div>
   <div class="toast" id="toast"></div>
 
-  <div class="modal-overlay" id="confirm-modal" role="dialog" aria-modal="true">
+  <div class="modal-overlay" id="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
     <div class="modal">
       <h3 id="confirm-title">Confirmer</h3>
       <div id="confirm-body"></div>
@@ -132,6 +147,45 @@
       <div class="modal-actions">
         <button type="button" class="btn" id="confirm-cancel">Annuler</button>
         <button type="button" class="btn btn-danger" id="confirm-ok">Confirmer</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="tools-panel" role="dialog" aria-modal="true" aria-labelledby="tools-title">
+    <div class="modal tools-modal">
+      <div class="tools-header">
+        <h3 id="tools-title">⚙ Outils</h3>
+        <button type="button" class="btn" id="tools-close" title="Fermer">✕</button>
+      </div>
+      <p class="tools-intro">Actions globales sur le fichier <code>gamelist.xml</code> (pas liées à un jeu précis).</p>
+
+      <div class="tools-list">
+        <div class="tool-card">
+          <div class="tool-card-info">
+            <div class="tool-card-title">Sauvegarder le gamelist.xml</div>
+            <div class="tool-card-desc">
+              Crée une copie <code>gamelist.xml.bak</code> à côté du fichier courant.
+              Écrase l’ancien <code>.bak</code> s’il existe.
+            </div>
+          </div>
+          <button type="button" class="btn btn-accent" id="btn-manual-backup">Sauvegarder (.bak)</button>
+        </div>
+
+        <div class="tool-card tool-card-danger">
+          <div class="tool-card-info">
+            <div class="tool-card-title">Supprimer toutes les balises &lt;region&gt;</div>
+            <div class="tool-card-desc">
+              Retire toutes les lignes <code>&lt;region&gt;…&lt;/region&gt;</code> de
+              <strong>tous</strong> les jeux. Confirmation demandée (sauvegarde .bak optionnelle).
+            </div>
+          </div>
+          <button type="button" class="btn btn-danger" id="btn-purge-regions">Supprimer les &lt;region&gt;</button>
+        </div>
+      </div>
+
+      <div class="tools-footer">
+        <span class="tools-hint">Raccourcis : ↑↓ naviguer · Ctrl+S enregistrer · Ctrl+F rechercher</span>
+        <button type="button" class="btn" id="tools-close-2">Fermer</button>
       </div>
     </div>
   </div>
