@@ -90,13 +90,10 @@ def safe_delete_file(rel_path):
 def index():
     return render_template("index.html")
 
-
 @app.route("/favicon.ico")
 def favicon():
-    """Favicon a la racine (les navigateurs la demandent souvent ici)."""
     static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
     return send_from_directory(static_dir, "favicon.ico", mimetype="image/x-icon")
-
 
 @app.route("/api/games")
 def api_games():
@@ -268,6 +265,14 @@ def update_meta(index):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route("/api/backup", methods=["POST"])
+def api_backup():
+    try:
+        backup_path = backup_xml()
+        return jsonify({"success": True, "backup": backup_path, "filename": os.path.basename(backup_path)})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route("/api/purge-regions", methods=["POST"])
 def purge_regions():
     try:
@@ -276,7 +281,6 @@ def purge_regions():
         backup_path = None
         if do_backup:
             backup_path = backup_xml()
-
         tree = load_xml()
         root = tree.getroot()
         count = 0
@@ -285,24 +289,18 @@ def purge_regions():
                 game.remove(region_elem)
                 count += 1
         save_xml(tree)
-        return jsonify({
-            "success": True,
-            "removed": count,
-            "backup": backup_path,
-        })
+        return jsonify({"success": True, "removed": count, "backup": backup_path})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 @app.route("/api/delete-game/<int:index>", methods=["POST"])
 def delete_game(index):
-    """Supprime ROM + medias + entree XML du jeu."""
     try:
         body = request.get_json(silent=True) or {}
         do_backup = bool(body.get("backup", False))
         backup_path = None
         if do_backup:
             backup_path = backup_xml()
-
         tree = load_xml()
         root = tree.getroot()
         games = root.findall("game")
@@ -310,10 +308,7 @@ def delete_game(index):
             return jsonify({"error": "Index invalide"}), 404
         game = games[index]
         name = game.findtext("name", "") or f"Jeu {index}"
-        media_tags = [
-            "path", "image", "video", "marquee", "manual", "boxback",
-            "thumbnail", "fanart", "map", "boxfront", "cartridge", "mix",
-        ]
+        media_tags = ["path", "image", "video", "marquee", "manual", "boxback", "thumbnail", "fanart", "map", "boxfront", "cartridge", "mix"]
         deleted_files, failed_files = [], []
         for tag in media_tags:
             rel = game.findtext(tag, "") or ""
@@ -327,11 +322,7 @@ def delete_game(index):
                         failed_files.append(rel)
         root.remove(game)
         save_xml(tree)
-        return jsonify({
-            "success": True, "name": name,
-            "deleted_files": deleted_files, "failed_files": failed_files,
-            "backup": backup_path,
-        })
+        return jsonify({"success": True, "name": name, "deleted_files": deleted_files, "failed_files": failed_files, "backup": backup_path})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -342,6 +333,15 @@ def serve_media(filepath):
     if os.path.isfile(full):
         return send_from_directory(os.path.dirname(full), os.path.basename(full))
     return "Fichier introuvable", 404
+
+@app.route("/api/shutdown", methods=["POST"])
+def api_shutdown():
+    import threading, time
+    def _stop():
+        time.sleep(0.35)
+        os._exit(0)
+    threading.Thread(target=_stop, daemon=True).start()
+    return jsonify({"success": True, "message": "Arret du serveur"})
 
 if __name__ == "__main__":
     print("=" * 60)
