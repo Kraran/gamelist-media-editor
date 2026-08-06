@@ -1,36 +1,66 @@
-Gamelist Media Editor - Installation Windows
+Gamelist Media Editor — Installation Windows
 ============================================
 
 CONTENU
 -------
-  Installer.bat   <- double-clique ici pour installer
+  Installer.bat   ← double-clique ici pour installer
   Install.ps1     script d'installation (appele par le .bat)
   payload/        fichiers de l'application
+
 
 INSTALLATION
 ------------
 1. Decompresse cette archive ou tu veux (dossier temporaire OK).
 2. Double-clique sur Installer.bat
 3. Choisis le dossier d'installation dans la fenetre
+   (ex. C:\Users\Toi\AppData\Local\GamelistMediaEditor)
 4. Attends la fin (Python + dependances si besoin).
-5. Un raccourci est cree sur le Bureau et dans le Menu Demarrer.
+5. Un raccourci "Gamelist Media Editor" est cree sur le Bureau
+   et dans le Menu Demarrer.
+
 
 PREMIER LANCEMENT
 -----------------
 1. Double-clique le raccourci Bureau (ou Lancer.bat).
 2. Indique le chemin de ton gamelist.xml
+   (tu peux glisser-deposer le fichier dans la fenetre noire).
 3. Le navigateur s'ouvre sur http://127.0.0.1:5050
+
 
 PYTHON
 ------
-1. Python deja present dans le dossier d'install (portable)
-2. Python systeme (PATH)
-3. Installation via winget (Windows 10/11)
-4. Telechargement d'un Python portable (embeddable)
+L'installateur cherche Python dans cet ordre :
+  1. Python deja present dans le dossier d'install (portable)
+  2. Python systeme (PATH)
+  3. Installation via winget (Windows 10/11)
+  4. Telechargement d'un Python portable (embeddable)
+     dans le dossier d'installation — sans droits admin
 
-Versions : Python 3.9+
+Versions requises : Python 3.9 ou plus recent.
 Dependances : flask, lxml, requests
 
-SITE
-----
+
+DESINSTALLATION
+---------------
+Menu Demarrer → Gamelist Media Editor → Desinstaller
+Puis supprime le dossier d'installation si besoin.
+
+
+DEPANNAGE
+---------
+• "Python introuvable"
+  → Relance Installer.bat, ou installe Python depuis
+    https://www.python.org/downloads/
+    (coche "Add python.exe to PATH")
+
+• Modules manquants
+  → Ouvre une invite de commandes dans le dossier d'install :
+    python -m pip install flask lxml requests
+
+• Le navigateur ne s'ouvre pas
+  → Va manuellement sur http://127.0.0.1:5050
+
+
+SITE / CODE SOURCE
+------------------
 https://github.com/Kraran/gamelist-media-editor
