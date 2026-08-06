@@ -12,3 +12,5 @@ manuals/
 .DS_Store
 Thumbs.db
 *.log
+
+screenscraper_config.json
