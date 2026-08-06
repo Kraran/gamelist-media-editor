@@ -17,6 +17,8 @@
     <h1>🎮 <span>Gamelist</span> Media Editor</h1>
     <span class="badge" id="game-count">0 jeux</span>
     <div class="header-spacer"></div>
+    <span class="system-badge" id="system-name" title="Système (dossier du gamelist.xml)">—</span>
+    <div class="header-spacer"></div>
     <button class="btn btn-danger" id="btn-delete-game" title="Supprime le jeu sélectionné (ROM + médias + entrée XML)" disabled>
       🗑 Supprimer ce jeu
     </button>
@@ -61,6 +63,14 @@
             <button class="btn btn-accent" id="btn-save-name">Enregistrer</button>
           </div>
           <div class="meta" id="game-path">—</div>
+          <div class="game-header-actions">
+            <button type="button" class="btn btn-accent" id="btn-ss-scrape" title="Récupérer médias et métadonnées depuis ScreenScraper">
+              📡 ScreenScraper
+            </button>
+            <button type="button" class="btn btn-accent" id="btn-adb-scrape" title="Arcade Database (MAME/FBNeo) — à utiliser sur les systèmes arcade">
+              🕹️ Arcade DB
+            </button>
+          </div>
         </div>
 
         <div class="desc-editor" id="desc-editor">
@@ -151,6 +161,23 @@
     </div>
   </div>
 
+  
+  <div class="modal-overlay" id="ss-modal" role="dialog" aria-modal="true" aria-labelledby="ss-modal-title">
+    <div class="modal ss-modal">
+      <div class="tools-header">
+        <h3 id="ss-modal-title">📡 Scraper — appliquer les champs</h3>
+        <button type="button" class="btn" id="ss-modal-close" title="Fermer">✕</button>
+      </div>
+      <p class="tools-intro" id="ss-modal-info">Choisis les champs à importer pour ce jeu.</p>
+      <div class="ss-candidates" id="ss-candidates" hidden></div>
+      <div class="ss-fields" id="ss-fields"></div>
+      <div class="tools-footer">
+        <button type="button" class="btn" id="ss-modal-cancel">Annuler</button>
+        <button type="button" class="btn btn-accent" id="ss-modal-apply">Appliquer la sélection</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="tools-panel" role="dialog" aria-modal="true" aria-labelledby="tools-title">
     <div class="modal tools-modal">
       <div class="tools-header">
@@ -160,6 +187,42 @@
       <p class="tools-intro">Actions globales sur le fichier <code>gamelist.xml</code> (pas liées à un jeu précis).</p>
 
       <div class="tools-list">
+        <div class="tool-card tool-card-ss">
+          <div class="tool-card-info" style="flex:1;width:100%">
+            <div class="tool-card-title">📡 ScreenScraper</div>
+            <div class="tool-card-desc">
+              Le scrape fonctionne <strong>immédiatement</strong> (identifiants logiciel intégrés).
+              Optionnel : ton compte <strong>membre</strong> pour le <strong>boost</strong> de quotas.
+              Stocké en local dans <code>screenscraper_config.json</code>.
+            </div>
+            <div class="ss-form">
+              <div class="ss-form-row">
+                <label for="ss-ssid">Identifiant membre (ssid) — optionnel</label>
+                <input type="text" id="ss-ssid" autocomplete="username" placeholder="Pseudo ScreenScraper" />
+              </div>
+              <div class="ss-form-row">
+                <label for="ss-sspassword">Mot de passe membre — optionnel</label>
+                <input type="password" id="ss-sspassword" autocomplete="current-password" placeholder="••••••••" />
+              </div>
+              <div class="ss-form-row">
+                <label for="ss-region">Région préférée</label>
+                <select id="ss-region">
+                  <option value="fr">fr (France)</option>
+                  <option value="eu">eu (Europe)</option>
+                  <option value="us">us (USA)</option>
+                  <option value="jp">jp (Japon)</option>
+                  <option value="wor">wor (World)</option>
+                </select>
+              </div>
+              <div class="ss-form-actions">
+                <button type="button" class="btn btn-accent" id="btn-ss-save">Enregistrer</button>
+                <button type="button" class="btn" id="btn-ss-test">Tester la connexion</button>
+                <span class="ss-status" id="ss-status"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="tool-card">
           <div class="tool-card-info">
             <div class="tool-card-title">Sauvegarder le gamelist.xml</div>
@@ -191,5 +254,13 @@
   </div>
 
   <script src="/static/app.js"></script>
+  <div id="ss-loading" class="ss-loading" hidden aria-live="polite" aria-busy="true">
+    <div class="ss-loading-box">
+      <div class="ss-spinner" aria-hidden="true"></div>
+      <div class="ss-loading-text" id="ss-loading-text">ScreenScraper…</div>
+      <div class="ss-loading-sub">Cela peut prendre plusieurs secondes</div>
+    </div>
+  </div>
+
 </body>
 </html>
