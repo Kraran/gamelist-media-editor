@@ -51,7 +51,7 @@ python -m pip install -r requirements.txt
 4. Run **`Lancer.bat`** (Windows) or:
 
 ```bash
-python app.py "C:\path\to\gamelist.xml"
+python app.py "C:\\path\\to\\gamelist.xml"
 ```
 
 5. Open [http://127.0.0.1:5050](http://127.0.0.1:5050)
