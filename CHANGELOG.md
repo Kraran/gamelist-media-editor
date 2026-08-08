@@ -1,49 +1,21 @@
 # Changelog
 
-## [1.1.0] - 2026-08-06
+All notable changes to Gamelist Media Editor are documented in this file.
+
+## [1.1.1] - 2026-08-08
 
 ### Added
-- **ScreenScraper** integration: per-field scrape, candidate picker, zip-inner ROM hashing, optional member boost (Tools)
-- **Arcade Database** (Arcade Italia) scrape button for MAME/FBNeo-style romsets
-- Loading spinner during scraper requests
-- System name badge in the header bar
-- Clearer API error handling (network, HTTP, login, **quota / rate limits**)
-- Client-side throttling for ScreenScraper and Arcade Database requests
+- **Internationalization (i18n)** for the full UI and server API messages
+- **13 languages**: Français, English, Español, Deutsch, Italiano, Português, Nederlands, Polski, Türkçe, Svenska, Norsk, Dansk, Русский
+- Language selector in **Tools** with explicit **Apply language** action (choice stored in the browser)
+- Client sends `X-Locale` so error / quota messages from the server match the selected language
+- Locale files under `static/locales/*.json` (easy to extend)
 
 ### Changed
-- Tools panel: ScreenScraper member credentials only (developer credentials are built into the app)
-- Unified scrape apply modal for both scrapers
+- Unified app version constant **`APP_VERSION = 1.1.1`** (User-Agent, console banner, Arcade DB UA)
+- Remaining hard-coded French status / toast / scrape strings moved into locale files
 
 ### Fixed
-- Wrong ScreenScraper developer password encoding (`O` vs `0`)
-- `amiga500` and many other RetroBat folder names mapped to ScreenScraper system IDs
-- Scrape button passing a pointer event as `gameid`
+- Language change now applies reliably after using the Apply button
+- Server messages (invalid index, missing fields, file not found, scrape errors) follow the UI language
 
-## [1.0.2] - 2026-08-06
-
-### Added
-- Security hardening and robustness improvements
-- Reload list button
-- Upload size limits
-- Genre hierarchy polish
-
-### Fixed
-- Path sanitization issues
-- Filter / list logic
-- Debounced search
-
-## [1.0.1] - 2026-08-05
-
-### Added
-- Missing media filters with live counts
-- Keyboard navigation and shortcuts
-- Tools panel, Quit button, Windows Setup
-
-### Fixed
-- JavaScript escapeHtml syntax error
-- Windows batch CRLF / installer encoding
-
-## [1.0.0] - 2026-08-02
-
-### Added
-- Initial public release
