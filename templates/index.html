@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" id="html-root">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -15,20 +15,20 @@
 <body>
   <header>
     <h1>🎮 <span>Gamelist</span> Media Editor</h1>
-    <span class="badge" id="game-count">0 jeux</span>
+    <span class="badge" id="game-count" data-i18n="header.game_count" data-i18n-params='{"n":0}'>0 jeux</span>
     <div class="header-spacer"></div>
-    <span class="system-badge" id="system-name" title="Système (dossier du gamelist.xml)">—</span>
+    <span class="system-badge" id="system-name" data-i18n-title="header.system_title" title="Système (dossier du gamelist.xml)">—</span>
     <div class="header-spacer"></div>
-    <button class="btn btn-danger" id="btn-delete-game" title="Supprime le jeu sélectionné (ROM + médias + entrée XML)" disabled>
+    <button class="btn btn-danger" id="btn-delete-game" data-i18n="header.delete_game" data-i18n-title="header.delete_game_title" title="Supprime le jeu sélectionné (ROM + médias + entrée XML)" disabled>
       🗑 Supprimer ce jeu
     </button>
-    <button class="btn" id="btn-reload" title="Recharger le gamelist.xml depuis le disque">
+    <button class="btn" id="btn-reload" data-i18n="header.reload" data-i18n-title="header.reload_title" title="Recharger le gamelist.xml depuis le disque">
       ↻ Recharger
     </button>
-    <button class="btn" id="btn-tools" title="Outils et actions globales">
+    <button class="btn" id="btn-tools" data-i18n="header.tools" data-i18n-title="header.tools_title" title="Outils et actions globales">
       ⚙ Outils
     </button>
-    <button class="btn" id="btn-quit" title="Arrêter le serveur et fermer">
+    <button class="btn" id="btn-quit" data-i18n="header.quit" data-i18n-title="header.quit_title" title="Arrêter le serveur et fermer">
       ✕ Quitter
     </button>
   </header>
@@ -36,16 +36,16 @@
   <div class="main">
     <aside class="sidebar">
       <div class="search-box">
-        <input type="search" id="search" placeholder="Rechercher un jeu…" autocomplete="off" aria-label="Rechercher un jeu" />
+        <input type="search" id="search" placeholder="Rechercher un jeu…" data-i18n-placeholder="sidebar.search_placeholder" autocomplete="off" aria-label="Rechercher un jeu" data-i18n-aria="sidebar.search_aria" />
       </div>
-      <div class="media-filters" id="media-filters" role="group" aria-label="Filtres médias manquants" title="Filtrer les jeux selon les médias manquants">
-        <button type="button" class="filter-chip active" data-filter="all" aria-pressed="true">Tous<span class="filter-count">0</span></button>
-        <button type="button" class="filter-chip" data-filter="image" aria-pressed="false">Sans image<span class="filter-count">0</span></button>
-        <button type="button" class="filter-chip" data-filter="video" aria-pressed="false">Sans vidéo<span class="filter-count">0</span></button>
-        <button type="button" class="filter-chip" data-filter="marquee" aria-pressed="false">Sans marquee<span class="filter-count">0</span></button>
-        <button type="button" class="filter-chip" data-filter="manual" aria-pressed="false">Sans manuel<span class="filter-count">0</span></button>
-        <button type="button" class="filter-chip" data-filter="boxback" aria-pressed="false">Sans boxback<span class="filter-count">0</span></button>
-        <button type="button" class="filter-chip" data-filter="any" aria-pressed="false">≥1 manquant<span class="filter-count">0</span></button>
+      <div class="media-filters" id="media-filters" role="group" aria-label="Filtres médias manquants" data-i18n-aria="sidebar.filters_aria" title="Filtrer les jeux selon les médias manquants" data-i18n-title="sidebar.filters_title">
+        <button type="button" class="filter-chip active" data-filter="all" aria-pressed="true"><span data-i18n="sidebar.filter_all">Tous</span><span class="filter-count">0</span></button>
+        <button type="button" class="filter-chip" data-filter="image" aria-pressed="false"><span data-i18n="sidebar.filter_image">Sans image</span><span class="filter-count">0</span></button>
+        <button type="button" class="filter-chip" data-filter="video" aria-pressed="false"><span data-i18n="sidebar.filter_video">Sans vidéo</span><span class="filter-count">0</span></button>
+        <button type="button" class="filter-chip" data-filter="marquee" aria-pressed="false"><span data-i18n="sidebar.filter_marquee">Sans marquee</span><span class="filter-count">0</span></button>
+        <button type="button" class="filter-chip" data-filter="manual" aria-pressed="false"><span data-i18n="sidebar.filter_manual">Sans manuel</span><span class="filter-count">0</span></button>
+        <button type="button" class="filter-chip" data-filter="boxback" aria-pressed="false"><span data-i18n="sidebar.filter_boxback">Sans boxback</span><span class="filter-count">0</span></button>
+        <button type="button" class="filter-chip" data-filter="any" aria-pressed="false"><span data-i18n="sidebar.filter_any">≥1 manquant</span><span class="filter-count">0</span></button>
       </div>
       <div class="game-list" id="game-list" role="listbox" aria-label="Liste des jeux"></div>
     </aside>
@@ -53,40 +53,40 @@
     <section class="content" id="content">
       <div class="empty-state" id="empty-state">
         <p class="empty-state-icon" aria-hidden="true">🎮</p>
-        <p>Sélectionne un jeu dans la liste<br>puis glisse-dépose tes médias</p>
+        <p data-i18n-html="sidebar.empty_select">Sélectionne un jeu dans la liste<br>puis glisse-dépose tes médias</p>
       </div>
 
       <div id="editor" class="editor" hidden>
         <div class="game-header">
           <div class="name-row">
             <input type="text" id="game-name-input" class="name-input" spellcheck="false" />
-            <button class="btn btn-accent" id="btn-save-name">Enregistrer</button>
+            <button class="btn btn-accent" id="btn-save-name" data-i18n="editor.save_name">Enregistrer</button>
           </div>
           <div class="meta" id="game-path">—</div>
           <div class="game-header-actions">
-            <button type="button" class="btn btn-accent" id="btn-ss-scrape" title="Récupérer médias et métadonnées depuis ScreenScraper">
-              📡 ScreenScraper
+            <button type="button" class="btn btn-accent" id="btn-ss-scrape" data-i18n-title="editor.ss_scrape_title" title="Récupérer médias et métadonnées depuis ScreenScraper">
+              <span data-i18n="editor.ss_scrape">📡 ScreenScraper</span>
             </button>
-            <button type="button" class="btn btn-accent" id="btn-adb-scrape" title="Arcade Database (MAME/FBNeo) — à utiliser sur les systèmes arcade">
-              🕹️ Arcade DB
+            <button type="button" class="btn btn-accent" id="btn-adb-scrape" data-i18n-title="editor.adb_scrape_title" title="Arcade Database (MAME/FBNeo) — à utiliser sur les systèmes arcade">
+              <span data-i18n="editor.adb_scrape">🕹️ Arcade DB</span>
             </button>
           </div>
         </div>
 
         <div class="desc-editor" id="desc-editor">
           <div class="desc-header">
-            <span class="zone-title"><span class="icon">📝</span> Description (desc)</span>
-            <button class="btn btn-accent" id="btn-save-desc">Enregistrer</button>
+            <span class="zone-title"><span class="icon">📝</span> <span data-i18n="editor.desc_title">Description</span></span>
+            <button class="btn btn-accent" id="btn-save-desc" data-i18n="editor.save_name">Enregistrer</button>
           </div>
-          <textarea id="desc-textarea" placeholder="Description du jeu…" spellcheck="true"></textarea>
+          <textarea id="desc-textarea" placeholder="Description du jeu…" data-i18n-placeholder="editor.desc_placeholder" spellcheck="true"></textarea>
         </div>
 
         <div class="media-grid" id="media-grid"></div>
 
         <div class="meta-section" id="meta-section">
           <div class="meta-header">
-            <span class="zone-title"><span class="icon">⚙️</span> Métadonnées</span>
-            <button class="btn btn-accent" id="btn-save-meta">Enregistrer les métadonnées</button>
+            <span class="zone-title"><span class="icon">⚙️</span> <span data-i18n="editor.meta_title">Métadonnées</span></span>
+            <button class="btn btn-accent" id="btn-save-meta" data-i18n="editor.save_meta">Enregistrer les métadonnées</button>
           </div>
           <div class="meta-grid">
             <div class="meta-field meta-genre-main">
@@ -138,7 +138,7 @@
   </div>
 
   <div class="status-bar">
-    <span id="status">Prêt</span>
+    <span id="status" data-i18n="status.ready_short">Prêt</span>
     <span>↑↓ naviguer · Ctrl+S enregistrer · Ctrl+F rechercher · ↻ recharger</span>
   </div>
   <div class="toast" id="toast"></div>
@@ -148,15 +148,14 @@
       <h3 id="confirm-title">Confirmer</h3>
       <div id="confirm-body"></div>
       <label class="modal-backup">
-        <input type="checkbox" id="confirm-backup" checked />
-        <span>
+        <input type="checkbox" id="confirm-backup" checked /> <span data-i18n="confirm.backup_label"> </span><span>
           Créer une sauvegarde <code>gamelist.xml.bak</code> avant de continuer
           <small>Copie du XML actuel à côté du fichier (écrase l’ancien .bak s’il existe)</small>
         </span>
       </label>
       <div class="modal-actions">
-        <button type="button" class="btn" id="confirm-cancel">Annuler</button>
-        <button type="button" class="btn btn-danger" id="confirm-ok">Confirmer</button>
+        <button type="button" class="btn" id="confirm-cancel" data-i18n="confirm.cancel">Annuler</button>
+        <button type="button" class="btn btn-danger" id="confirm-ok" data-i18n="confirm.ok">Confirmer</button>
       </div>
     </div>
   </div>
@@ -165,15 +164,15 @@
   <div class="modal-overlay" id="ss-modal" role="dialog" aria-modal="true" aria-labelledby="ss-modal-title">
     <div class="modal ss-modal">
       <div class="tools-header">
-        <h3 id="ss-modal-title">📡 Scraper — appliquer les champs</h3>
+        <h3 id="ss-modal-title" data-i18n="ss_modal.title">📡 Scraper — appliquer les champs</h3>
         <button type="button" class="btn" id="ss-modal-close" title="Fermer">✕</button>
       </div>
-      <p class="tools-intro" id="ss-modal-info">Choisis les champs à importer pour ce jeu.</p>
+      <p class="tools-intro" id="ss-modal-info" data-i18n="ss_modal.info">Choisis les champs à importer pour ce jeu.</p>
       <div class="ss-candidates" id="ss-candidates" hidden></div>
       <div class="ss-fields" id="ss-fields"></div>
       <div class="tools-footer">
-        <button type="button" class="btn" id="ss-modal-cancel">Annuler</button>
-        <button type="button" class="btn btn-accent" id="ss-modal-apply">Appliquer la sélection</button>
+        <button type="button" class="btn" id="ss-modal-cancel" data-i18n="scrape.cancel">Annuler</button>
+        <button type="button" class="btn btn-accent" id="ss-modal-apply" data-i18n="scrape.apply">Appliquer la sélection</button>
       </div>
     </div>
   </div>
@@ -181,31 +180,61 @@
   <div class="modal-overlay" id="tools-panel" role="dialog" aria-modal="true" aria-labelledby="tools-title">
     <div class="modal tools-modal">
       <div class="tools-header">
-        <h3 id="tools-title">⚙ Outils</h3>
-        <button type="button" class="btn" id="tools-close" title="Fermer">✕</button>
+        <h3 id="tools-title" data-i18n="tools.title">⚙ Outils</h3>
+        <button type="button" class="btn" id="tools-close" title="Fermer" data-i18n-title="tools.close">✕</button>
       </div>
-      <p class="tools-intro">Actions globales sur le fichier <code>gamelist.xml</code> (pas liées à un jeu précis).</p>
+      <p class="tools-intro" data-i18n-html="tools.intro">Actions globales sur le fichier <code>gamelist.xml</code> (pas liées à un jeu précis).</p>
 
       <div class="tools-list">
+        <div class="tool-card">
+          <div class="tool-card-info" style="flex:1;width:100%">
+            <div class="tool-card-title" data-i18n="tools.lang_title">🌐 Langue de l’interface</div>
+            <div class="tool-card-desc" data-i18n="tools.lang_desc">Change la langue de l’interface. Le choix est mémorisé sur ce navigateur.</div>
+            <div class="ss-form">
+              <div class="ss-form-row">
+                <label for="ui-lang" data-i18n="tools.lang_label">Langue</label>
+                <select id="ui-lang" aria-label="Language">
+                  <option value="fr">Français</option>
+                  <option value="en">English</option>
+                  <option value="es">Español</option>
+                  <option value="de">Deutsch</option>
+                  <option value="it">Italiano</option>
+                  <option value="pt">Português</option>
+                  <option value="nl">Nederlands</option>
+                  <option value="pl">Polski</option>
+                  <option value="tr">Türkçe</option>
+                  <option value="sv">Svenska</option>
+                  <option value="no">Norsk</option>
+                  <option value="da">Dansk</option>
+                  <option value="ru">Русский</option>
+                </select>
+              </div>
+              <div class="ss-form-actions">
+                <button type="button" class="btn btn-accent" id="btn-lang-apply" data-i18n="tools.lang_apply">Appliquer la langue</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="tool-card tool-card-ss">
           <div class="tool-card-info" style="flex:1;width:100%">
-            <div class="tool-card-title">📡 ScreenScraper</div>
-            <div class="tool-card-desc">
+            <div class="tool-card-title" data-i18n="tools.ss_title">📡 ScreenScraper</div>
+            <div class="tool-card-desc" data-i18n-html="tools.ss_desc">
               Le scrape fonctionne <strong>immédiatement</strong> (identifiants logiciel intégrés).
               Optionnel : ton compte <strong>membre</strong> pour le <strong>boost</strong> de quotas.
               Stocké en local dans <code>screenscraper_config.json</code>.
             </div>
             <div class="ss-form">
               <div class="ss-form-row">
-                <label for="ss-ssid">Identifiant membre (ssid) — optionnel</label>
-                <input type="text" id="ss-ssid" autocomplete="username" placeholder="Pseudo ScreenScraper" />
+                <label for="ss-ssid" data-i18n="tools.ss_ssid">Identifiant membre (ssid) — optionnel</label>
+                <input type="text" id="ss-ssid" autocomplete="username" placeholder="Pseudo ScreenScraper" data-i18n-placeholder="tools.ss_ssid_ph" />
               </div>
               <div class="ss-form-row">
-                <label for="ss-sspassword">Mot de passe membre — optionnel</label>
+                <label for="ss-sspassword" data-i18n="tools.ss_pass">Mot de passe membre — optionnel</label>
                 <input type="password" id="ss-sspassword" autocomplete="current-password" placeholder="••••••••" />
               </div>
               <div class="ss-form-row">
-                <label for="ss-region">Région préférée</label>
+                <label for="ss-region" data-i18n="tools.ss_region">Région préférée</label>
                 <select id="ss-region">
                   <option value="fr">fr (France)</option>
                   <option value="eu">eu (Europe)</option>
@@ -215,8 +244,8 @@
                 </select>
               </div>
               <div class="ss-form-actions">
-                <button type="button" class="btn btn-accent" id="btn-ss-save">Enregistrer</button>
-                <button type="button" class="btn" id="btn-ss-test">Tester la connexion</button>
+                <button type="button" class="btn btn-accent" id="btn-ss-save" data-i18n="tools.ss_save">Enregistrer</button>
+                <button type="button" class="btn" id="btn-ss-test" data-i18n="tools.ss_test">Tester la connexion</button>
                 <span class="ss-status" id="ss-status"></span>
               </div>
             </div>
@@ -225,30 +254,30 @@
 
         <div class="tool-card">
           <div class="tool-card-info">
-            <div class="tool-card-title">Sauvegarder le gamelist.xml</div>
-            <div class="tool-card-desc">
+            <div class="tool-card-title" data-i18n="tools.backup_title">Sauvegarder le gamelist.xml</div>
+            <div class="tool-card-desc" data-i18n-html="tools.backup_desc">
               Crée une copie <code>gamelist.xml.bak</code> à côté du fichier courant.
               Écrase l’ancien <code>.bak</code> s’il existe.
             </div>
           </div>
-          <button type="button" class="btn btn-accent" id="btn-manual-backup">Sauvegarder (.bak)</button>
+          <button type="button" class="btn btn-accent" id="btn-manual-backup" data-i18n="tools.backup_btn">Sauvegarder (.bak)</button>
         </div>
 
         <div class="tool-card tool-card-danger">
           <div class="tool-card-info">
-            <div class="tool-card-title">Supprimer toutes les balises &lt;region&gt;</div>
-            <div class="tool-card-desc">
+            <div class="tool-card-title" data-i18n="tools.purge_title">Supprimer toutes les balises &lt;region&gt;</div>
+            <div class="tool-card-desc" data-i18n-html="tools.purge_desc">
               Retire toutes les lignes <code>&lt;region&gt;…&lt;/region&gt;</code> de
               <strong>tous</strong> les jeux. Confirmation demandée (sauvegarde .bak optionnelle).
             </div>
           </div>
-          <button type="button" class="btn btn-danger" id="btn-purge-regions">Supprimer les &lt;region&gt;</button>
+          <button type="button" class="btn btn-danger" id="btn-purge-regions" data-i18n="tools.purge_btn">Supprimer les &lt;region&gt;</button>
         </div>
       </div>
 
       <div class="tools-footer">
-        <span class="tools-hint">Raccourcis : ↑↓ naviguer · Ctrl+S enregistrer · Ctrl+F rechercher</span>
-        <button type="button" class="btn" id="tools-close-2">Fermer</button>
+        <span class="tools-hint" data-i18n="tools.hints">Raccourcis : ↑↓ naviguer · Ctrl+S enregistrer · Ctrl+F rechercher</span>
+        <button type="button" class="btn" id="tools-close-2" data-i18n="tools.close">Fermer</button>
       </div>
     </div>
   </div>
@@ -258,7 +287,7 @@
     <div class="ss-loading-box">
       <div class="ss-spinner" aria-hidden="true"></div>
       <div class="ss-loading-text" id="ss-loading-text">ScreenScraper…</div>
-      <div class="ss-loading-sub">Cela peut prendre plusieurs secondes</div>
+      <div class="ss-loading-sub" data-i18n="scrape.loading_sub">Cela peut prendre plusieurs secondes</div>
     </div>
   </div>
 

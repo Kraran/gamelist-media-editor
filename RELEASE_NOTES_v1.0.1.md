@@ -30,5 +30,5 @@
 ### B — Manual
 1. Download `gamelist-media-editor-v1.0.1-source.zip`
 2. `python -m pip install -r requirements.txt`
-3. Run `Lancer.bat` or `python app.py path\\to\\gamelist.xml`
+3. Run `Lancer.bat` or `python app.py path\to\gamelist.xml`
 4. Open http://127.0.0.1:5050

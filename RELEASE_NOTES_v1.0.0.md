@@ -49,7 +49,7 @@ MIT
 
 ## Français
 
-Première version stable de l'éditeur local de médias et métadonnées pour `gamelist.xml` (EmulationStation / RetroBat).
+Première version stable de l’éditeur local de médias et métadonnées pour `gamelist.xml` (EmulationStation / RetroBat).
 
 ### Points clés
 
@@ -58,7 +58,7 @@ Première version stable de l'éditeur local de médias et métadonnées pour `g
 - **Métadonnées** : rating, releasedate, developer, publisher, family, players, lang, genre
 - **Genre hiérarchique**, **drapeaux** pour `lang`
 - **Liste alphabétique** avec recherche
-- **Purge des balises `<region>`** et **suppression complète d'un jeu**
+- **Purge des balises `<region>`** et **suppression complète d’un jeu**
 - Lanceur Windows et raccourci Bureau
 - Icônes : `python generate_icons.py` après clone, ou ZIP de release déjà généré
 

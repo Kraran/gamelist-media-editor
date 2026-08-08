@@ -1,10 +1,163 @@
-const FIELDS = [
-{ key: "image",   label: "Image (screenshot)", icon: "🖼️" },
-{ key: "video",   label: "Vidéo",              icon: "🎬" },
-{ key: "marquee", label: "Marquee",            icon: "🏷️" },
-{ key: "manual",  label: "Manuel (PDF)",       icon: "📖" },
-{ key: "boxback", label: "Box Back",           icon: "📦" },
+const FIELD_DEFS = [
+{ key: "image",   icon: "🖼️" },
+{ key: "video",   icon: "🎬" },
+{ key: "marquee", icon: "🏷️" },
+{ key: "manual",  icon: "📖" },
+{ key: "boxback", icon: "📦" },
 ];
+function getFields() {
+  return FIELD_DEFS.map(f => ({
+    ...f,
+    label: t("fields." + f.key, null, f.key),
+  }));
+}
+/** @deprecated use getFields() — kept as live view for older call sites */
+let FIELDS = FIELD_DEFS.map(f => ({ ...f, label: f.key }));
+
+/* ========== i18n ========== */
+const LOCALE_KEY = "gme_locale";
+const DEFAULT_LOCALE = "fr";
+let I18N = {};
+let currentLocale = DEFAULT_LOCALE;
+
+function getStoredLocale() {
+  try {
+    const v = localStorage.getItem(LOCALE_KEY);
+    if (v && /^[a-z]{2}(-[A-Z]{2})?$/.test(v)) return v.split("-")[0];
+  } catch (_) {}
+  return DEFAULT_LOCALE;
+}
+
+function t(key, params, fallback) {
+  const parts = String(key || "").split(".");
+  let cur = I18N;
+  for (const p of parts) {
+    if (cur && typeof cur === "object" && p in cur) cur = cur[p];
+    else {
+      cur = null;
+      break;
+    }
+  }
+  let s = (typeof cur === "string") ? cur : (fallback != null ? fallback : key);
+  if (params && typeof params === "object") {
+    s = s.replace(/\{(\w+)\}/g, (_, k) => (params[k] != null ? String(params[k]) : "{" + k + "}"));
+  }
+  return s;
+}
+
+function applyI18n() {
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    const key = el.getAttribute("data-i18n");
+    let params = null;
+    const raw = el.getAttribute("data-i18n-params");
+    if (raw) {
+      try { params = JSON.parse(raw); } catch (_) {}
+    }
+    el.textContent = t(key, params);
+  });
+  document.querySelectorAll("[data-i18n-html]").forEach(el => {
+    el.innerHTML = t(el.getAttribute("data-i18n-html"));
+  });
+  document.querySelectorAll("[data-i18n-title]").forEach(el => {
+    el.title = t(el.getAttribute("data-i18n-title"));
+  });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
+    el.placeholder = t(el.getAttribute("data-i18n-placeholder"));
+  });
+  document.querySelectorAll("[data-i18n-aria]").forEach(el => {
+    el.setAttribute("aria-label", t(el.getAttribute("data-i18n-aria")));
+  });
+  const root = document.documentElement;
+  if (root) root.lang = currentLocale;
+  FIELDS = getFields();
+  // Refresh dynamic bits that depend on locale
+  try {
+    const mainSel = document.getElementById("meta-genre-main");
+    if (mainSel && Object.keys(GENRES || {}).length) {
+      const v = mainSel.value;
+      initGenreSelects();
+      if (v) mainSel.value = v;
+    }
+  } catch (_) {}
+  try { updateFilterCounts(); } catch (_) {}
+  try {
+    if (typeof games !== "undefined" && games.length) {
+      const badge = document.getElementById("game-count");
+      if (badge) {
+        const q = (document.getElementById("search") || {}).value || "";
+        const filtered = typeof getFilteredGames === "function" ? getFilteredGames(q.toLowerCase().trim()) : games;
+        if (filtered.length === games.length) {
+          badge.textContent = t("header.game_count", { n: games.length });
+        } else {
+          badge.textContent = t("header.game_count_filtered", { visible: filtered.length, total: games.length });
+        }
+      }
+    }
+  } catch (_) {}
+}
+
+async function loadLocale(code) {
+  const lang = (code || DEFAULT_LOCALE).split("-")[0];
+  try {
+    const res = await fetch("/static/locales/" + lang + ".json", { cache: "no-cache" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    I18N = await res.json();
+    currentLocale = lang;
+    try { localStorage.setItem(LOCALE_KEY, lang); } catch (_) {}
+    applyI18n();
+    return true;
+  } catch (e) {
+    console.error("locale load failed", lang, e);
+    if (lang !== DEFAULT_LOCALE) return loadLocale(DEFAULT_LOCALE);
+    return false;
+  }
+}
+
+async function setLocale(code, { silent = false } = {}) {
+  const ok = await loadLocale(code);
+  const sel = document.getElementById("ui-lang");
+  if (sel) sel.value = currentLocale;
+  // Re-render open editor zones with new field labels
+  try {
+    if (currentIndex != null) {
+      const g = games.find(x => x.index === currentIndex);
+      if (g && typeof renderZones === "function") renderZones(g);
+    }
+  } catch (_) {}
+  try {
+    if (typeof renderList === "function") renderList();
+  } catch (_) {}
+  if (!silent) {
+    toast(t("tools.lang_changed"), ok ? "success" : "error");
+  }
+  return ok;
+}
+
+function wireLanguageControls() {
+  const sel = document.getElementById("ui-lang");
+  const btn = document.getElementById("btn-lang-apply");
+  if (sel) sel.value = currentLocale;
+  if (btn && !btn.dataset.i18nWired) {
+    btn.dataset.i18nWired = "1";
+    btn.addEventListener("click", async () => {
+      const code = (sel && sel.value) || currentLocale;
+      btn.disabled = true;
+      try {
+        await setLocale(code);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  }
+  // Also apply on change for convenience (still has explicit button)
+  if (sel && !sel.dataset.i18nWired) {
+    sel.dataset.i18nWired = "1";
+    sel.addEventListener("change", async () => {
+      // Wait for explicit Apply — do not auto-switch
+    });
+  }
+}
+
 const SPECIAL_FLAGS = { wr: "🌍", world: "🌍", multi: "🌐", unk: "🏳️", xx: "🏳️" };
 const LANG_TO_FLAGCDN = { en: "gb", jp: "jp", ja: "jp", ko: "kr", zh: "cn", cn: "cn", us: "us", br: "br", eu: "eu" };
 let GENRES = {};
@@ -44,6 +197,12 @@ function setStatus(txt) {
  * Throws Error with a French, user-readable message.
  */
 async function apiFetch(url, options = {}) {
+  options = { ...options };
+  const headers = new Headers(options.headers || {});
+  if (!headers.has("X-Locale")) {
+    headers.set("X-Locale", (typeof currentLocale !== "undefined" && currentLocale) ? currentLocale : "fr");
+  }
+  options.headers = headers;
   let res;
   try {
     res = await fetch(url, options);
@@ -51,8 +210,8 @@ async function apiFetch(url, options = {}) {
     const offline = (typeof navigator !== "undefined" && navigator.onLine === false);
     throw new Error(
       offline
-        ? "Pas de connexion réseau."
-        : "Impossible de contacter le serveur local (est-il toujours lancé ?)."
+        ? t("errors.offline")
+        : t("errors.server_down")
     );
   }
 
@@ -73,10 +232,10 @@ async function apiFetch(url, options = {}) {
 
   if (!res.ok) {
     const serverMsg = data && (data.error || data.message);
-    let msg = serverMsg || ("Erreur serveur HTTP " + res.status);
-    if (res.status === 404 && !serverMsg) msg = "Ressource introuvable (404).";
-    if (res.status === 413) msg = "Fichier trop volumineux pour le serveur.";
-    if (res.status >= 500 && !serverMsg) msg = "Erreur interne du serveur (" + res.status + ").";
+    let msg = serverMsg || t("errors.http", { status: res.status });
+    if (res.status === 404 && !serverMsg) msg = t("errors.not_found");
+    if (res.status === 413) msg = t("errors.too_large");
+    if (res.status >= 500 && !serverMsg) msg = t("errors.internal", { status: res.status });
     const err = new Error(msg);
     err.status = res.status;
     err.data = data;
@@ -103,7 +262,7 @@ function handleError(e, context) {
     "patiente", "boost", "503", "maintenance", "satur"
   ].some(k => low.includes(k));
   toast(prefix + msg, isQuota ? "warning" : "error");
-  setStatus(isQuota ? "Limite API — réessaie plus tard" : "Erreur");
+  setStatus(isQuota ? t("status.quota") : t("status.error"));
   return msg;
 }
 function mediaUrl(relPath) {
@@ -119,7 +278,7 @@ function escapeHtml(str) {
 }
 function initGenreSelects() {
 const mainSel = document.getElementById("meta-genre-main");
-mainSel.innerHTML = '<option value="">— Choisir —</option>';
+mainSel.innerHTML = '<option value="">' + t("editor.genre_choose") + '</option>';
 Object.keys(GENRES).sort().forEach(main => {
 const opt = document.createElement("option");
 opt.value = main; opt.textContent = main;
@@ -128,7 +287,7 @@ mainSel.appendChild(opt);
 }
 function fillSubGenres(main, selectedSub = "") {
 const subSel = document.getElementById("meta-genre-sub");
-subSel.innerHTML = '<option value="">— Aucun —</option>';
+subSel.innerHTML = '<option value="">' + t('editor.genre_none') + '</option>';
 const subs = GENRES[main] || [];
 if (!subs.length) { subSel.disabled = true; return; }
 subSel.disabled = false;
@@ -205,9 +364,9 @@ function getFilteredGames(searchQuery) {
 function updateGameCount(visibleCount) {
   const el = document.getElementById("game-count");
   if (mediaFilter === "all" && !document.getElementById("search").value.trim()) {
-    el.textContent = games.length + " jeux";
+    el.textContent = t("header.game_count", { n: games.length });
   } else {
-    el.textContent = visibleCount + " / " + games.length + " jeux";
+    el.textContent = t("header.game_count_filtered", { visible: visibleCount, total: games.length });
   }
 }
 
@@ -217,7 +376,7 @@ function updateFilterCounts(q) {
   games.forEach(g => {
     if (!matchesSearch(g, query)) return;
     counts.all++;
-    FIELDS.forEach(f => {
+    getFields().forEach(f => {
       if (!hasMedia(g, f.key)) counts[f.key]++;
     });
     if (FIELDS.some(f => !hasMedia(g, f.key))) counts.any++;
@@ -234,7 +393,7 @@ function updateSystemBadge(system) {
   if (!el) return;
   if (!system || !system.label) {
     el.textContent = "—";
-    el.title = "Système inconnu";
+    el.title = t("header.system_unknown");
     el.dataset.empty = "1";
     return;
   }
@@ -249,7 +408,7 @@ function updateSystemBadge(system) {
 }
 
 async function loadGames() {
-  setStatus("Chargement…");
+  setStatus(t("status.loading"));
   const keepIndex = currentIndex;
   try {
     const data = await apiFetch("/api/games");
@@ -282,9 +441,9 @@ if (_adbBtn2) _adbBtn2.disabled = true;
     } else {
       renderList();
     }
-    setStatus("Prêt — " + games.length + " jeux chargés");
+    setStatus(t("status.ready", { n: games.length }));
   } catch (e) {
-    handleError(e, "Chargement");
+    handleError(e, t("errors.load"));
   }
 }
 function renderList(filter) {
@@ -300,7 +459,7 @@ function renderList(filter) {
     div.setAttribute("role", "option");
     div.setAttribute("aria-selected", currentListIndex === i ? "true" : "false");
     div.tabIndex = -1;
-    const dots = FIELDS.map(f =>
+    const dots = getFields().map(f =>
       `<span class="dot ${hasMedia(g, f.key) ? "filled" : ""}" title="${f.label}"></span>`
     ).join("");
     div.innerHTML =
@@ -315,9 +474,9 @@ function renderList(filter) {
   if (filtered.length === 0) {
     const empty = document.createElement("div");
     empty.className = "filter-empty";
-    empty.textContent = games.length
-      ? "Aucun jeu ne correspond à ce filtre."
-      : "Aucun jeu dans le gamelist.";
+    empty.innerHTML = games.length
+      ? t("sidebar.empty_no_match")
+      : t("sidebar.empty_no_games");
     list.appendChild(empty);
   } else {
     list.appendChild(frag);
@@ -423,7 +582,7 @@ function updateLangFlag(code) {
 function renderZones(g) {
 const grid = document.getElementById("media-grid");
 grid.innerHTML = "";
-FIELDS.forEach(f => {
+getFields().forEach(f => {
 const has = hasMedia(g, f.key);
 const zone = document.createElement("div");
 zone.className = "drop-zone" + (has ? " has-media" : "");
@@ -434,17 +593,17 @@ const url = mediaUrl(g[f.key]);
 if (f.key === "video") {
 previewHtml = `<video class="preview-video" src="${url}" controls muted></video>`;
 } else if (f.key === "manual") {
-previewHtml = `<div class="placeholder"><div class="big">📄</div><div>Manuel PDF</div><a class="manual-link" href="${url}" target="_blank" rel="noopener">Ouvrir</a></div>`;
+previewHtml = `<div class="placeholder"><div class="big">📄</div><div>${t("zone.manual_pdf")}</div><a class="manual-link" href="${url}" target="_blank" rel="noopener">${t("zone.open")}</a></div>`;
 } else {
-previewHtml = `<img src="${url}" alt="${f.label}" onerror="this.parentElement.innerHTML='<div class=\'placeholder\'><div class=\'big\'>⚠️</div>Aperçu indisponible</div>'" />`;
+previewHtml = `<img src="${url}" alt="${f.label}" onerror="this.parentElement.innerHTML='<div class=\'placeholder\'><div class=\'big\'>⚠️</div>${t("zone.preview_unavailable")}</div>'" />`;
 }
 } else {
-previewHtml = `<div class="placeholder"><div class="big">${f.icon}</div><div>Glisse un fichier ici<br>ou une image depuis le web</div></div>`;
+previewHtml = `<div class="placeholder"><div class="big">${f.icon}</div><div>${t("zone.drop")}</div></div>`;
 }
 zone.innerHTML = `
 <div class="zone-header">
 <div class="zone-title"><span class="icon">${f.icon}</span> ${f.label}</div>
-<div class="zone-actions">${has ? `<button class="btn btn-danger" data-action="clear" title="Supprimer">✕</button>` : ""}</div>
+<div class="zone-actions">${has ? `<button class="btn btn-danger" data-action="clear" title="${t("zone.clear_title")}">✕</button>` : ""}</div>
 </div>
 <div class="preview-area">${previewHtml}</div>
 ${has ? `<div class="path-display">${escapeHtml(g[f.key])}</div>` : ""}
@@ -476,15 +635,15 @@ const m = dt.getData("text/html").match(/src=["'](https?:\/\/[^"']+)["']/i);
 if (m) url = m[1];
 }
 if (url) await uploadMedia(field, { url });
-else toast("Aucun fichier ou URL détecté", "error");
+else toast(t("toast.no_file_url"), "error");
 }
 async function uploadMedia(field, { file, url }) {
   if (currentIndex === null) return;
   if (file && typeof file.size === "number" && file.size > MAX_UPLOAD_BYTES) {
-    toast(`Fichier trop volumineux (max ${MAX_UPLOAD_BYTES / (1024 * 1024)} Mo)`, "error");
+    toast(t("toast.file_too_large", { n: MAX_UPLOAD_BYTES / (1024 * 1024) }), "error");
     return;
   }
-  setStatus(file ? "Envoi du fichier…" : "Téléchargement depuis le web…");
+  setStatus(file ? t("status.sending_file") : t("status.downloading"));
   const form = new FormData();
   if (file) form.append("file", file);
   if (url) form.append("url", url);
@@ -493,8 +652,8 @@ async function uploadMedia(field, { file, url }) {
     const g = games.find(x => x.index === currentIndex);
     if (g) { g[field] = data.path; renderZones(g); }
     renderList(document.getElementById("search").value);
-    toast(`✓ ${field} → ${data.filename}`);
-    setStatus("Enregistré");
+    toast(t("toast.upload_ok", { field, filename: data.filename }));
+    setStatus(t("status.saved"));
   } catch (e) {
     handleError(e);
   }
@@ -503,10 +662,8 @@ async function uploadMedia(field, { file, url }) {
 async function clearField(field) {
   // Detach media tag in XML only (file kept on disk)
   const choice = await askConfirm({
-    title: `Retirer le champ « ${field} » ?`,
-    bodyHtml:
-      "<p>La balise sera retirée du <code>gamelist.xml</code>.</p>" +
-      "<p>Le fichier média sur le disque <strong>n’est pas supprimé</strong>.</p>",
+    title: t("confirm.clear_field_title", { field }),
+    bodyHtml: t("confirm.clear_field_body"),
     showBackup: false,
   });
   if (!choice.confirmed) return;
@@ -515,7 +672,7 @@ async function clearField(field) {
     const g = games.find(x => x.index === currentIndex);
     if (g) { g[field] = ""; renderZones(g); }
     renderList(document.getElementById("search").value);
-    toast("Champ retiré du XML");
+    toast(t("toast.field_cleared"));
   } catch (e) {
     handleError(e);
   }
@@ -523,8 +680,8 @@ async function clearField(field) {
 async function saveName() {
   if (currentIndex === null) return true;
   const newName = document.getElementById("game-name-input").value.trim();
-  if (!newName) { toast("Le nom ne peut pas être vide", "error"); return false; }
-  setStatus("Enregistrement du nom…");
+  if (!newName) { toast(t("toast.name_empty"), "error"); return false; }
+  setStatus(t("status.saving_name"));
   try {
     const data = await apiFetch(`/api/name/${currentIndex}`, {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -535,8 +692,8 @@ async function saveName() {
     games.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
     currentListIndex = games.findIndex(x => x.index === currentIndex);
     renderList(document.getElementById("search").value);
-    toast("✓ Nom enregistré");
-    setStatus("Enregistré");
+    toast(t("toast.name_saved"));
+    setStatus(t("status.saved"));
     return true;
   } catch (e) {
     handleError(e);
@@ -547,7 +704,7 @@ async function saveName() {
 async function saveDesc() {
   if (currentIndex === null) return true;
   const newDesc = document.getElementById("desc-textarea").value;
-  setStatus("Enregistrement de la description…");
+  setStatus(t("status.saving_desc"));
   try {
     const data = await apiFetch(`/api/desc/${currentIndex}`, {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -555,8 +712,8 @@ async function saveDesc() {
     });
     const g = games.find(x => x.index === currentIndex);
     if (g) g.desc = newDesc;
-    toast("✓ Description enregistrée");
-    setStatus("Enregistré");
+    toast(t("toast.desc_saved"));
+    setStatus(t("status.saved"));
     return true;
   } catch (e) {
     handleError(e);
@@ -576,7 +733,7 @@ async function saveMeta() {
     lang: document.getElementById("meta-lang").value,
     genre: buildGenreValue(),
   };
-  setStatus("Enregistrement des métadonnées…");
+  setStatus(t("status.saving_meta"));
   try {
     const data = await apiFetch(`/api/meta/${currentIndex}`, {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -584,8 +741,8 @@ async function saveMeta() {
     });
     const g = games.find(x => x.index === currentIndex);
     if (g && data.updated) Object.assign(g, data.updated);
-    toast("✓ Métadonnées enregistrées");
-    setStatus("Enregistré");
+    toast(t("toast.meta_saved"));
+    setStatus(t("status.saved"));
     return true;
   } catch (e) {
     handleError(e);
@@ -706,11 +863,17 @@ document.addEventListener("keydown", e => {
     return;
   }
 });
-function askConfirm({ title, bodyHtml, showBackup = true }) {
+function askConfirm({ title, bodyHtml, showBackup = true, okLabel, cancelLabel }) {
   return new Promise(resolve => {
     const overlay = document.getElementById("confirm-modal");
     document.getElementById("confirm-title").textContent = title;
     document.getElementById("confirm-body").innerHTML = bodyHtml;
+    const okBtn = document.getElementById("confirm-ok");
+    const cancelBtn = document.getElementById("confirm-cancel");
+    if (okBtn) okBtn.textContent = okLabel || t("confirm.ok");
+    if (cancelBtn) cancelBtn.textContent = cancelLabel || t("confirm.cancel");
+    const bakSpan = document.querySelector('[data-i18n="confirm.backup_label"]');
+    if (bakSpan) bakSpan.textContent = t("confirm.backup_label");
     const backupRow = document.getElementById("confirm-backup").closest("label")
       || document.getElementById("confirm-backup").parentElement;
     const backupCb = document.getElementById("confirm-backup");
@@ -736,8 +899,6 @@ function askConfirm({ title, bodyHtml, showBackup = true }) {
       if (e.key === "Escape") onCancel();
       if (e.key === "Enter") onOk();
     };
-    const okBtn = document.getElementById("confirm-ok");
-    const cancelBtn = document.getElementById("confirm-cancel");
     okBtn.addEventListener("click", onOk);
     cancelBtn.addEventListener("click", onCancel);
     overlay.addEventListener("click", onOverlay);
@@ -748,6 +909,9 @@ function askConfirm({ title, bodyHtml, showBackup = true }) {
 
 function openToolsPanel() {
   document.getElementById("tools-panel").classList.add("open");
+  wireLanguageControls();
+  const sel = document.getElementById("ui-lang");
+  if (sel) sel.value = currentLocale;
   if (typeof loadSsConfig === "function") loadSsConfig();
 }
 function closeToolsPanel() {
@@ -758,21 +922,19 @@ document.getElementById("btn-tools").addEventListener("click", openToolsPanel);
 
 document.getElementById("btn-reload").addEventListener("click", async () => {
   await loadGames();
-  toast("Liste rechargée");
+  toast(t("toast.list_reloaded"));
 });
 
 
 document.getElementById("btn-quit").addEventListener("click", async () => {
   const choice = await askConfirm({
-    title: "Quitter Gamelist Media Editor ?",
-    bodyHtml:
-      "<p>Le serveur s’arrête (fenêtre de commande).</p>" +
-      "<p>Cet onglet du navigateur sera fermé si le navigateur le permet.</p>",
+    title: t("confirm.quit_title"),
+    bodyHtml: t("confirm.quit_body"),
     showBackup: false,
   });
   if (!choice.confirmed) return;
 
-  setStatus("Arrêt…");
+  setStatus(t("confirm.quit_ok") + "…");
   try {
     await fetch("/api/shutdown", { method: "POST" });
   } catch (e) {
@@ -782,10 +944,8 @@ document.getElementById("btn-quit").addEventListener("click", async () => {
   document.body.innerHTML =
     '<div class="shutdown-screen">' +
     '<div class="shutdown-emoji">👋</div>' +
-    '<div class="shutdown-title">Serveur arrêté</div>' +
-    '<div class="shutdown-msg">' +
-    "Tu peux fermer cet onglet.<br>La fenêtre de commande devrait se fermer toute seule." +
-    "</div></div>";
+    '<div class="shutdown-title">' + t("status.shutdown_title") + '</div>' +
+    '<div class="shutdown-msg">' + t("status.shutdown_msg") + "</div></div>";
 
   // Often blocked by the browser if the tab was not opened by script
   setTimeout(() => {
@@ -801,11 +961,11 @@ document.getElementById("tools-panel").addEventListener("click", e => {
 });
 
 document.getElementById("btn-manual-backup").addEventListener("click", async () => {
-  setStatus("Sauvegarde du XML…");
+  setStatus(t("status.backup_xml"));
   try {
     const data = await apiFetch("/api/backup", { method: "POST" });
-    toast("✓ Sauvegarde créée : " + (data.filename || "gamelist.xml.bak"));
-    setStatus("Sauvegarde .bak OK");
+    toast(t("toast.backup_ok", { filename: data.filename || "gamelist.xml.bak" }));
+    setStatus(t("status.backup_ok_status"));
   } catch (e) {
     handleError(e);
   }
@@ -814,45 +974,36 @@ document.getElementById("btn-manual-backup").addEventListener("click", async () 
 document.getElementById("btn-purge-regions").addEventListener("click", async () => {
   closeToolsPanel();
   const choice = await askConfirm({
-    title: "Supprimer toutes les balises <region> ?",
-    bodyHtml:
-      "<p>Toutes les lignes <code>" + "&" + "lt;region&" + "gt;…&" + "lt;/region&" + "gt;</code> de <strong>tous</strong> les jeux seront retirées du fichier XML.</p>" +
-      "<p>Cette action est irréversible sur le fichier courant.</p>",
+    title: t("confirm.purge_title"),
+    bodyHtml: t("confirm.purge_body"),
   });
   if (!choice.confirmed) return;
 
-  setStatus("Suppression des <region>…");
+  setStatus(t("status.purging_regions"));
   try {
     const data = await apiFetch("/api/purge-regions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ backup: choice.backup }),
     });
-    let msg = `✓ ${data.removed} balise(s) <region> supprimée(s)`;
-    if (data.backup) msg += " — sauvegarde .bak créée";
+    let msg = t("toast.purge_ok", { n: data.removed });
+    if (data.backup) msg += t("toast.purge_bak");
     toast(msg);
-    setStatus("Terminé");
+    setStatus(t("status.done"));
   } catch (e) { handleError(e); }
 });
 
 document.getElementById("btn-delete-game").addEventListener("click", async () => {
   if (currentIndex === null) return;
   const g = games.find(x => x.index === currentIndex);
-  const name = g ? g.name : "ce jeu";
+  const name = g ? g.name : t("confirm.this_game");
   const choice = await askConfirm({
-    title: `Supprimer « ${name} » ?`,
-    bodyHtml:
-      "<p>Suppression définitive de :</p>" +
-      "<ul>" +
-      "<li>la ROM</li>" +
-      "<li>l’image, la vidéo, le marquee, le manuel, le boxback</li>" +
-      "<li>toute l’entrée dans <code>gamelist.xml</code></li>" +
-      "</ul>" +
-      "<p><strong>Cette action est irréversible</strong> (sauf restauration manuelle du .bak).</p>",
+    title: t("confirm.delete_title", { name }),
+    bodyHtml: t("confirm.delete_body"),
   });
   if (!choice.confirmed) return;
 
-  setStatus("Suppression du jeu…");
+  setStatus(t("status.deleting_game"));
   try {
     const data = await apiFetch(`/api/delete-game/${currentIndex}`, {
       method: "POST",
@@ -860,8 +1011,8 @@ document.getElementById("btn-delete-game").addEventListener("click", async () =>
       body: JSON.stringify({ backup: choice.backup }),
     });
     const nFiles = (data.deleted_files || []).length;
-    let msg = `✓ « ${data.name} » supprimé (${nFiles} fichier(s) effacé(s))`;
-    if (data.backup) msg += " — sauvegarde .bak créée";
+    let msg = t("toast.delete_ok", { name: data.name, n: nFiles });
+    if (data.backup) msg += t("toast.purge_bak");
     toast(msg);
     currentIndex = null;
     currentListIndex = null;
@@ -875,10 +1026,12 @@ document.getElementById("btn-delete-game").addEventListener("click", async () =>
 });
 
 async function boot() {
+  await loadLocale(getStoredLocale());
+  wireLanguageControls();
   try {
     GENRES = await apiFetch("/static/genres.json");
   } catch (e) {
-    handleError(e, "Genres");
+    handleError(e, t("errors.genres"));
     GENRES = {};
   }
   initGenreSelects();
@@ -915,18 +1068,18 @@ async function loadSsConfig() {
     document.getElementById("ss-ssid").value = cfg.ssid || "";
     document.getElementById("ss-region").value = cfg.prefer_region || "fr";
     document.getElementById("ss-sspassword").placeholder = cfg.sspassword_set
-      ? "(enregistré — laisser vide pour ne pas changer)"
-      : "Mot de passe membre (optionnel)";
+      ? t("tools.ss_pass_saved_ph")
+      : t("tools.ss_pass_optional_ph");
     const st = document.getElementById("ss-status");
     if (cfg.user_boost) {
-      st.textContent = "Boost membre actif";
+      st.textContent = t("tools.ss_boost_on");
       st.className = "ss-status ok";
     } else {
-      st.textContent = "Quotas de base (boost optionnel ci-dessus)";
+      st.textContent = t("tools.ss_boost_off");
       st.className = "ss-status";
     }
   } catch (e) {
-    document.getElementById("ss-status").textContent = "Erreur chargement config";
+    document.getElementById("ss-status").textContent = t("tools.ss_cfg_err");
     document.getElementById("ss-status").className = "ss-status err";
   }
 }
@@ -946,7 +1099,7 @@ async function saveSsConfig() {
     });
     document.getElementById("ss-sspassword").value = "";
     await loadSsConfig();
-    toast("✓ Paramètres ScreenScraper enregistrés");
+    toast(t("toast.ss_saved"));
   } catch (e) {
     handleError(e);
   }
@@ -955,19 +1108,19 @@ async function saveSsConfig() {
 async function testSsConfig() {
   if (ssBusy) return;
   const st = document.getElementById("ss-status");
-  st.textContent = "Test en cours…";
+  st.textContent = t("status.testing");
   st.className = "ss-status";
-  setSsLoading(true, "Test ScreenScraper…");
+  setSsLoading(true, t("scrape.test_loading"));
   try {
     // Persist form fields first (ssid / region / password if typed)
     await saveSsConfig();
     const data = await apiFetch("/api/ss/test", { method: "POST" });
-    let msg = "✓ Connexion OK";
+    let msg = t("scrape.test_ok_short");
     if (data.mode === "user") {
-      msg += " · niveau " + (data.level || "?");
-      if (data.maxthreads) msg += " · threads " + data.maxthreads;
+      msg += " · " + t("scrape.test_level", { level: data.level || "?" });
+      if (data.maxthreads) msg += " · " + t("scrape.test_threads", { n: data.maxthreads });
     } else {
-      msg += " · " + (data.message || "dev OK");
+      msg += " · " + (data.message || t("scrape.test_dev_ok"));
     }
     st.textContent = msg;
     st.className = "ss-status ok";
@@ -999,22 +1152,22 @@ function buildSsFieldRows(proposed, current) {
   const box = document.getElementById("ss-fields");
   box.innerHTML = "";
   const metaFields = [
-    { key: "name", label: "Nom" },
-    { key: "desc", label: "Description" },
-    { key: "rating", label: "Rating" },
-    { key: "releasedate", label: "Date" },
-    { key: "developer", label: "Developer" },
-    { key: "publisher", label: "Publisher" },
-    { key: "genre", label: "Genre" },
-    { key: "players", label: "Players" },
-    { key: "lang", label: "Lang" },
+    { key: "name", label: t("scrape.field_name") },
+    { key: "desc", label: t("scrape.field_desc") },
+    { key: "rating", label: t("scrape.field_rating") },
+    { key: "releasedate", label: t("scrape.field_releasedate") },
+    { key: "developer", label: t("scrape.field_developer") },
+    { key: "publisher", label: t("scrape.field_publisher") },
+    { key: "genre", label: t("scrape.field_genre") },
+    { key: "players", label: t("scrape.field_players") },
+    { key: "lang", label: t("scrape.field_lang") },
   ];
   const mediaFields = [
-    { key: "image", label: "Image" },
-    { key: "video", label: "Vidéo" },
-    { key: "marquee", label: "Marquee" },
-    { key: "manual", label: "Manuel" },
-    { key: "boxback", label: "Boxback" },
+    { key: "image", label: t("scrape.field_image") },
+    { key: "video", label: t("scrape.field_video") },
+    { key: "marquee", label: t("scrape.field_marquee") },
+    { key: "manual", label: t("scrape.field_manual") },
+    { key: "boxback", label: t("scrape.field_boxback") },
   ];
 
   function addRow(key, label, newVal, oldVal, isMedia) {
@@ -1030,7 +1183,7 @@ function buildSsFieldRows(proposed, current) {
       : (hasNew
           ? `<span class="ss-new">${escapeHtml(String(newVal).slice(0, 220))}${String(newVal).length > 220 ? "…" : ""}</span>` +
             (oldVal ? `<br><span class="ss-old">${escapeHtml(String(oldVal).slice(0, 120))}</span>` : "")
-          : "<em>vide côté ScreenScraper</em>");
+          : "<em>" + t("scrape.empty_ss") + "</em>");
     row.innerHTML =
       `<input type="checkbox" data-ss-field="${key}" ${checked ? "checked" : ""} ${hasNew ? "" : "disabled"} />` +
       `<label class="ss-field-name">${escapeHtml(label)}</label>` +
@@ -1053,10 +1206,10 @@ async function scrapeCurrentGame(gameid) {
   if (gameid === "" || gameid === "undefined" || gameid === "null") gameid = null;
 
   const loadingMsg = gameid
-    ? "Chargement du jeu ScreenScraper…"
-    : "Recherche ScreenScraper…";
+    ? t("scrape.ss_load_game")
+    : t("scrape.ss_search");
   setSsLoading(true, loadingMsg);
-  setStatus("ScreenScraper : recherche…");
+  setStatus(t("scrape.ss_status_search"));
   try {
     const opts = { method: "POST", headers: { "Content-Type": "application/json" } };
     if (gameid) opts.body = JSON.stringify({ gameid });
@@ -1075,18 +1228,18 @@ async function scrapeCurrentGame(gameid) {
     // Ambiguous: show candidate picker
     if (data.need_choice && data.candidates && data.candidates.length) {
       showSsCandidates(data);
-      setStatus("ScreenScraper : choix requis");
+      setStatus(t("scrape.ss_status_choice"));
       return;
     }
 
-    if (!data.proposed) throw new Error("Pas de proposition");
+    if (!data.proposed) throw new Error(t("scrape.no_proposal"));
     ssLastProposed = data.proposed;
     scrapeSource = data.source || "screenscraper";
     const titleEl = document.getElementById("ss-modal-title");
     if (titleEl) {
       titleEl.textContent = scrapeSource === "arcadeitalia"
-        ? "🕹️ Arcade Database — appliquer les champs"
-        : "📡 ScreenScraper — appliquer les champs";
+        ? t("scrape.adb_modal_apply")
+        : t("scrape.ss_modal_apply");
     }
     const info = document.getElementById("ss-modal-info");
     const method = data.match_method || "?";
@@ -1106,7 +1259,7 @@ async function scrapeCurrentGame(gameid) {
     document.getElementById("ss-modal-apply").hidden = false;
     buildSsFieldRows(data.proposed, data.current || {});
     openSsModal();
-    setStatus("ScreenScraper : résultat prêt");
+    setStatus(t("scrape.ss_status_ready"));
   } catch (e) {
     handleError(e, "ScreenScraper");
   } finally {
@@ -1124,12 +1277,12 @@ function showSsCandidates(data) {
   const titleEl = document.getElementById("ss-modal-title");
   if (titleEl) {
     titleEl.textContent = scrapeSource === "arcadeitalia"
-      ? "🕹️ Arcade Database — choisir le jeu"
-      : "📡 ScreenScraper — choisir le jeu";
+      ? t("scrape.adb_modal_choose")
+      : t("scrape.ss_modal_choose");
   }
   const info = document.getElementById("ss-modal-info");
   info.textContent =
-    (data.message || "Plusieurs résultats") +
+    (data.message || t("scrape.multiple_results")) +
     ` · recherche « ${data.search || data.local_name || data.romset || ""} » · ` +
     `dossier ${data.system_folder || "?"}` +
     (data.system_id != null ? ` (SS id ${data.system_id})` : "") +
@@ -1145,7 +1298,7 @@ function showSsCandidates(data) {
       `<span class="ss-cand-name">${escapeHtml(c.name || idLabel)}</span>` +
       `<span class="ss-cand-meta">${escapeHtml(idLabel)}` +
       (c.system ? ` · ${escapeHtml(c.system)}` : "") +
-      ` · similarité ${scorePct}%</span>`;
+      ` · ${t("scrape.similarity", { pct: scorePct })}</span>`;
     btn.addEventListener("click", () => {
       closeSsModal();
       if (scrapeSource === "arcadeitalia") scrapeAdbGame(c.ss_id || c.romset);
@@ -1164,11 +1317,11 @@ async function applySsSelection() {
     fields.push(cb.getAttribute("data-ss-field"));
   });
   if (!fields.length) {
-    toast("Aucun champ sélectionné", "error");
+    toast(t("toast.no_fields"), "error");
     return;
   }
-  setSsLoading(true, "Téléchargement / application…");
-  setStatus("ScreenScraper : application…");
+  setSsLoading(true, t("status.applying_download"));
+  setStatus(t("scrape.ss_status_apply"));
   try {
     const applyUrl = scrapeSource === "arcadeitalia"
       ? `/api/adb/apply/${currentIndex}`
@@ -1180,13 +1333,13 @@ async function applySsSelection() {
     });
     closeSsModal();
     await loadGames();
-    let msg = `✓ ${(data.applied || []).length} champ(s) appliqué(s)`;
-    if (data.errors && data.errors.length) msg += ` — ${data.errors.length} erreur(s)`;
+    let msg = t("scrape.apply_ok", { n: (data.applied || []).length });
+    if (data.errors && data.errors.length) msg += t("scrape.apply_errors", { n: data.errors.length });
     toast(msg);
     if (data.errors && data.errors.length) {
       console.warn("SS apply errors", data.errors);
     }
-    setStatus("ScreenScraper terminé");
+    setStatus(t("scrape.ss_done"));
   } catch (e) {
     handleError(e, "ScreenScraper");
   } finally {
@@ -1203,8 +1356,8 @@ async function scrapeAdbGame(romset) {
   if (romset != null && typeof romset !== "string" && typeof romset !== "number") romset = null;
   if (romset != null) romset = String(romset).trim() || null;
 
-  setSsLoading(true, romset ? "Arcade Database : chargement…" : "Arcade Database : recherche…");
-  setStatus("Arcade Database : recherche…");
+  setSsLoading(true, romset ? t("scrape.adb_load") : t("scrape.adb_search"));
+  setStatus(t("scrape.adb_status_search"));
   scrapeSource = "arcadeitalia";
   try {
     const opts = {
@@ -1220,24 +1373,27 @@ async function scrapeAdbGame(romset) {
     }
     if (data.need_choice && data.candidates && data.candidates.length) {
       showSsCandidates(data);
-      setStatus("Arcade Database : choix requis");
+      setStatus(t("scrape.adb_status_choice"));
       return;
     }
-    if (!data.proposed) throw new Error("Pas de proposition Arcade Database");
+    if (!data.proposed) throw new Error(t("scrape.no_proposal_adb"));
     ssLastProposed = data.proposed;
     scrapeSource = "arcadeitalia";
     const titleEl = document.getElementById("ss-modal-title");
-    if (titleEl) titleEl.textContent = "🕹️ Arcade Database — appliquer les champs";
+    if (titleEl) titleEl.textContent = t("scrape.adb_modal_apply");
     const info = document.getElementById("ss-modal-info");
-    info.textContent =
-      `Romset « ${data.proposed.adb_romset || data.romset || "?"} » · « ${data.proposed.name || "?"} » · ` +
-      `dossier ${data.system_folder || "?"} · match: ${data.match_method || "?"}`;
+    info.textContent = t("scrape.adb_info", {
+      romset: data.proposed.adb_romset || data.romset || "?",
+      name: data.proposed.name || "?",
+      folder: data.system_folder || "?",
+      method: data.match_method || "?",
+    });
     document.getElementById("ss-fields").hidden = false;
     document.getElementById("ss-candidates").hidden = true;
     document.getElementById("ss-modal-apply").hidden = false;
     buildSsFieldRows(data.proposed, data.current || {});
     openSsModal();
-    setStatus("Arcade Database : résultat prêt");
+    setStatus(t("scrape.adb_status_ready"));
   } catch (e) {
     handleError(e, "Arcade Database");
   } finally {

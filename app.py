@@ -35,6 +35,69 @@ def api_err(message, status=400, code=None, **extra):
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+_LOCALE_DIR = os.path.join(BASE_DIR, "static", "locales")
+_LOCALE_CACHE = {}
+
+
+def load_locale_dict(code):
+    """Load static/locales/{code}.json (cached). Falls back to fr."""
+    code = (code or "fr")[:2].lower()
+    if code in _LOCALE_CACHE:
+        return _LOCALE_CACHE[code]
+    path = os.path.join(_LOCALE_DIR, f"{code}.json")
+    data = {}
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception:
+        if code != "fr":
+            return load_locale_dict("fr")
+    _LOCALE_CACHE[code] = data
+    return data
+
+
+def get_request_locale():
+    """Prefer X-Locale (frontend), then Accept-Language, else fr."""
+    try:
+        h = (request.headers.get("X-Locale") or "").strip().lower()
+        if len(h) >= 2 and h[:2].isalpha():
+            return h[:2]
+        al = (request.headers.get("Accept-Language") or "").lower()
+        if al.startswith("en"):
+            return "en"
+    except RuntimeError:
+        # Outside request context
+        pass
+    return "fr"
+
+
+def st(key, **params):
+    """Server-side translation. key e.g. 'server.invalid_field'."""
+    data = load_locale_dict(get_request_locale())
+    parts = str(key).split(".")
+    cur = data
+    found = True
+    for p in parts:
+        if isinstance(cur, dict) and p in cur:
+            cur = cur[p]
+        else:
+            found = False
+            break
+    if not found or not isinstance(cur, str):
+        # fallback French
+        cur = load_locale_dict("fr")
+        for p in parts:
+            if isinstance(cur, dict) and p in cur:
+                cur = cur[p]
+            else:
+                return str(key)
+        if not isinstance(cur, str):
+            return str(key)
+    for k, v in params.items():
+        cur = cur.replace("{" + str(k) + "}", str(v))
+    return cur
+
+
 XML_PATH = os.path.join(BASE_DIR, "gamelist.xml")
 
 # Max size for media downloaded from a URL (bytes)
@@ -85,7 +148,7 @@ def backup_xml():
     """Copy gamelist.xml → gamelist.xml.bak (same folder). Returns backup path."""
     with _xml_io_lock:
         if not os.path.isfile(XML_PATH):
-            raise FileNotFoundError(f"XML introuvable : {XML_PATH}")
+            raise FileNotFoundError(st("server.xml_missing", path=XML_PATH))
         bak_path = XML_PATH + ".bak"
         shutil.copy2(XML_PATH, bak_path)
         return bak_path
@@ -99,7 +162,7 @@ def get_game_elem(index):
     tree = load_xml()
     games = tree.getroot().findall("game")
     if not (0 <= index < len(games)):
-        raise IndexError("Index invalide")
+        raise IndexError("invalid_index")
     return tree, games[index]
 
 
@@ -210,6 +273,8 @@ def ext_from_content_type(ct, field):
 # --- ScreenScraper -----------------------------------------------------------
 SS_API = "https://api.screenscraper.fr/api2"
 SS_SOFTNAME = "GamelistMediaEditor"
+APP_VERSION = "1.1.1"
+APP_UA = f"{SS_SOFTNAME}/{APP_VERSION}"
 SS_CONFIG_NAME = "screenscraper_config.json"
 
 
@@ -575,23 +640,17 @@ def _throttle_api(service):
 
 
 def format_ss_error(raw, status=200):
-    """Map ScreenScraper error text → clear French message."""
+    """Map ScreenScraper error text → localized message."""
     t = (raw or "").strip()
     low = t.lower()
     if not t and status == 429:
-        return (
-            "Trop de requêtes vers ScreenScraper (HTTP 429). "
-            "Patiente 30–60 secondes avant de réessayer."
-        )
+        return st("server.ss_429")
     if status == 503:
-        return "ScreenScraper temporairement indisponible (HTTP 503). Réessaie plus tard."
+        return st("server.ss_503")
     if any(k in low for k in ("login", "identifiant", "password", "mot de passe", "bad ident")):
-        return (
-            "Identifiants ScreenScraper refusés. "
-            "Si tu utilises le boost, vérifie ssid/mot de passe dans Outils."
-        )
+        return st("server.ss_login")
     if "api closed" in low or "api ferm" in low or "fermee" in low or "fermée" in low:
-        return "API ScreenScraper temporairement fermée. Réessaie plus tard."
+        return st("server.ss_api_closed")
     if any(
         k in low
         for k in (
@@ -600,41 +659,29 @@ def format_ss_error(raw, status=200):
             "exceed", "depass", "dépass",
         )
     ):
-        return (
-            "Quota ou limite de threads ScreenScraper atteinte. "
-            "Attends un peu, ou active un compte membre (boost) dans Outils pour plus de requêtes."
-        )
+        return st("server.ss_quota")
     if status == 429 or "429" in low:
-        return (
-            "Trop de requêtes ScreenScraper. "
-            "Patiente avant de relancer (le logiciel espace déjà les appels)."
-        )
+        return st("server.ss_too_many")
     if t.startswith("Erreur") or t.startswith("API"):
         return t[:400]
     if status != 200:
-        return f"ScreenScraper HTTP {status}: {t[:250]}"
-    return t[:400] if t else f"Erreur ScreenScraper (HTTP {status})"
+        return st("server.ss_http", status=status, detail=t[:250])
+    return t[:400] if t else st("server.ss_error", status=status)
 
 
 def format_adb_error(raw, status=200):
-    """Map Arcade Database error → clear French message."""
+    """Map Arcade Database error → localized message."""
     t = (raw or "").strip()
     low = t.lower()
     if status == 503 or "503" in low or "maintenance" in low:
-        return (
-            "Arcade Database en maintenance ou saturé (HTTP 503). "
-            "Réessaie dans quelques minutes."
-        )
+        return st("server.adb_503")
     if status == 429 or any(k in low for k in ("rate", "limit", "quota", "too many", "trop")):
-        return (
-            "Limite de requêtes Arcade Database atteinte. "
-            "Patiente un moment (un seul flux d’appels est recommandé par IP)."
-        )
+        return st("server.adb_rate")
     if status == 403:
-        return "Accès refusé par Arcade Database (HTTP 403)."
+        return st("server.adb_403")
     if t:
         return t[:400]
-    return f"Erreur Arcade Database (HTTP {status})"
+    return st("server.adb_error", status=status)
 
 
 def ss_request(endpoint, extra_params=None, timeout=25):
@@ -661,7 +708,7 @@ def ss_request(endpoint, extra_params=None, timeout=25):
         r = requests.get(
             url,
             params=params,
-            headers={"User-Agent": f"{SS_SOFTNAME}/1.1.0"},
+            headers={"User-Agent": APP_UA},
             timeout=timeout,
         )
         body = r.text or ""
@@ -871,17 +918,17 @@ def api_games():
         })
     except Exception as e:
         log.exception("api_games failed")
-        return api_err(f"Impossible de lire le gamelist.xml : {e}", 500, code="xml_read")
+        return api_err(st("server.xml_read", detail=e), 500, code="xml_read")
 
 
 @app.route("/api/upload/<int:index>/<field>", methods=["POST"])
 def upload(index, field):
     if field not in MEDIA_DIRS:
-        return jsonify({"error": "Champ invalide"}), 400
+        return api_err(st("server.invalid_field"), 400, code="invalid_field")
     try:
         tree, game = get_game_elem(index)
     except IndexError:
-        return jsonify({"error": "Index invalide"}), 404
+        return api_err(st("server.invalid_index"), 404, code="invalid_index")
     try:
         media_dir_name = MEDIA_DIRS[field]
         media_dir = os.path.join(BASE_DIR, media_dir_name)
@@ -900,9 +947,7 @@ def upload(index, field):
             except Exception:
                 size = None
             if size is not None and size > MAX_DOWNLOAD_BYTES:
-                return jsonify({
-                    "error": f"Fichier trop volumineux (max {MAX_DOWNLOAD_BYTES // (1024*1024)} Mo)"
-                }), 400
+                return api_err(st("server.file_too_large", n=MAX_DOWNLOAD_BYTES // (1024*1024)), 400, code="file_too_large")
             ext = os.path.splitext(file.filename)[1].lower() or default_ext_for_field(field)
             new_filename = f"{base_name}-{field}{ext}"
             file.save(os.path.join(media_dir, new_filename))
@@ -911,13 +956,13 @@ def upload(index, field):
             try:
                 parsed = urlparse(url)
                 if parsed.scheme not in ("http", "https"):
-                    return jsonify({"error": "URL non autorisee (http/https uniquement)"}), 400
+                    return api_err(st("server.url_not_allowed"), 400, code="url_not_allowed")
                 ext = os.path.splitext(unquote(parsed.path))[1].lower()
                 if not ext or len(ext) > 6:
                     ext = ""
                 r = requests.get(
                     url,
-                    headers={"User-Agent": "GamelistMediaEditor/1.0"},
+                    headers={"User-Agent": APP_UA},
                     timeout=20,
                     stream=True,
                 )
@@ -929,9 +974,7 @@ def upload(index, field):
                     try:
                         if int(cl) > MAX_DOWNLOAD_BYTES:
                             r.close()
-                            return jsonify({
-                                "error": f"Fichier trop volumineux (max {MAX_DOWNLOAD_BYTES // (1024*1024)} Mo)"
-                            }), 400
+                            return api_err(st("server.file_too_large", n=MAX_DOWNLOAD_BYTES // (1024*1024)), 400, code="file_too_large")
                     except ValueError:
                         pass
                 new_filename = f"{base_name}-{field}{ext}"
@@ -948,17 +991,15 @@ def upload(index, field):
                                 os.remove(dest)
                             except OSError:
                                 pass
-                            return jsonify({
-                                "error": f"Fichier trop volumineux (max {MAX_DOWNLOAD_BYTES // (1024*1024)} Mo)"
-                            }), 400
+                            return api_err(st("server.file_too_large", n=MAX_DOWNLOAD_BYTES // (1024*1024)), 400, code="file_too_large")
                         f.write(chunk)
                 rel_path = f"./{media_dir_name}/{new_filename}"
             except requests.RequestException as e:
-                return jsonify({"error": f"Telechargement echoue: {e}"}), 400
+                return api_err(st("server.download_failed", detail=e), 400, code="download_failed")
             except Exception as e:
-                return jsonify({"error": f"Telechargement echoue: {e}"}), 400
+                return api_err(st("server.download_failed", detail=e), 400, code="download_failed")
         else:
-            return jsonify({"error": "Aucun fichier ni URL"}), 400
+            return api_err(st("server.no_file_url"), 400, code="no_file_url")
 
         # Remove previous media file if path changes (e.g. .png → .jpg)
         old_rel = game.findtext(field, "") or ""
@@ -985,11 +1026,11 @@ def clear_field(index, field):
     Use delete-game to remove files from disk.
     """
     if field not in MEDIA_DIRS:
-        return jsonify({"error": "Champ invalide"}), 400
+        return api_err(st("server.invalid_field"), 400, code="invalid_field")
     try:
         tree, game = get_game_elem(index)
     except IndexError:
-        return jsonify({"error": "Index invalide"}), 404
+        return api_err(st("server.invalid_index"), 404, code="invalid_index")
     try:
         elem = game.find(field)
         if elem is not None:
@@ -1008,7 +1049,7 @@ def update_desc(index):
         try:
             tree, game = get_game_elem(index)
         except IndexError:
-            return jsonify({"error": "Index invalide"}), 404
+            return api_err(st("server.invalid_index"), 404, code="invalid_index")
         elem = game.find("desc")
         if elem is None:
             name_elem = game.find("name")
@@ -1030,11 +1071,11 @@ def update_name(index):
         data = request.get_json(silent=True) or {}
         new_name = (data.get("name") or "").strip()
         if not new_name:
-            return jsonify({"error": "Nom vide"}), 400
+            return api_err(st("server.empty_name"), 400, code="empty_name")
         try:
             tree, game = get_game_elem(index)
         except IndexError:
-            return jsonify({"error": "Index invalide"}), 404
+            return api_err(st("server.invalid_index"), 404, code="invalid_index")
         elem = game.find("name")
         if elem is None:
             elem = etree.Element("name")
@@ -1051,11 +1092,11 @@ def update_meta(index):
     try:
         data = request.get_json(silent=True) or {}
         if not data:
-            return jsonify({"error": "Aucune donnee"}), 400
+            return api_err(st("server.no_data"), 400, code="no_data")
         try:
             tree, game = get_game_elem(index)
         except IndexError:
-            return jsonify({"error": "Index invalide"}), 404
+            return api_err(st("server.invalid_index"), 404, code="invalid_index")
         updated = {}
         for field, value in data.items():
             if field not in META_FIELDS:
@@ -1065,10 +1106,10 @@ def update_meta(index):
                 try:
                     fval = float(value)
                     if not (0.0 <= fval <= 1.0):
-                        return jsonify({"error": "rating entre 0 et 1"}), 400
+                        return api_err(st("server.rating_range"), 400, code="rating_range")
                     value = f"{fval:.2f}".rstrip("0").rstrip(".") if fval != 0 else "0"
                 except ValueError:
-                    return jsonify({"error": "rating invalide"}), 400
+                    return api_err(st("server.rating_invalid"), 400, code="rating_invalid")
             if field == "lang" and value:
                 value = value.lower()
             elem = game.find(field)
@@ -1140,9 +1181,9 @@ def delete_game(index):
         root = tree.getroot()
         games = root.findall("game")
         if not (0 <= index < len(games)):
-            return jsonify({"error": "Index invalide"}), 404
+            return api_err(st("server.invalid_index"), 404, code="invalid_index")
         game = games[index]
-        name = game.findtext("name", "") or f"Jeu {index}"
+        name = game.findtext("name", "") or st("server.game_fallback", index=index)
         media_tags = [
             "path", "image", "video", "marquee", "manual", "boxback",
             "thumbnail", "fanart", "map", "boxfront", "cartridge", "mix",
@@ -1222,7 +1263,7 @@ def api_ss_test():
         return jsonify({
             "success": True,
             "mode": "infra",
-            "message": "Identifiants développeur OK (pas de compte utilisateur → quotas de base)",
+            "message": st("server.ss_dev_ok"),
             "user_error": user_err if user_err else None,
         })
     return jsonify({"error": str(data)}), 400
@@ -1239,7 +1280,7 @@ def api_ss_scrape(index):
     try:
         tree, game = get_game_elem(index)
     except IndexError:
-        return jsonify({"error": "Index invalide"}), 404
+        return api_err(st("server.invalid_index"), 404, code="invalid_index")
     cfg = load_ss_config()
     body = request.get_json(silent=True) or {}
     force_id = str(body.get("gameid") or "").strip()
@@ -1289,13 +1330,13 @@ def api_ss_scrape(index):
             extra["systemeid"] = str(system_id)
         ok, data, _ = ss_request("jeuInfos.php", extra)
         if not ok:
-            return jsonify({"error": f"gameid {force_id}: {data}"}), 404
+            return api_err(st("server.ss_gameid_error", id=force_id, detail=data), 404, code="ss_gameid")
         jeu = (data.get("response") or {}).get("jeu")
         if isinstance(jeu, list):
             jeu = jeu[0] if jeu else None
         result = full_from_jeu(jeu, "gameid")
         if not result:
-            return jsonify({"error": "Réponse SS vide pour ce gameid"}), 404
+            return api_err(st("server.ss_empty_gameid"), 404, code="ss_empty")
         return jsonify(result)
 
     # --- 1) Hash / exact ROM identification (several variants) ---
@@ -1417,7 +1458,7 @@ def api_ss_scrape(index):
             "search": recherche,
             "hash": hash_info,
             "candidates": candidates[:15],
-            "message": "Plusieurs jeux possibles — choisis le bon dans la liste.",
+            "message": st("server.ss_candidates"),
         })
 
     # Prefer showing login/config errors over a generic "not found"
@@ -1438,16 +1479,13 @@ def api_ss_scrape(index):
     if login_err:
         msg = login_err
     elif api_errors:
-        msg = (
-            "Aucun jeu trouvé sur ScreenScraper pour cette ROM / ce nom. "
-            + "Détail API : " + api_errors[-1]
-        )
+        msg = st("server.ss_not_found") + " — " + str(api_errors[-1])
     else:
-        msg = "Aucun jeu trouvé sur ScreenScraper pour cette ROM / ce nom"
+        msg = st("server.ss_not_found")
     if system_id:
-        msg += f" (système SS id={system_id}, dossier={system_folder})"
+        msg += f" (SS id={system_id}, {system_folder})"
     else:
-        msg += f" (système non reconnu: {system_folder})"
+        msg += f" ({system_folder})"
     return jsonify({
         "error": msg,
         "api_errors": api_errors[-6:],
@@ -1471,11 +1509,11 @@ def api_ss_apply(index):
     fields = body.get("fields") or []
     proposed = body.get("proposed") or {}
     if not fields:
-        return jsonify({"error": "Aucun champ sélectionné"}), 400
+        return api_err(st("server.no_fields"), 400, code="no_fields")
     try:
         tree, game = get_game_elem(index)
     except IndexError:
-        return jsonify({"error": "Index invalide"}), 404
+        return api_err(st("server.invalid_index"), 404, code="invalid_index")
 
     applied = []
     errors = []
@@ -1492,7 +1530,7 @@ def api_ss_apply(index):
         if field in meta_map:
             value = (proposed.get(field) or "").strip()
             if field == "name" and not value:
-                errors.append("name: vide, ignoré")
+                errors.append(st("server.name_empty_ignored"))
                 continue
             if field == "rating" and value:
                 try:
@@ -1548,7 +1586,7 @@ def api_ss_apply(index):
                 continue
             r = requests.get(
                 url,
-                headers={"User-Agent": f"{SS_SOFTNAME}/1.0.2"},
+                headers={"User-Agent": APP_UA},
                 timeout=40,
                 stream=True,
             )
@@ -1570,7 +1608,7 @@ def api_ss_apply(index):
                             os.remove(dest)
                         except OSError:
                             pass
-                        raise ValueError(f"Fichier trop volumineux (max {MAX_DOWNLOAD_BYTES // (1024*1024)} Mo)")
+                        raise ValueError(st("server.file_too_large", n=MAX_DOWNLOAD_BYTES // (1024*1024)))
                     f.write(chunk)
             rel_path = f"./{media_dir_name}/{new_filename}"
             old_rel = game.findtext(field, "") or ""
@@ -1598,7 +1636,7 @@ def api_ss_apply(index):
 
 # --- Arcade Database (Arcade Italia) -----------------------------------------
 ADB_API = "https://adb.arcadeitalia.net/service_scraper.php"
-ADB_UA = f"{SS_SOFTNAME}/1.1.0 (ArcadeDB scraper; +https://github.com/Kraran/gamelist-media-editor)"
+ADB_UA = f"{APP_UA} (ArcadeDB scraper; +https://github.com/Kraran/gamelist-media-editor)"
 
 
 def adb_request(ajax, params, timeout=30):
@@ -1743,7 +1781,7 @@ def api_adb_scrape(index):
     try:
         tree, game = get_game_elem(index)
     except IndexError:
-        return api_err("Index invalide", 404, code="bad_index")
+        return api_err(st("server.invalid_index"), 404, code="bad_index")
 
     body = request.get_json(silent=True) or {}
     force_romset = str(body.get("romset") or body.get("gameid") or "").strip()
@@ -1759,7 +1797,7 @@ def api_adb_scrape(index):
 
     if not romset:
         return api_err(
-            "Impossible de déterminer le nom de ROM (path manquant dans le XML)",
+            st("server.adb_no_romset"),
             400,
             code="no_romset",
         )
@@ -1779,7 +1817,7 @@ def api_adb_scrape(index):
     # 2) If forced romset but empty, fail
     if force_romset and not results:
         return api_err(
-            f"Romset « {force_romset} » introuvable sur Arcade Database",
+            st("server.adb_romset_missing", romset=force_romset),
             404,
             code="adb_not_found",
             romset=force_romset,
@@ -1797,8 +1835,7 @@ def api_adb_scrape(index):
 
     if not results:
         return api_err(
-            f"Aucun jeu Arcade Database pour le romset « {romset} » "
-            f"(dossier: {system_folder}). ADB est conçu pour les noms MAME/FBNeo.",
+            st("server.adb_not_found", romset=romset, folder=system_folder),
             404,
             code="adb_not_found",
             romset=romset,
@@ -1822,7 +1859,7 @@ def api_adb_scrape(index):
                     item = full[0]
         parsed = parse_adb_game(item)
         if not parsed:
-            return api_err("Réponse Arcade Database inutilisable", 502)
+            return api_err(st("server.adb_unusable"), 502)
         return jsonify({
             "success": True,
             "match_method": "romset" if force_romset or len(results) == 1 else "search",
@@ -1902,11 +1939,11 @@ def api_adb_apply(index):
     fields = body.get("fields") or []
     proposed = body.get("proposed") or {}
     if not fields:
-        return api_err("Aucun champ sélectionné", 400, code="no_fields")
+        return api_err(st("server.no_fields"), 400, code="no_fields")
     try:
         tree, game = get_game_elem(index)
     except IndexError:
-        return api_err("Index invalide", 404, code="bad_index")
+        return api_err(st("server.invalid_index"), 404, code="bad_index")
 
     applied = []
     errors = []
@@ -1922,7 +1959,7 @@ def api_adb_apply(index):
             continue
         value = (proposed.get(field) or "").strip()
         if field == "name" and not value:
-            errors.append("name: vide, ignoré")
+            errors.append(st("server.name_empty_ignored"))
             continue
         if field == "rating" and value:
             try:
@@ -2000,7 +2037,7 @@ def api_adb_apply(index):
                         except OSError:
                             pass
                         raise ValueError(
-                            f"Fichier trop volumineux (max {MAX_DOWNLOAD_BYTES // (1024*1024)} Mo)"
+                            st("server.file_too_large", n=MAX_DOWNLOAD_BYTES // (1024*1024))
                         )
                     f.write(chunk)
             rel_path = f"./{media_dir_name}/{new_filename}"
@@ -2027,7 +2064,7 @@ def serve_media(filepath):
     """Serve a media file only if it resolves under BASE_DIR."""
     full = resolve_under_base(filepath)
     if not full or not os.path.isfile(full):
-        return "Fichier introuvable", 404
+        return st("server.file_not_found"), 404
     return send_from_directory(os.path.dirname(full), os.path.basename(full))
 
 
@@ -2039,12 +2076,12 @@ def api_shutdown():
         os._exit(0)
 
     threading.Thread(target=_stop, daemon=True).start()
-    return jsonify({"success": True, "message": "Arret du serveur"})
+    return jsonify({"success": True, "message": st("server.shutdown")})
 
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("  Gamelist Media Editor")
+    print(f"  Gamelist Media Editor v{APP_VERSION}")
     print("=" * 60)
     print()
     if len(sys.argv) > 1:

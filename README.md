@@ -69,6 +69,15 @@ Open **Tools → Language**, choose a locale, then **Apply language**. The choic
 
 ---
 
+
+## Languages
+
+Interface and server messages are available in:
+
+**Français · English · Español · Deutsch · Italiano · Português · Nederlands · Polski · Türkçe · Svenska · Norsk · Dansk · Русский**
+
+Open **Tools → Language**, choose a locale, then **Apply language**. The choice is remembered in the browser (`localStorage`).
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
