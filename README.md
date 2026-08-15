@@ -2,7 +2,7 @@
 
 Local web app to edit EmulationStation / **RetroBat** `gamelist.xml` media and metadata with drag-and-drop.
 
-**Version 1.1.1** · [Documentation (Wiki)](https://github.com/Kraran/gamelist-media-editor/wiki) · [Releases](https://github.com/Kraran/gamelist-media-editor/releases)
+**Version 1.1.2** · [Documentation (Wiki)](https://github.com/Kraran/gamelist-media-editor/wiki) · [Releases](https://github.com/Kraran/gamelist-media-editor/releases)
 
 ---
 
@@ -18,6 +18,7 @@ Local web app to edit EmulationStation / **RetroBat** `gamelist.xml` media and m
 - Shortcuts: `Ctrl+S` save, `Ctrl+F` search
 - **Tools** panel: language, ScreenScraper member login, manual `.bak` backup, purge all `<region>` tags
 - **Reload** list from disk without restarting the app
+- **Open another gamelist.xml** mid-session (file browser + recent files) without restarting
 - Delete a game (ROM + media + XML entry) with optional backup
 - **Quit** button stops the server (and closes the console when launched via `Lancer.bat`)
 - Clear API error / quota messages, request throttling
@@ -30,7 +31,7 @@ Local web app to edit EmulationStation / **RetroBat** `gamelist.xml` media and m
 
 ### Option A — Windows Setup (recommended)
 
-1. Download **GamelistMediaEditor-Windows-Setup-v1.1.1.zip** from the [latest release](https://github.com/Kraran/gamelist-media-editor/releases/latest)
+1. Download **GamelistMediaEditor-Windows-Setup-v1.1.2.zip** from the [latest release](https://github.com/Kraran/gamelist-media-editor/releases/latest)
 2. Extract and run **`Installer.bat`**
 3. Choose an install folder
 4. The installer will:
@@ -52,32 +53,25 @@ python -m pip install -r requirements.txt
 4. Run **`Lancer.bat`** (Windows) or:
 
 ```bash
-python app.py "C:\path\to\gamelist.xml"
+python app.py "C:\\path\\to\\gamelist.xml"
 ```
 
 5. Open [http://127.0.0.1:5050](http://127.0.0.1:5050)
 
 ---
 
-## Languages
+## Usage (quick)
 
-Interface and server messages are available in:
+1. Select a game in the list
+2. Drop media onto the zones, or use **ScreenScraper** / **Arcade DB**
+3. Edit metadata and save (`Ctrl+S`)
+4. To switch system: **📂 Gamelist…** → browse or paste path → Open
+5. **Tools** for language, ScreenScraper boost, backup, region purge
 
-**Français · English · Español · Deutsch · Italiano · Português · Nederlands · Polski · Türkçe · Svenska · Norsk · Dansk · Русский**
-
-Open **Tools → Language**, choose a locale, then **Apply language**. The choice is remembered in the browser (`localStorage`).
+Full guide: [Wiki](https://github.com/Kraran/gamelist-media-editor/wiki)
 
 ---
 
-
-## Languages
-
-Interface and server messages are available in:
-
-**Français · English · Español · Deutsch · Italiano · Português · Nederlands · Polski · Türkçe · Svenska · Norsk · Dansk · Русский**
-
-Open **Tools → Language**, choose a locale, then **Apply language**. The choice is remembered in the browser (`localStorage`).
-
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE)
