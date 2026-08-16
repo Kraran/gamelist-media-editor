@@ -14,7 +14,12 @@
 </head>
 <body>
   <header>
-    <h1>🎮 <span>Gamelist</span> Media Editor</h1>
+    <h1 class="app-brand">
+      <button type="button" class="brand-btn" id="btn-about" title="À propos" data-i18n-title="about.open_title">
+        <img class="app-logo" src="/static/favicon.svg" width="28" height="28" alt="" aria-hidden="true" />
+        <span><span>Gamelist</span> Media Editor <small class="brand-ver" id="brand-version">v1.1.3</small></span>
+      </button>
+    </h1>
     <span class="badge" id="game-count" data-i18n="header.game_count" data-i18n-params='{"n":0}'>0 jeux</span>
     <div class="header-spacer"></div>
     <span class="system-badge" id="system-name" data-i18n-title="header.system_title" title="Système (dossier du gamelist.xml)">—</span>
@@ -216,6 +221,62 @@
       <div class="tools-footer">
         <button type="button" class="btn" id="open-gl-cancel" data-i18n="confirm.cancel">Annuler</button>
         <button type="button" class="btn btn-accent" id="open-gl-apply" data-i18n="open_gl.apply">Ouvrir</button>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="modal-overlay" id="about-modal" role="dialog" aria-modal="true" aria-labelledby="about-title">
+    <div class="modal about-modal" style="max-width:720px;width:96vw;padding:0;overflow:hidden">
+      <div class="tools-header about-modal-header">
+        <h3 id="about-title" data-i18n="about.title">À propos</h3>
+        <button type="button" class="btn" id="about-close" title="Fermer" data-i18n-title="tools.close">✕</button>
+      </div>
+      <div class="about-body">
+        <div class="about-layout">
+          <a class="about-portrait" href="https://github.com/Kraran" target="_blank" rel="noopener" data-tip="King Kraran" aria-label="King Kraran — GitHub">
+            <img src="/static/about-author.jpg" alt="King Kraran" />
+            <div class="about-portrait-fade" aria-hidden="true"></div>
+          </a>
+          <div class="about-main">
+            <div class="about-hero">
+              <img class="app-about-icon" src="/static/icon-256.png" alt="Gamelist Media Editor" width="56" height="56" />
+              <div>
+                <h2>Gamelist Media Editor</h2>
+                <div class="ver" id="about-version-label">v1.1.3</div>
+              </div>
+            </div>
+            <p class="about-desc" data-i18n="about.desc">
+              Application web locale pour éditer les médias et métadonnées d’un <code>gamelist.xml</code>
+              EmulationStation / RetroBat. Glisser-déposer, scrapers ScreenScraper &amp; Arcade Database,
+              filtres, sauvegarde et interface multilingue.
+            </p>
+            <dl class="about-grid">
+              <dt data-i18n="about.version">Version</dt>
+              <dd id="about-version">1.1.3</dd>
+              <dt data-i18n="about.date">Date</dt>
+              <dd id="about-date">2026-08-16</dd>
+              <dt data-i18n="about.author">Auteur</dt>
+              <dd>Franck Fornasari (<a href="https://github.com/Kraran" target="_blank" rel="noopener">Kraran</a>)</dd>
+              <dt data-i18n="about.license">Licence</dt>
+              <dd>MIT</dd>
+              <dt data-i18n="about.repo">Dépôt</dt>
+              <dd><a href="https://github.com/Kraran/gamelist-media-editor" target="_blank" rel="noopener">github.com/Kraran/gamelist-media-editor</a></dd>
+              <dt data-i18n="about.stack">Techno</dt>
+              <dd>Python · Flask · lxml · HTML/JS</dd>
+            </dl>
+            <div class="about-note" data-i18n="about.note">
+              Logiciel fourni « tel quel ». Aucune ROM n’est distribuée. Les scrapers accèdent
+              aux services publics ScreenScraper et Arcade Database (Arcade Italia) — utilisez-les
+              de façon raisonnable.
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="about-footer">
+        <button type="button" class="btn" id="about-author-page" data-i18n="about.author_page">Profil Kraran</button>
+        <button type="button" class="btn" id="about-github" data-i18n="about.github">Dépôt GitHub</button>
+        <button type="button" class="btn btn-accent" id="about-close-primary" data-i18n="about.close">Fermer</button>
       </div>
     </div>
   </div>
