@@ -307,7 +307,7 @@ def ext_from_content_type(ct, field):
 # --- ScreenScraper -----------------------------------------------------------
 SS_API = "https://api.screenscraper.fr/api2"
 SS_SOFTNAME = "GamelistMediaEditor"
-APP_VERSION = "1.1.2"
+APP_VERSION = "1.1.3"
 APP_UA = f"{SS_SOFTNAME}/{APP_VERSION}"
 SS_CONFIG_NAME = "screenscraper_config.json"
 

@@ -294,5 +294,20 @@
     "loading": "Loading…",
     "empty_folder": "No folders or .xml files here.",
     "browse_error": "Could not list this folder."
+  },
+  "about": {
+    "open_title": "About",
+    "title": "About",
+    "desc": "Local web app to edit EmulationStation / RetroBat gamelist.xml media and metadata. Drag-and-drop, ScreenScraper & Arcade Database scrapers, filters, backups and a multilingual UI.",
+    "version": "Version",
+    "date": "Date",
+    "author": "Author",
+    "license": "License",
+    "repo": "Repository",
+    "stack": "Stack",
+    "note": "Software provided “as is”. No ROMs are distributed. Scrapers call public ScreenScraper and Arcade Database (Arcade Italia) services — please use them responsibly.",
+    "author_page": "Kraran profile",
+    "github": "GitHub repo",
+    "close": "Close"
   }
 }
