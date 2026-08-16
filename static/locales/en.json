@@ -15,7 +15,9 @@
     "tools": "⚙ Tools",
     "tools_title": "Tools and global actions",
     "quit": "✕ Quit",
-    "quit_title": "Stop the server and close"
+    "quit_title": "Stop the server and close",
+    "open_gamelist": "📂 Gamelist…",
+    "open_gamelist_title": "Open another gamelist.xml without restarting"
   },
   "sidebar": {
     "search_placeholder": "Search games…",
@@ -92,7 +94,8 @@
     "deleting_game": "Deleting game…",
     "done": "Done",
     "testing": "Testing…",
-    "applying_download": "Download / apply…"
+    "applying_download": "Download / apply…",
+    "opening_gamelist": "Opening gamelist…"
   },
   "toast": {
     "no_file_url": "No file or URL detected",
@@ -109,7 +112,8 @@
     "delete_ok": "✓ “{name}” deleted ({n} file(s) removed)",
     "ss_saved": "✓ ScreenScraper settings saved",
     "no_fields": "No field selected",
-    "list_reloaded": "List reloaded"
+    "list_reloaded": "List reloaded",
+    "gamelist_opened": "Gamelist opened: {name} ({n} games)"
   },
   "errors": {
     "offline": "No network connection.",
@@ -265,6 +269,30 @@
     "game_fallback": "Game {index}",
     "xml_read": "Cannot read gamelist.xml: {detail}",
     "file_not_found": "File not found",
-    "name_empty_ignored": "name: empty, skipped"
+    "name_empty_ignored": "name: empty, skipped",
+    "open_empty_path": "No path provided.",
+    "open_not_found": "File not found: {path}",
+    "open_not_xml": "The file must be a .xml",
+    "open_bad_xml": "Invalid XML: {detail}",
+    "open_failed": "Could not open gamelist: {detail}",
+    "browse_not_dir": "Folder not found: {path}",
+    "browse_denied": "Access denied to {path}: {detail}"
+  },
+  "open_gl": {
+    "title": "📂 Open a gamelist.xml",
+    "intro": "Browse to the system folder, select a <code>gamelist.xml</code>, or paste the full path. The images / videos / manuals folders must sit next to it.",
+    "current": "Current file",
+    "path_label": "Selected path",
+    "path_ph": "C:\\RetroBat\\roms\\snes\\gamelist.xml",
+    "recent": "Recent",
+    "recent_empty": "No recent files yet.",
+    "apply": "Open",
+    "need_path": "Enter the path to the gamelist.xml",
+    "drop_hint": "The browser does not expose the full path of a dropped file — paste the path from Explorer (Shift+right-click → Copy as path).",
+    "up_title": "Parent folder",
+    "refresh_title": "Refresh",
+    "loading": "Loading…",
+    "empty_folder": "No folders or .xml files here.",
+    "browse_error": "Could not list this folder."
   }
 }

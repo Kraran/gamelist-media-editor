@@ -34,8 +34,11 @@ def api_err(message, status=400, code=None, **extra):
     return jsonify(payload), status
 
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-_LOCALE_DIR = os.path.join(BASE_DIR, "static", "locales")
+# Directory of app.py / static / locales (never changes at runtime)
+APP_DIR = os.path.dirname(os.path.abspath(__file__))
+# Root of the current gamelist + media folders (changes via /api/open-gamelist)
+BASE_DIR = APP_DIR
+_LOCALE_DIR = os.path.join(APP_DIR, "static", "locales")
 _LOCALE_CACHE = {}
 
 
@@ -99,6 +102,37 @@ def st(key, **params):
 
 
 XML_PATH = os.path.join(BASE_DIR, "gamelist.xml")
+
+
+def set_gamelist_path(path):
+    """
+    Point the editor at another gamelist.xml (absolute path).
+    Updates XML_PATH + BASE_DIR, clears the parse cache.
+    Raises FileNotFoundError / ValueError on bad input.
+    """
+    global XML_PATH, BASE_DIR
+    if not path or not str(path).strip():
+        raise ValueError(st("server.open_empty_path"))
+    path = os.path.abspath(str(path).strip().strip('"').strip("'"))
+    if not os.path.isfile(path):
+        raise FileNotFoundError(st("server.open_not_found", path=path))
+    if not path.lower().endswith(".xml"):
+        raise ValueError(st("server.open_not_xml"))
+    # Validate parse once before switching
+    try:
+        etree.parse(path, etree.XMLParser(remove_blank_text=True))
+    except etree.XMLSyntaxError as e:
+        raise ValueError(st("server.open_bad_xml", detail=e)) from e
+    XML_PATH = path
+    BASE_DIR = os.path.dirname(path)
+    _xml_cache["mtime"] = None
+    _xml_cache["tree"] = None
+    return {
+        "xml_path": XML_PATH,
+        "base_dir": BASE_DIR,
+        "system": get_system_info(),
+    }
+
 
 # Max size for media downloaded from a URL (bytes)
 MAX_DOWNLOAD_BYTES = 50 * 1024 * 1024  # 50 MB
@@ -273,7 +307,7 @@ def ext_from_content_type(ct, field):
 # --- ScreenScraper -----------------------------------------------------------
 SS_API = "https://api.screenscraper.fr/api2"
 SS_SOFTNAME = "GamelistMediaEditor"
-APP_VERSION = "1.1.1"
+APP_VERSION = "1.1.2"
 APP_UA = f"{SS_SOFTNAME}/{APP_VERSION}"
 SS_CONFIG_NAME = "screenscraper_config.json"
 
@@ -915,10 +949,122 @@ def api_games():
         return jsonify({
             "games": get_games(load_xml()),
             "system": get_system_info(),
+            "xml_path": XML_PATH,
+            "base_dir": BASE_DIR,
         })
     except Exception as e:
         log.exception("api_games failed")
         return api_err(st("server.xml_read", detail=e), 500, code="xml_read")
+
+
+@app.route("/api/session")
+def api_session():
+    """Current gamelist path + system badge info (no full game list)."""
+    return jsonify({
+        "xml_path": XML_PATH,
+        "base_dir": BASE_DIR,
+        "system": get_system_info(),
+        "version": APP_VERSION,
+    })
+
+
+@app.route("/api/browse")
+def api_browse():
+    """
+    List folders + .xml files for the in-app file picker.
+    Query: ?path=  (optional). Default = parent of current gamelist.xml.
+    Local-only tool — directory listing is intentional.
+    """
+    raw = (request.args.get("path") or "").strip().strip('"').strip("'")
+    if raw:
+        target = os.path.abspath(raw)
+    else:
+        # Default: parent of the current gamelist folder (e.g. roms/)
+        start = BASE_DIR if os.path.isdir(BASE_DIR) else os.path.dirname(XML_PATH)
+        parent = os.path.dirname(start)
+        target = parent if parent and os.path.isdir(parent) else start
+
+    if os.path.isfile(target):
+        target = os.path.dirname(target)
+
+    if not os.path.isdir(target):
+        return api_err(st("server.browse_not_dir", path=target), 404, code="browse_not_dir")
+
+    try:
+        names = os.listdir(target)
+    except OSError as e:
+        return api_err(st("server.browse_denied", path=target, detail=e), 403, code="browse_denied")
+
+    dirs = []
+    xmls = []
+    for name in names:
+        if name.startswith("."):
+            continue
+        full = os.path.join(target, name)
+        try:
+            if os.path.isdir(full):
+                dirs.append({"name": name, "path": full})
+            elif os.path.isfile(full) and name.lower().endswith(".xml"):
+                xmls.append({
+                    "name": name,
+                    "path": full,
+                    "is_gamelist": name.lower() == "gamelist.xml",
+                })
+        except OSError:
+            continue
+
+    dirs.sort(key=lambda d: d["name"].lower())
+    xmls.sort(key=lambda f: (not f["is_gamelist"], f["name"].lower()))
+
+    parent = os.path.dirname(target)
+    # On Windows, dirname("C:\\") == "C:\\" — treat as no parent
+    has_parent = bool(parent) and parent != target and os.path.isdir(parent)
+
+    # Drive roots on Windows (C:\, D:\, …)
+    drives = []
+    if os.name == "nt":
+        import string
+        for letter in string.ascii_uppercase:
+            root = f"{letter}:\\"
+            if os.path.isdir(root):
+                drives.append({"name": f"{letter}:", "path": root})
+
+    return jsonify({
+        "path": target,
+        "parent": parent if has_parent else None,
+        "dirs": dirs,
+        "files": xmls,
+        "drives": drives,
+    })
+
+
+@app.route("/api/open-gamelist", methods=["POST"])
+def api_open_gamelist():
+    """
+    Switch the editor to another gamelist.xml without restarting the server.
+    Body: { "path": "C:\\RetroBat\\roms\\snes\\gamelist.xml" }
+    Local-only tool (bound to 127.0.0.1) — absolute paths are intentional.
+    """
+    body = request.get_json(silent=True) or {}
+    raw = body.get("path") or body.get("xml") or ""
+    try:
+        info = set_gamelist_path(raw)
+        games = get_games(load_xml())
+        return jsonify({
+            "success": True,
+            "xml_path": info["xml_path"],
+            "base_dir": info["base_dir"],
+            "system": info["system"],
+            "games": games,
+            "count": len(games),
+        })
+    except FileNotFoundError as e:
+        return api_err(str(e), 404, code="open_not_found")
+    except ValueError as e:
+        return api_err(str(e), 400, code="open_invalid")
+    except Exception as e:
+        log.exception("open-gamelist failed")
+        return api_err(st("server.open_failed", detail=e), 500, code="open_failed")
 
 
 @app.route("/api/upload/<int:index>/<field>", methods=["POST"])

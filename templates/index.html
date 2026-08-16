@@ -22,6 +22,9 @@
     <button class="btn btn-danger" id="btn-delete-game" data-i18n="header.delete_game" data-i18n-title="header.delete_game_title" title="Supprime le jeu sélectionné (ROM + médias + entrée XML)" disabled>
       🗑 Supprimer ce jeu
     </button>
+    <button class="btn" id="btn-open-gamelist" data-i18n="header.open_gamelist" data-i18n-title="header.open_gamelist_title" title="Ouvrir un autre gamelist.xml">
+      📂 Gamelist…
+    </button>
     <button class="btn" id="btn-reload" data-i18n="header.reload" data-i18n-title="header.reload_title" title="Recharger le gamelist.xml depuis le disque">
       ↻ Recharger
     </button>
@@ -173,6 +176,46 @@
       <div class="tools-footer">
         <button type="button" class="btn" id="ss-modal-cancel" data-i18n="scrape.cancel">Annuler</button>
         <button type="button" class="btn btn-accent" id="ss-modal-apply" data-i18n="scrape.apply">Appliquer la sélection</button>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="modal-overlay" id="open-gamelist-modal" role="dialog" aria-modal="true" aria-labelledby="open-gl-title">
+    <div class="modal tools-modal open-gl-modal">
+      <div class="tools-header">
+        <h3 id="open-gl-title" data-i18n="open_gl.title">📂 Ouvrir un gamelist.xml</h3>
+        <button type="button" class="btn" id="open-gl-close" title="Fermer" data-i18n-title="tools.close">✕</button>
+      </div>
+      <p class="tools-intro" data-i18n-html="open_gl.intro">Navigue jusqu’au dossier du système, sélectionne un <code>gamelist.xml</code>, ou colle le chemin complet. Les dossiers images / videos / manuals doivent être au même niveau.</p>
+      <div class="open-gl-current">
+        <div class="open-gl-label" data-i18n="open_gl.current">Fichier actuel</div>
+        <code id="open-gl-current-path" class="open-gl-path">—</code>
+      </div>
+
+      <div class="open-gl-browser" id="open-gl-browser">
+        <div class="open-gl-browser-bar">
+          <button type="button" class="btn open-gl-nav" id="open-gl-up" data-i18n-title="open_gl.up_title" title="Dossier parent">⬆</button>
+          <code id="open-gl-browse-path" class="open-gl-browse-path">—</code>
+          <button type="button" class="btn open-gl-nav" id="open-gl-refresh" data-i18n-title="open_gl.refresh_title" title="Actualiser">↻</button>
+        </div>
+        <div id="open-gl-drives" class="open-gl-drives" hidden></div>
+        <div id="open-gl-listing" class="open-gl-listing" role="list"></div>
+      </div>
+
+      <div class="form-row open-gl-row">
+        <label for="open-gl-path" data-i18n="open_gl.path_label">Chemin sélectionné</label>
+        <input type="text" id="open-gl-path" class="open-gl-input" spellcheck="false" autocomplete="off"
+          data-i18n-placeholder="open_gl.path_ph"
+          placeholder="C:\RetroBat\roms\snes\gamelist.xml" />
+      </div>
+      <div class="open-gl-recent-wrap">
+        <div class="open-gl-label" data-i18n="open_gl.recent">Récents</div>
+        <div id="open-gl-recent" class="open-gl-recent" role="list"></div>
+      </div>
+      <div class="tools-footer">
+        <button type="button" class="btn" id="open-gl-cancel" data-i18n="confirm.cancel">Annuler</button>
+        <button type="button" class="btn btn-accent" id="open-gl-apply" data-i18n="open_gl.apply">Ouvrir</button>
       </div>
     </div>
   </div>

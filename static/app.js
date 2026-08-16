@@ -419,6 +419,10 @@ async function loadGames() {
     } else {
       games = data.games || [];
       updateSystemBadge(data.system || null);
+      if (data.xml_path) {
+        window.__gmeXmlPath = data.xml_path;
+        if (typeof pushRecentGamelist === "function") pushRecentGamelist(data.xml_path);
+      }
     }
     if (keepIndex !== null) {
       const listIdx = games.findIndex(g => g.index === keepIndex);
@@ -1022,6 +1026,230 @@ document.getElementById("btn-delete-game").addEventListener("click", async () =>
     await loadGames();
   } catch (e) {
     handleError(e);
+  }
+});
+
+
+/* --- Switch gamelist.xml without restart --------------------------------- */
+const RECENT_GL_KEY = "gme_recent_gamelists";
+const RECENT_GL_MAX = 8;
+
+function getRecentGamelists() {
+  try {
+    const raw = localStorage.getItem(RECENT_GL_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr.filter((p) => typeof p === "string" && p) : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+function pushRecentGamelist(path) {
+  if (!path) return;
+  const list = getRecentGamelists().filter((p) => p !== path);
+  list.unshift(path);
+  localStorage.setItem(RECENT_GL_KEY, JSON.stringify(list.slice(0, RECENT_GL_MAX)));
+}
+
+function renderRecentGamelists() {
+  const box = document.getElementById("open-gl-recent");
+  if (!box) return;
+  const list = getRecentGamelists();
+  if (!list.length) {
+    box.innerHTML = `<div class="open-gl-recent-empty">${escapeHtml(t("open_gl.recent_empty"))}</div>`;
+    return;
+  }
+  box.innerHTML = list
+    .map(
+      (p) =>
+        `<button type="button" class="open-gl-recent-item" role="listitem" data-path="${escapeHtml(p)}">${escapeHtml(p)}</button>`
+    )
+    .join("");
+  box.querySelectorAll(".open-gl-recent-item").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.getElementById("open-gl-path").value = btn.getAttribute("data-path") || "";
+    });
+  });
+}
+
+let __browsePath = null;
+let __browseParent = null;
+
+async function browseDirectory(path) {
+  const listing = document.getElementById("open-gl-listing");
+  const pathEl = document.getElementById("open-gl-browse-path");
+  const upBtn = document.getElementById("open-gl-up");
+  const drivesEl = document.getElementById("open-gl-drives");
+  if (listing) listing.innerHTML = `<div class="open-gl-listing-empty">${escapeHtml(t("open_gl.loading"))}</div>`;
+  try {
+    const q = path ? `?path=${encodeURIComponent(path)}` : "";
+    const data = await apiFetch(`/api/browse${q}`);
+    __browsePath = data.path || null;
+    __browseParent = data.parent || null;
+    if (pathEl) pathEl.textContent = __browsePath || "—";
+    if (upBtn) upBtn.disabled = !__browseParent;
+
+    if (drivesEl) {
+      const drives = data.drives || [];
+      if (drives.length) {
+        drivesEl.hidden = false;
+        drivesEl.innerHTML = drives
+          .map(
+            (d) =>
+              `<button type="button" class="open-gl-drive" data-path="${escapeHtml(d.path)}">${escapeHtml(d.name)}</button>`
+          )
+          .join("");
+        drivesEl.querySelectorAll(".open-gl-drive").forEach((btn) => {
+          btn.addEventListener("click", () => browseDirectory(btn.getAttribute("data-path")));
+        });
+      } else {
+        drivesEl.hidden = true;
+        drivesEl.innerHTML = "";
+      }
+    }
+
+    const dirs = data.dirs || [];
+    const files = data.files || [];
+    if (!dirs.length && !files.length) {
+      listing.innerHTML = `<div class="open-gl-listing-empty">${escapeHtml(t("open_gl.empty_folder"))}</div>`;
+      return;
+    }
+
+    const parts = [];
+    for (const d of dirs) {
+      parts.push(
+        `<button type="button" class="open-gl-item open-gl-dir" role="listitem" data-path="${escapeHtml(d.path)}">` +
+          `<span class="open-gl-item-icon">📁</span><span>${escapeHtml(d.name)}</span></button>`
+      );
+    }
+    for (const f of files) {
+      const cls = f.is_gamelist ? "open-gl-item open-gl-file is-gamelist" : "open-gl-item open-gl-file";
+      const icon = f.is_gamelist ? "🎮" : "📄";
+      parts.push(
+        `<button type="button" class="${cls}" role="listitem" data-path="${escapeHtml(f.path)}">` +
+          `<span class="open-gl-item-icon">${icon}</span><span>${escapeHtml(f.name)}</span></button>`
+      );
+    }
+    listing.innerHTML = parts.join("");
+
+    listing.querySelectorAll(".open-gl-dir").forEach((btn) => {
+      btn.addEventListener("click", () => browseDirectory(btn.getAttribute("data-path")));
+      btn.addEventListener("dblclick", () => browseDirectory(btn.getAttribute("data-path")));
+    });
+    listing.querySelectorAll(".open-gl-file").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        listing.querySelectorAll(".open-gl-file.is-selected").forEach((el) => el.classList.remove("is-selected"));
+        btn.classList.add("is-selected");
+        const p = btn.getAttribute("data-path") || "";
+        document.getElementById("open-gl-path").value = p;
+      });
+      btn.addEventListener("dblclick", () => {
+        const p = btn.getAttribute("data-path") || "";
+        document.getElementById("open-gl-path").value = p;
+        applyOpenGamelist();
+      });
+    });
+  } catch (e) {
+    if (listing) {
+      listing.innerHTML = `<div class="open-gl-listing-empty">${escapeHtml((e && e.message) || t("open_gl.browse_error"))}</div>`;
+    }
+  }
+}
+
+function openGamelistModal() {
+  const modal = document.getElementById("open-gamelist-modal");
+  const cur = document.getElementById("open-gl-current-path");
+  const input = document.getElementById("open-gl-path");
+  if (cur) cur.textContent = window.__gmeXmlPath || "—";
+  if (input) input.value = "";
+  renderRecentGamelists();
+  modal.classList.add("open");
+  // Default browse: parent of current gamelist (server decides when path omitted)
+  browseDirectory(null);
+  setTimeout(() => input && input.focus(), 50);
+}
+
+function closeGamelistModal() {
+  document.getElementById("open-gamelist-modal").classList.remove("open");
+}
+
+function resetEditorSelection() {
+  currentIndex = null;
+  currentListIndex = null;
+  const del = document.getElementById("btn-delete-game");
+  if (del) del.disabled = true;
+  const editor = document.getElementById("editor");
+  const empty = document.getElementById("empty-state");
+  if (editor) editor.hidden = true;
+  if (empty) empty.hidden = false;
+}
+
+async function applyOpenGamelist() {
+  const input = document.getElementById("open-gl-path");
+  const path = (input && input.value || "").trim().replace(/^["']|["']$/g, "");
+  if (!path) {
+    toast(t("open_gl.need_path"), "error");
+    return;
+  }
+  setStatus(t("status.opening_gamelist"));
+  try {
+    const data = await apiFetch("/api/open-gamelist", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path }),
+    });
+    window.__gmeXmlPath = data.xml_path || path;
+    pushRecentGamelist(window.__gmeXmlPath);
+    games = data.games || [];
+    resetEditorSelection();
+    updateSystemBadge(data.system || null);
+    const sysEl = document.getElementById("system-name");
+    if (sysEl && data.xml_path) sysEl.title = data.xml_path;
+    const searchEl = document.getElementById("search");
+    if (searchEl) searchEl.value = "";
+    renderList("");
+    closeGamelistModal();
+    const label = (data.system && (data.system.label || data.system.folder)) || path;
+    toast(t("toast.gamelist_opened", { name: label, n: data.count != null ? data.count : games.length }));
+    setStatus(t("status.ready", { n: games.length }));
+  } catch (e) {
+    handleError(e);
+  }
+}
+
+
+document.getElementById("open-gl-up").addEventListener("click", () => {
+  if (__browseParent) browseDirectory(__browseParent);
+});
+document.getElementById("open-gl-refresh").addEventListener("click", () => {
+  browseDirectory(__browsePath || null);
+});
+
+document.getElementById("btn-open-gamelist").addEventListener("click", openGamelistModal);
+document.getElementById("open-gl-close").addEventListener("click", closeGamelistModal);
+document.getElementById("open-gl-cancel").addEventListener("click", closeGamelistModal);
+document.getElementById("open-gl-apply").addEventListener("click", applyOpenGamelist);
+document.getElementById("open-gl-path").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    applyOpenGamelist();
+  }
+});
+document.getElementById("open-gamelist-modal").addEventListener("click", (e) => {
+  if (e.target.id === "open-gamelist-modal") closeGamelistModal();
+});
+document.getElementById("open-gl-path").addEventListener("dragover", (e) => e.preventDefault());
+document.getElementById("open-gl-path").addEventListener("drop", (e) => {
+  e.preventDefault();
+  const dt = e.dataTransfer;
+  if (!dt) return;
+  const txt = (dt.getData("text/plain") || dt.getData("text") || "").trim();
+  if (txt) {
+    document.getElementById("open-gl-path").value = txt.replace(/^["']|["']$/g, "");
+    return;
+  }
+  if (dt.files && dt.files.length) {
+    toast(t("open_gl.drop_hint"), "error");
   }
 });
 

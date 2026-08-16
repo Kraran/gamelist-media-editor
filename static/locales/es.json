@@ -15,7 +15,9 @@
     "tools": "⚙ Herramientas",
     "tools_title": "Herramientas y acciones globales",
     "quit": "✕ Salir",
-    "quit_title": "Detener el servidor y cerrar"
+    "quit_title": "Detener el servidor y cerrar",
+    "open_gamelist": "📂 Gamelist…",
+    "open_gamelist_title": "Abrir otro gamelist.xml sin reiniciar"
   },
   "sidebar": {
     "search_placeholder": "Buscar juegos…",
@@ -92,7 +94,8 @@
     "deleting_game": "Eliminando juego…",
     "done": "Hecho",
     "testing": "Probando…",
-    "applying_download": "Descarga / aplicación…"
+    "applying_download": "Descarga / aplicación…",
+    "opening_gamelist": "Abriendo gamelist…"
   },
   "toast": {
     "no_file_url": "No se detectó archivo ni URL",
@@ -109,7 +112,8 @@
     "delete_ok": "✓ « {name} » eliminado ({n} archivo(s) borrados)",
     "ss_saved": "✓ Ajustes de ScreenScraper guardados",
     "no_fields": "Ningún campo seleccionado",
-    "list_reloaded": "Lista recargada"
+    "list_reloaded": "Lista recargada",
+    "gamelist_opened": "Gamelist abierto: {name} ({n} juegos)"
   },
   "errors": {
     "offline": "Sin conexión de red.",
@@ -265,6 +269,30 @@
     "game_fallback": "Juego {index}",
     "xml_read": "No se puede leer gamelist.xml: {detail}",
     "file_not_found": "Archivo no encontrado",
-    "name_empty_ignored": "name: vacío, ignorado"
+    "name_empty_ignored": "name: vacío, ignorado",
+    "open_empty_path": "No se proporcionó ninguna ruta.",
+    "open_not_found": "Archivo no encontrado: {path}",
+    "open_not_xml": "El archivo debe ser un .xml",
+    "open_bad_xml": "XML no válido: {detail}",
+    "open_failed": "No se pudo abrir el gamelist: {detail}",
+    "browse_not_dir": "Folder not found: {path}",
+    "browse_denied": "Access denied to {path}: {detail}"
+  },
+  "open_gl": {
+    "title": "📂 Abrir un gamelist.xml",
+    "intro": "Browse to the system folder, select a <code>gamelist.xml</code>, or paste the full path. The images / videos / manuals folders must sit next to it.",
+    "current": "Archivo actual",
+    "path_label": "Selected path",
+    "path_ph": "C:\\RetroBat\\roms\\snes\\gamelist.xml",
+    "recent": "Recientes",
+    "recent_empty": "Aún no hay archivos recientes.",
+    "apply": "Abrir",
+    "need_path": "Indica la ruta del gamelist.xml",
+    "drop_hint": "El navegador no da la ruta completa del archivo soltado — pega la ruta desde el explorador.",
+    "up_title": "Parent folder",
+    "refresh_title": "Refresh",
+    "loading": "Loading…",
+    "empty_folder": "No folders or .xml files here.",
+    "browse_error": "Could not list this folder."
   }
 }

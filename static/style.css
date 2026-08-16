@@ -430,3 +430,159 @@ textarea:focus-visible {
 }
 body.ss-busy { cursor: wait; }
 body.ss-busy button, body.ss-busy .btn { cursor: wait; }
+
+
+/* --- Open gamelist modal --- */
+.open-gl-modal { max-width: 620px; }
+.open-gl-current { margin: 0 0 12px; }
+.open-gl-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.open-gl-path {
+  display: block;
+  font-size: 0.78rem;
+  word-break: break-all;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: var(--text);
+}
+.open-gl-row { margin-bottom: 12px; }
+.open-gl-input {
+  width: 100%;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.85rem;
+  padding: 9px 11px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+}
+.open-gl-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+.open-gl-recent-wrap { margin-bottom: 8px; }
+.open-gl-recent {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+.open-gl-recent-item {
+  text-align: left;
+  font-size: 0.8rem;
+  padding: 7px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  word-break: break-all;
+}
+.open-gl-recent-item:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg));
+}
+.open-gl-recent-empty {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  padding: 6px 2px;
+}
+
+
+/* --- File browser (open gamelist) --- */
+.open-gl-modal { max-width: 620px; }
+.open-gl-browser {
+  margin: 0 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  overflow: hidden;
+}
+.open-gl-browser-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface, #1e1e28) 90%, #000);
+}
+.open-gl-nav {
+  flex-shrink: 0;
+  padding: 4px 8px !important;
+  min-width: 32px;
+  font-size: 0.9rem;
+}
+.open-gl-browse-path {
+  flex: 1;
+  font-size: 0.75rem;
+  word-break: break-all;
+  color: var(--text-muted);
+  padding: 2px 4px;
+  max-height: 2.6em;
+  overflow: hidden;
+}
+.open-gl-drives {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.open-gl-drive {
+  font-size: 0.78rem;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--surface, #222);
+  color: var(--text);
+  cursor: pointer;
+}
+.open-gl-drive:hover { border-color: var(--accent); }
+.open-gl-listing {
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+.open-gl-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 6px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.open-gl-item:hover {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+.open-gl-item.is-selected {
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+  font-weight: 600;
+}
+.open-gl-item.is-gamelist {
+  color: var(--accent);
+}
+.open-gl-item-icon {
+  flex-shrink: 0;
+  width: 1.2em;
+  text-align: center;
+}
+.open-gl-listing-empty {
+  padding: 14px 12px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  text-align: center;
+}
