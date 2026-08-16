@@ -1253,54 +1253,6 @@ document.getElementById("open-gl-path").addEventListener("drop", (e) => {
   }
 });
 
-
-/* --- About dialog (RomSet Verifier style) --- */
-const APP_ABOUT = {
-  version: "1.1.3",
-  versionLabel: "v1.1.3",
-  date: "2026-08-16",
-  author: "Franck Fornasari",
-  repo: "https://github.com/Kraran/gamelist-media-editor",
-  authorUrl: "https://github.com/Kraran",
-};
-
-function openAbout() {
-  const v = document.getElementById("about-version-label");
-  const v2 = document.getElementById("about-version");
-  const d = document.getElementById("about-date");
-  const bv = document.getElementById("brand-version");
-  if (v) v.textContent = APP_ABOUT.versionLabel;
-  if (v2) v2.textContent = APP_ABOUT.version;
-  if (d) d.textContent = APP_ABOUT.date;
-  if (bv) bv.textContent = APP_ABOUT.versionLabel;
-  const m = document.getElementById("about-modal");
-  if (m) m.classList.add("open");
-}
-
-function closeAbout() {
-  const m = document.getElementById("about-modal");
-  if (m) m.classList.remove("open");
-}
-
-document.getElementById("btn-about")?.addEventListener("click", openAbout);
-document.getElementById("about-close")?.addEventListener("click", closeAbout);
-document.getElementById("about-close-primary")?.addEventListener("click", closeAbout);
-document.getElementById("about-author-page")?.addEventListener("click", () => {
-  window.open(APP_ABOUT.authorUrl, "_blank", "noopener");
-});
-document.getElementById("about-github")?.addEventListener("click", () => {
-  window.open(APP_ABOUT.repo, "_blank", "noopener");
-});
-document.getElementById("about-modal")?.addEventListener("click", (e) => {
-  if (e.target.id === "about-modal") closeAbout();
-});
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") {
-    const m = document.getElementById("about-modal");
-    if (m && m.classList.contains("open")) closeAbout();
-  }
-});
-
 async function boot() {
   await loadLocale(getStoredLocale());
   wireLanguageControls();

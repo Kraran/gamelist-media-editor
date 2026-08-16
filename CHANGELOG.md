@@ -2,17 +2,6 @@
 
 All notable changes to Gamelist Media Editor are documented in this file.
 
-## [1.1.3] - 2026-08-16
-
-### Added
-- **About** dialog (click the logo / title in the header) — same layout as RomSet Verifier
-  - Author portrait, version, release date, license, repository, stack
-  - Links to GitHub profile and repository
-- Header **brand button** uses the app favicon as logo
-
-### Changed
-- Version constant **1.1.3** (UI About, console banner, User-Agent)
-
 ## [1.1.2] - 2026-08-16
 
 ### Added

@@ -2,7 +2,7 @@
 
 Local web app to edit EmulationStation / **RetroBat** `gamelist.xml` media and metadata with drag-and-drop.
 
-**Version 1.1.3** · [Documentation (Wiki)](https://github.com/Kraran/gamelist-media-editor/wiki) · [Releases](https://github.com/Kraran/gamelist-media-editor/releases)
+**Version 1.1.2** · [Documentation (Wiki)](https://github.com/Kraran/gamelist-media-editor/wiki) · [Releases](https://github.com/Kraran/gamelist-media-editor/releases)
 
 ---
 
@@ -24,7 +24,6 @@ Local web app to edit EmulationStation / **RetroBat** `gamelist.xml` media and m
 - Safe media paths, upload size limits (50 MB), XML write lock
 - **Multilingual UI** (13 languages) — change language in Tools
 - **Open another gamelist.xml** mid-session (file browser + recent files) without restarting
-- **About** dialog (click the header logo) — version, author, license, links
 
 ---
 
@@ -32,7 +31,7 @@ Local web app to edit EmulationStation / **RetroBat** `gamelist.xml` media and m
 
 ### Option A — Windows Setup (recommended)
 
-1. Download **GamelistMediaEditor-Windows-Setup-v1.1.3.zip** from the [latest release](https://github.com/Kraran/gamelist-media-editor/releases/latest)
+1. Download **GamelistMediaEditor-Windows-Setup-v1.1.2.zip** from the [latest release](https://github.com/Kraran/gamelist-media-editor/releases/latest)
 2. Extract and run **`Installer.bat`**
 3. Choose an install folder
 4. The installer will:

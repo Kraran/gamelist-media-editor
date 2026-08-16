@@ -294,20 +294,5 @@
     "loading": "Chargement…",
     "empty_folder": "Aucun dossier ni fichier .xml ici.",
     "browse_error": "Impossible de lister ce dossier."
-  },
-  "about": {
-    "open_title": "À propos",
-    "title": "À propos",
-    "desc": "Application web locale pour éditer les médias et métadonnées d’un gamelist.xml EmulationStation / RetroBat. Glisser-déposer, scrapers ScreenScraper & Arcade Database, filtres, sauvegarde et interface multilingue.",
-    "version": "Version",
-    "date": "Date",
-    "author": "Auteur",
-    "license": "Licence",
-    "repo": "Dépôt",
-    "stack": "Techno",
-    "note": "Logiciel fourni « tel quel ». Aucune ROM n’est distribuée. Les scrapers accèdent aux services publics ScreenScraper et Arcade Database (Arcade Italia) — utilisez-les de façon raisonnable.",
-    "author_page": "Profil Kraran",
-    "github": "Dépôt GitHub",
-    "close": "Fermer"
   }
 }
