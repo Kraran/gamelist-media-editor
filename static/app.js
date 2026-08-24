@@ -1,3 +1,11 @@
+/**
+ * Gamelist Media Editor — front-end (vanilla JS).
+ *
+ * Talks to the local Flask API on the same origin.
+ * i18n: static/locales/{code}.json loaded via loadLocale(); server messages use X-Locale.
+ * State: `games` (sorted list from XML), `currentIndex` (XML index), `currentListIndex` (filtered list).
+ * No gamelist at start: setNoGamelistUi(false) + openGamelistModal() from boot().
+ */
 const FIELD_DEFS = [
 { key: "image",   icon: "🖼️" },
 { key: "video",   icon: "🎬" },
@@ -14,7 +22,8 @@ function getFields() {
 /** @deprecated use getFields() — kept as live view for older call sites */
 let FIELDS = FIELD_DEFS.map(f => ({ ...f, label: f.key }));
 
-/* ========== i18n ========== */
+/* ========== i18n (client) ========== */
+/* Keys are dotted paths in locale JSON. applyI18n() writes [data-i18n*] attributes. */
 const LOCALE_KEY = "gme_locale";
 const DEFAULT_LOCALE = "fr";
 let I18N = {};
@@ -196,6 +205,7 @@ function setStatus(txt) {
  * Fetch JSON from our API with consistent error handling.
  * Throws Error with a French, user-readable message.
  */
+/** Fetch JSON API; attaches X-Locale so server messages match the UI language. */
 async function apiFetch(url, options = {}) {
   options = { ...options };
   const headers = new Headers(options.headers || {});
@@ -407,6 +417,47 @@ function updateSystemBadge(system) {
   el.title = bits.join(" · ");
 }
 
+
+/** True when a gamelist.xml is currently loaded in the session. */
+window.__gmeLoaded = false;
+
+/**
+ * Toggle empty-state panels and disable destructive actions when no XML is loaded.
+ * @param {boolean} loaded
+ */
+function setNoGamelistUi(loaded) {
+  window.__gmeLoaded = !!loaded;
+  const empty = document.getElementById("empty-state");
+  const emptySelect = document.getElementById("empty-state-select");
+  const emptyOpen = document.getElementById("empty-state-open");
+  const editor = document.getElementById("editor");
+  const del = document.getElementById("btn-delete-game");
+  const reload = document.getElementById("btn-reload");
+  if (editor) editor.hidden = true;
+  if (del) del.disabled = true;
+  if (reload) reload.disabled = !loaded;
+  const ss = document.getElementById("btn-ss-scrape");
+  const adb = document.getElementById("btn-adb-scrape");
+  if (ss) ss.disabled = true;
+  if (adb) adb.disabled = true;
+  if (!loaded) {
+    if (empty) empty.hidden = false;
+    if (emptySelect) emptySelect.hidden = true;
+    if (emptyOpen) emptyOpen.hidden = false;
+    const badge = document.getElementById("game-count");
+    if (badge) {
+      badge.setAttribute("data-i18n-params", JSON.stringify({ n: 0 }));
+      badge.textContent = t("header.game_count", { n: 0 });
+    }
+    updateSystemBadge(null);
+    window.__gmeXmlPath = null;
+  } else {
+    if (emptyOpen) emptyOpen.hidden = true;
+    if (emptySelect) emptySelect.hidden = false;
+  }
+}
+
+/** Load / refresh the game list; handles the no-gamelist (loaded:false) response. */
 async function loadGames() {
   setStatus(t("status.loading"));
   const keepIndex = currentIndex;
@@ -416,13 +467,30 @@ async function loadGames() {
     if (Array.isArray(data)) {
       games = data;
       updateSystemBadge(null);
+      window.__gmeLoaded = games.length >= 0;
     } else {
+      const loaded = data.loaded !== false && !!(data.xml_path);
+      window.__gmeLoaded = loaded;
       games = data.games || [];
+      if (!loaded) {
+        setNoGamelistUi(false);
+        renderList();
+        setStatus(t("status.no_gamelist"));
+        return;
+      }
       updateSystemBadge(data.system || null);
       if (data.xml_path) {
         window.__gmeXmlPath = data.xml_path;
         if (typeof pushRecentGamelist === "function") pushRecentGamelist(data.xml_path);
       }
+      setNoGamelistUi(true);
+      // restore empty-state-select visibility (editor still hidden until selection)
+      const emptySelect = document.getElementById("empty-state-select");
+      const emptyOpen = document.getElementById("empty-state-open");
+      if (emptyOpen) emptyOpen.hidden = true;
+      if (emptySelect) emptySelect.hidden = false;
+      const empty = document.getElementById("empty-state");
+      if (empty && currentIndex === null) empty.hidden = false;
     }
     if (keepIndex !== null) {
       const listIdx = games.findIndex(g => g.index === keepIndex);
@@ -436,10 +504,10 @@ async function loadGames() {
         document.getElementById("editor").hidden = true;
         document.getElementById("empty-state").hidden = false;
         document.getElementById("btn-delete-game").disabled = true;
-const _ssBtn2 = document.getElementById("btn-ss-scrape");
-if (_ssBtn2) _ssBtn2.disabled = true;
-const _adbBtn2 = document.getElementById("btn-adb-scrape");
-if (_adbBtn2) _adbBtn2.disabled = true;
+        const _ssBtn2 = document.getElementById("btn-ss-scrape");
+        if (_ssBtn2) _ssBtn2.disabled = true;
+        const _adbBtn2 = document.getElementById("btn-adb-scrape");
+        if (_adbBtn2) _adbBtn2.disabled = true;
         renderList();
       }
     } else {
@@ -1156,6 +1224,7 @@ async function browseDirectory(path) {
   }
 }
 
+/** Open the in-app folder browser (defaults to parent of current gamelist or RetroBat/roms). */
 function openGamelistModal() {
   const modal = document.getElementById("open-gamelist-modal");
   const cur = document.getElementById("open-gl-current-path");
@@ -1184,6 +1253,7 @@ function resetEditorSelection() {
   if (empty) empty.hidden = false;
 }
 
+/** POST /api/open-gamelist then refresh list + system badge. */
 async function applyOpenGamelist() {
   const input = document.getElementById("open-gl-path");
   const path = (input && input.value || "").trim().replace(/^["']|["']$/g, "");
@@ -1199,8 +1269,10 @@ async function applyOpenGamelist() {
       body: JSON.stringify({ path }),
     });
     window.__gmeXmlPath = data.xml_path || path;
+    window.__gmeLoaded = true;
     pushRecentGamelist(window.__gmeXmlPath);
     games = data.games || [];
+    setNoGamelistUi(true);
     resetEditorSelection();
     updateSystemBadge(data.system || null);
     const sysEl = document.getElementById("system-name");
@@ -1226,6 +1298,11 @@ document.getElementById("open-gl-refresh").addEventListener("click", () => {
 });
 
 document.getElementById("btn-open-gamelist").addEventListener("click", openGamelistModal);
+
+document.getElementById("btn-empty-open-gamelist")?.addEventListener("click", () => {
+  if (typeof openGamelistModal === "function") openGamelistModal();
+});
+
 document.getElementById("open-gl-close").addEventListener("click", closeGamelistModal);
 document.getElementById("open-gl-cancel").addEventListener("click", closeGamelistModal);
 document.getElementById("open-gl-apply").addEventListener("click", applyOpenGamelist);
@@ -1256,9 +1333,9 @@ document.getElementById("open-gl-path").addEventListener("drop", (e) => {
 
 /* --- About dialog (RomSet Verifier style) --- */
 const APP_ABOUT = {
-  version: "1.1.3",
-  versionLabel: "v1.1.3",
-  date: "2026-08-16",
+  version: "1.2.0",
+  versionLabel: "v1.2.0",
+  date: "2026-08-24",
   author: "Franck Fornasari",
   repo: "https://github.com/Kraran/gamelist-media-editor",
   authorUrl: "https://github.com/Kraran",
@@ -1301,6 +1378,7 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
+/** App entry: locale → genres → games; auto-open file picker if nothing loaded. */
 async function boot() {
   await loadLocale(getStoredLocale());
   wireLanguageControls();
@@ -1311,11 +1389,18 @@ async function boot() {
     GENRES = {};
   }
   initGenreSelects();
-  loadGames();
+  await loadGames();
+  // First launch / no gamelist: open the file browser automatically
+  if (!window.__gmeLoaded && typeof openGamelistModal === "function") {
+    setTimeout(() => openGamelistModal(), 350);
+  }
 }
 
 
-/* ========== ScreenScraper ========== */
+/* ========== ScreenScraper / Arcade DB ==========
+ * Flow: scrape → optional candidate picker → apply selected fields.
+ * Loading overlay: setSsLoading(true) while waiting on the (often slow) API.
+ */
 let ssBusy = false;
 
 function setSsLoading(on, message) {

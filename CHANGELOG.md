@@ -10,6 +10,7 @@ All notable changes to Gamelist Media Editor are documented in this file.
 - Optional CLI / drag-and-drop of a gamelist onto the `.exe` still supported
 - Browser opens automatically on startup
 - Empty-state CTA when no gamelist is loaded
+<<<<<<< HEAD
 - **About** dialog (header logo)
 - `BUILD_EXE.bat` + `GamelistMediaEditor.spec`
 
@@ -20,6 +21,17 @@ All notable changes to Gamelist Media Editor are documented in this file.
 - Complete i18n for new strings (13 languages)
 - Version **1.2.0**
 
+=======
+
+### Changed
+- App no longer blocks on console path input
+- PyInstaller-aware paths: templates/static from bundle; config (`screenscraper_config.json`) next to the `.exe`
+- Version **1.2.0**
+
+### Build (developers)
+- `BUILD_EXE.bat` / `GamelistMediaEditor.spec` on Windows with Python + PyInstaller
+
+>>>>>>> f05aa51 (v1.2.0: standalone exe, start without gamelist, About, i18n complete)
 ## [1.1.3] - 2026-08-16
 
 ### Added

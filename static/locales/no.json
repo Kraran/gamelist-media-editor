@@ -14,10 +14,10 @@
     "reload_title": "Last gamelist.xml på nytt fra disken",
     "tools": "⚙ Verktøy",
     "tools_title": "Verktøy og globale handlinger",
-    "quit": "✕ Avslutt",
+    "quit": "⏻ Avslutt",
     "quit_title": "Stopp serveren og lukk",
     "open_gamelist": "📂 Gamelist…",
-    "open_gamelist_title": "Open another gamelist.xml without restarting"
+    "open_gamelist_title": "Åpne en annen gamelist.xml uten omstart"
   },
   "sidebar": {
     "search_placeholder": "Søk spill…",
@@ -33,7 +33,8 @@
     "filter_any": "Manglende media",
     "empty_select": "Velg et spill i listen<br>og dra deretter inn media",
     "empty_no_match": "Ingen spill matcher filtrene",
-    "empty_no_games": "Ingen spill i gamelist"
+    "empty_no_games": "Ingen spill i gamelist",
+    "empty_no_gamelist": "Ingen <code>gamelist.xml</code> lastet.<br>Åpne en fil for å starte."
   },
   "editor": {
     "save_name": "Lagre",
@@ -95,7 +96,8 @@
     "done": "Ferdig",
     "testing": "Tester…",
     "applying_download": "Nedlasting / bruk…",
-    "opening_gamelist": "Opening gamelist…"
+    "opening_gamelist": "Åpner gamelist…",
+    "no_gamelist": "Ingen gamelist lastet"
   },
   "toast": {
     "no_file_url": "Ingen fil eller URL oppdaget",
@@ -113,7 +115,7 @@
     "ss_saved": "✓ ScreenScraper-innstillinger lagret",
     "no_fields": "Ingen felt valgt",
     "list_reloaded": "Liste lastet på nytt",
-    "gamelist_opened": "Gamelist opened: {name} ({n} games)"
+    "gamelist_opened": "Gamelist åpnet: {name} ({n} spill)"
   },
   "errors": {
     "offline": "Ingen nettverkstilkobling.",
@@ -270,44 +272,45 @@
     "xml_read": "Kan ikke lese gamelist.xml: {detail}",
     "file_not_found": "Filen ble ikke funnet",
     "name_empty_ignored": "name: tomt, hoppet over",
-    "open_empty_path": "No path provided.",
-    "open_not_found": "File not found: {path}",
-    "open_not_xml": "The file must be a .xml",
-    "open_bad_xml": "Invalid XML: {detail}",
-    "open_failed": "Could not open gamelist: {detail}",
-    "browse_not_dir": "Folder not found: {path}",
-    "browse_denied": "Access denied to {path}: {detail}"
+    "open_empty_path": "Ingen bane oppgitt.",
+    "open_not_found": "Filen ble ikke funnet: {path}",
+    "open_not_xml": "Filen må være en .xml",
+    "open_bad_xml": "Ugyldig XML: {detail}",
+    "open_failed": "Kunne ikke åpne gamelist: {detail}",
+    "browse_not_dir": "Mappe ikke funnet: {path}",
+    "browse_denied": "Tilgang nektet til {path}: {detail}",
+    "no_gamelist": "Ingen gamelist.xml lastet — åpne en fil via « Gamelist… »."
   },
   "open_gl": {
-    "title": "📂 Open a gamelist.xml",
-    "intro": "Browse to the system folder, select a <code>gamelist.xml</code>, or paste the full path. The images / videos / manuals folders must sit next to it.",
+    "title": "📂 Åpne en gamelist.xml",
+    "intro": "Bla til systemmappen, velg en <code>gamelist.xml</code> eller lim inn hele banen.",
     "current": "Current file",
-    "path_label": "Selected path",
+    "path_label": "Valgt bane",
     "path_ph": "C:\\RetroBat\\roms\\snes\\gamelist.xml",
     "recent": "Recent",
-    "recent_empty": "No recent files yet.",
+    "recent_empty": "Ingen nylige filer ennå.",
     "apply": "Open",
-    "need_path": "Enter the path to the gamelist.xml",
-    "drop_hint": "The browser does not expose the full path of a dropped file — paste the path from Explorer (Shift+right-click → Copy as path).",
-    "up_title": "Parent folder",
-    "refresh_title": "Refresh",
-    "loading": "Loading…",
-    "empty_folder": "No folders or .xml files here.",
-    "browse_error": "Could not list this folder."
+    "need_path": "Skriv inn banen til gamelist.xml",
+    "drop_hint": "Nettleseren gir ikke full bane for en sluppet fil — lim inn banen manuelt.",
+    "up_title": "Overordnet mappe",
+    "refresh_title": "Oppdater",
+    "loading": "Laster…",
+    "empty_folder": "Ingen mapper eller .xml-filer her.",
+    "browse_error": "Kunne ikke liste denne mappen."
   },
   "about": {
-    "open_title": "About",
-    "title": "About",
-    "desc": "Local web app to edit EmulationStation / RetroBat gamelist.xml media and metadata. Drag-and-drop, ScreenScraper & Arcade Database scrapers, filters, backups and a multilingual UI.",
+    "open_title": "Om",
+    "title": "Om",
+    "desc": "Lokal webapp for å redigere media og metadata i en EmulationStation-/RetroBat-gamelist.xml. Dra-og-slipp, ScreenScraper- og Arcade Database-skrapere, filtre, sikkerhetskopier og flerspråklig grensesnitt.",
     "version": "Version",
     "date": "Date",
-    "author": "Author",
-    "license": "License",
-    "repo": "Repository",
-    "stack": "Stack",
-    "note": "Software provided “as is”. No ROMs are distributed. Scrapers call public ScreenScraper and Arcade Database (Arcade Italia) services — please use them responsibly.",
-    "author_page": "Kraran profile",
-    "github": "GitHub repo",
-    "close": "Close"
+    "author": "Forfatter",
+    "license": "Lisens",
+    "repo": "Depot",
+    "stack": "Teknologi",
+    "note": "Programvaren leveres « som den er ». Ingen ROM-er distribueres. Skrapere bruker de offentlige tjenestene ScreenScraper og Arcade Database (Arcade Italia) — bruk dem med måte.",
+    "author_page": "Kraran-profil",
+    "github": "GitHub-depot",
+    "close": "Lukk"
   }
 }

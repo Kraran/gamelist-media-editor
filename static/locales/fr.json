@@ -14,7 +14,7 @@
     "reload_title": "Recharger le gamelist.xml depuis le disque",
     "tools": "⚙ Outils",
     "tools_title": "Outils et actions globales",
-    "quit": "✕ Quitter",
+    "quit": "⏻ Quitter",
     "quit_title": "Arrêter le serveur et fermer",
     "open_gamelist": "📂 Gamelist…",
     "open_gamelist_title": "Ouvrir un autre gamelist.xml sans redémarrer"
@@ -33,7 +33,8 @@
     "filter_any": "Un média manquant",
     "empty_select": "Sélectionne un jeu dans la liste<br>puis glisse-dépose tes médias",
     "empty_no_match": "Aucun jeu ne correspond aux filtres",
-    "empty_no_games": "Aucun jeu dans le gamelist"
+    "empty_no_games": "Aucun jeu dans le gamelist",
+    "empty_no_gamelist": "Aucun <code>gamelist.xml</code> chargé.<br>Ouvre un fichier pour commencer."
   },
   "editor": {
     "save_name": "Enregistrer",
@@ -95,7 +96,8 @@
     "done": "Terminé",
     "testing": "Test en cours…",
     "applying_download": "Téléchargement / application…",
-    "opening_gamelist": "Ouverture du gamelist…"
+    "opening_gamelist": "Ouverture du gamelist…",
+    "no_gamelist": "Aucun gamelist chargé"
   },
   "toast": {
     "no_file_url": "Aucun fichier ou URL détecté",
@@ -276,7 +278,8 @@
     "open_bad_xml": "XML invalide : {detail}",
     "open_failed": "Impossible d’ouvrir le gamelist : {detail}",
     "browse_not_dir": "Dossier introuvable : {path}",
-    "browse_denied": "Accès refusé à {path} : {detail}"
+    "browse_denied": "Accès refusé à {path} : {detail}",
+    "no_gamelist": "Aucun gamelist.xml chargé — ouvre un fichier via « Gamelist… »."
   },
   "open_gl": {
     "title": "📂 Ouvrir un gamelist.xml",

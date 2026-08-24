@@ -2,7 +2,17 @@
 """
 Gamelist Media Editor — local Flask app for EmulationStation / RetroBat gamelist.xml.
 
-Bound to 127.0.0.1 only. Edits media paths and metadata, with optional .bak backups.
+Architecture
+------------
+* Bound to 127.0.0.1 only (local tool, not exposed on the LAN).
+* Starts **without** a gamelist; the user opens one via /api/open-gamelist
+  (or passes a path on the CLI / drops a file onto the .exe).
+* Media files live under the gamelist folder (images/, videos/, manuals/).
+* XML is cached by mtime; writes are serialized with a process lock.
+* ScreenScraper + Arcade Database scrapers share the same apply contract.
+* PyInstaller: templates/static from sys._MEIPASS; writable config next to the .exe.
+
+Entry points: ``main()`` (source or frozen), routes under ``/api/…``.
 """
 import os
 import sys
@@ -13,7 +23,7 @@ import time
 import hashlib
 import json
 import zlib
-from urllib.parse import urlparse, unquote, quote
+from urllib.parse import urlparse, unquote
 
 from flask import Flask, render_template, request, jsonify, send_from_directory
 from lxml import etree
@@ -21,8 +31,38 @@ import requests
 import logging
 
 log = logging.getLogger("gamelist-editor")
+if not log.handlers:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        datefmt="%H:%M:%S",
+    )
 
-app = Flask(__name__)
+def resource_path(*parts):
+    """Bundled resources (PyInstaller _MEIPASS) or source tree."""
+    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+        base = sys._MEIPASS
+    else:
+        base = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(base, *parts) if parts else base
+
+
+def app_data_dir():
+    """Writable directory next to the .exe (or next to app.py in source mode)."""
+    if getattr(sys, "frozen", False):
+        return os.path.dirname(os.path.abspath(sys.executable))
+    return os.path.dirname(os.path.abspath(__file__))
+
+
+# Writable app dir (config next to .exe); BUNDLE_DIR holds templates/static
+APP_DIR = app_data_dir()
+BUNDLE_DIR = resource_path()
+
+app = Flask(
+    __name__,
+    template_folder=resource_path("templates"),
+    static_folder=resource_path("static"),
+)
 
 
 def api_err(message, status=400, code=None, **extra):
@@ -34,11 +74,9 @@ def api_err(message, status=400, code=None, **extra):
     return jsonify(payload), status
 
 
-# Directory of app.py / static / locales (never changes at runtime)
-APP_DIR = os.path.dirname(os.path.abspath(__file__))
-# Root of the current gamelist + media folders (changes via /api/open-gamelist)
+# Root of the current gamelist + media folders (set via /api/open-gamelist or CLI)
 BASE_DIR = APP_DIR
-_LOCALE_DIR = os.path.join(APP_DIR, "static", "locales")
+_LOCALE_DIR = resource_path("static", "locales")
 _LOCALE_CACHE = {}
 
 
@@ -101,7 +139,8 @@ def st(key, **params):
     return cur
 
 
-XML_PATH = os.path.join(BASE_DIR, "gamelist.xml")
+# Active gamelist path (None until the user opens one or passes a CLI arg)
+XML_PATH = None
 
 
 def set_gamelist_path(path):
@@ -134,6 +173,18 @@ def set_gamelist_path(path):
     }
 
 
+def has_gamelist():
+    """True when a valid gamelist.xml path is loaded."""
+    return bool(XML_PATH) and os.path.isfile(XML_PATH)
+
+
+def require_gamelist():
+    """Return an error response if no gamelist is loaded, else None."""
+    if not has_gamelist():
+        return api_err(st("server.no_gamelist"), 400, code="no_gamelist")
+    return None
+
+
 # Max size for media downloaded from a URL (bytes)
 MAX_DOWNLOAD_BYTES = 50 * 1024 * 1024  # 50 MB
 
@@ -147,13 +198,17 @@ META_FIELDS = {
     "family", "players", "lang", "genre",
 }
 
-# --- XML cache + process lock ------------------------------------------------
+# --- XML cache + process lock -------------------------------------------------
+# Cache avoids re-parsing a large gamelist on every API call.
+# _xml_io_lock serializes backup/save so concurrent requests cannot interleave writes.
 _xml_cache = {"mtime": None, "tree": None}
 _xml_io_lock = threading.Lock()  # serialize read-modify-write of the XML file
 
 
 def load_xml():
     """Parse gamelist.xml; reuse cached tree if file mtime unchanged."""
+    if not has_gamelist():
+        raise FileNotFoundError(st("server.no_gamelist"))
     try:
         mtime = os.path.getmtime(XML_PATH)
     except OSError:
@@ -181,6 +236,8 @@ def save_xml(tree):
 def backup_xml():
     """Copy gamelist.xml → gamelist.xml.bak (same folder). Returns backup path."""
     with _xml_io_lock:
+        if not has_gamelist():
+            raise FileNotFoundError(st("server.no_gamelist"))
         if not os.path.isfile(XML_PATH):
             raise FileNotFoundError(st("server.xml_missing", path=XML_PATH))
         bak_path = XML_PATH + ".bak"
@@ -304,10 +361,12 @@ def ext_from_content_type(ct, field):
 
 
 
-# --- ScreenScraper -----------------------------------------------------------
+# --- ScreenScraper ------------------------------------------------------------
+# Developer credentials are obfuscated (NOT secret): they identify *this app*
+# on the SS API. End users may add their member login for a quota boost.
 SS_API = "https://api.screenscraper.fr/api2"
 SS_SOFTNAME = "GamelistMediaEditor"
-APP_VERSION = "1.1.3"
+APP_VERSION = "1.2.0"
 APP_UA = f"{SS_SOFTNAME}/{APP_VERSION}"
 SS_CONFIG_NAME = "screenscraper_config.json"
 
@@ -383,8 +442,8 @@ SS_MEDIA_PREF = {
 
 
 def ss_config_path():
-    """Config lives next to app.py (not next to the XML)."""
-    return os.path.join(os.path.dirname(os.path.abspath(__file__)), SS_CONFIG_NAME)
+    """Config lives next to the .exe / app.py (writable), not next to the XML."""
+    return os.path.join(APP_DIR, SS_CONFIG_NAME)
 
 
 def load_ss_config():
@@ -521,6 +580,7 @@ def rom_identification(path):
     info = {"outer_name": os.path.basename(path), "outer_size": os.path.getsize(path)}
 
     if ext == ".zip":
+        # ScreenScraper matches the *inner* ROM CRC (No-Intro), not the outer ZIP CRC.
         try:
             import zipfile
             with zipfile.ZipFile(path, "r") as zf:
@@ -929,7 +989,9 @@ def parse_ss_game(jeu, prefer_region="fr"):
 
 
 
-# --- Routes ------------------------------------------------------------------
+# --- HTTP routes --------------------------------------------------------------
+# JSON APIs return {ok:false, error, code?} on failure (see api_err).
+# Mutating routes that need a loaded gamelist call require_gamelist() first.
 
 @app.route("/")
 def index():
@@ -946,11 +1008,20 @@ def favicon():
 @app.route("/api/games")
 def api_games():
     try:
+        if not has_gamelist():
+            return jsonify({
+                "games": [],
+                "system": None,
+                "xml_path": None,
+                "base_dir": None,
+                "loaded": False,
+            })
         return jsonify({
             "games": get_games(load_xml()),
             "system": get_system_info(),
             "xml_path": XML_PATH,
             "base_dir": BASE_DIR,
+            "loaded": True,
         })
     except Exception as e:
         log.exception("api_games failed")
@@ -960,11 +1031,14 @@ def api_games():
 @app.route("/api/session")
 def api_session():
     """Current gamelist path + system badge info (no full game list)."""
+    loaded = has_gamelist()
     return jsonify({
-        "xml_path": XML_PATH,
-        "base_dir": BASE_DIR,
-        "system": get_system_info(),
+        "xml_path": XML_PATH if loaded else None,
+        "base_dir": BASE_DIR if loaded else None,
+        "system": get_system_info() if loaded else None,
         "version": APP_VERSION,
+        "loaded": loaded,
+        "frozen": bool(getattr(sys, "frozen", False)),
     })
 
 
@@ -979,10 +1053,25 @@ def api_browse():
     if raw:
         target = os.path.abspath(raw)
     else:
-        # Default: parent of the current gamelist folder (e.g. roms/)
-        start = BASE_DIR if os.path.isdir(BASE_DIR) else os.path.dirname(XML_PATH)
-        parent = os.path.dirname(start)
-        target = parent if parent and os.path.isdir(parent) else start
+        # Default: parent of current gamelist, else common RetroBat/ES folders, else home
+        if has_gamelist():
+            start = BASE_DIR if os.path.isdir(BASE_DIR) else os.path.dirname(XML_PATH)
+            parent = os.path.dirname(start)
+            target = parent if parent and os.path.isdir(parent) else start
+        else:
+            candidates = []
+            home = os.path.expanduser("~")
+            for p in (
+                os.path.join(home, "RetroBat", "roms"),
+                os.path.join(home, "emulationstation", "roms"),
+                "C:\\RetroBat\\roms",
+                "D:\\RetroBat\\roms",
+                "E:\\RetroBat\\roms",
+                home,
+            ):
+                if p and os.path.isdir(p):
+                    candidates.append(p)
+            target = candidates[0] if candidates else (home if os.path.isdir(home) else os.getcwd())
 
     if os.path.isfile(target):
         target = os.path.dirname(target)
@@ -1069,6 +1158,9 @@ def api_open_gamelist():
 
 @app.route("/api/upload/<int:index>/<field>", methods=["POST"])
 def upload(index, field):
+    err = require_gamelist()
+    if err:
+        return err
     if field not in MEDIA_DIRS:
         return api_err(st("server.invalid_field"), 400, code="invalid_field")
     try:
@@ -1171,6 +1263,9 @@ def clear_field(index, field):
     Remove the XML media tag only (file on disk is kept).
     Use delete-game to remove files from disk.
     """
+    err = require_gamelist()
+    if err:
+        return err
     if field not in MEDIA_DIRS:
         return api_err(st("server.invalid_field"), 400, code="invalid_field")
     try:
@@ -1189,6 +1284,9 @@ def clear_field(index, field):
 
 @app.route("/api/desc/<int:index>", methods=["POST"])
 def update_desc(index):
+    err = require_gamelist()
+    if err:
+        return err
     try:
         data = request.get_json(silent=True) or {}
         new_desc = data.get("desc", "") or ""
@@ -1213,6 +1311,9 @@ def update_desc(index):
 
 @app.route("/api/name/<int:index>", methods=["POST"])
 def update_name(index):
+    err = require_gamelist()
+    if err:
+        return err
     try:
         data = request.get_json(silent=True) or {}
         new_name = (data.get("name") or "").strip()
@@ -1235,6 +1336,9 @@ def update_name(index):
 
 @app.route("/api/meta/<int:index>", methods=["POST"])
 def update_meta(index):
+    err = require_gamelist()
+    if err:
+        return err
     try:
         data = request.get_json(silent=True) or {}
         if not data:
@@ -1276,6 +1380,9 @@ def update_meta(index):
 @app.route("/api/backup", methods=["POST"])
 def api_backup():
     """Manual backup of gamelist.xml → gamelist.xml.bak"""
+    err = require_gamelist()
+    if err:
+        return err
     try:
         backup_path = backup_xml()
         return jsonify({
@@ -1289,6 +1396,9 @@ def api_backup():
 
 @app.route("/api/purge-regions", methods=["POST"])
 def purge_regions():
+    err = require_gamelist()
+    if err:
+        return err
     try:
         body = request.get_json(silent=True) or {}
         do_backup = bool(body.get("backup", False))
@@ -1316,6 +1426,9 @@ def purge_regions():
 @app.route("/api/delete-game/<int:index>", methods=["POST"])
 def delete_game(index):
     """Delete ROM + media files on disk + XML entry for the game."""
+    err = require_gamelist()
+    if err:
+        return err
     try:
         body = request.get_json(silent=True) or {}
         do_backup = bool(body.get("backup", False))
@@ -1423,6 +1536,9 @@ def api_ss_scrape(index):
     2) If ambiguous / not found → return ranked candidates for the user to pick
     Optional body: { "gameid": "12345" } to force a specific SS game.
     """
+    err = require_gamelist()
+    if err:
+        return err
     try:
         tree, game = get_game_elem(index)
     except IndexError:
@@ -1651,6 +1767,9 @@ def api_ss_apply(index):
     Body: { "fields": ["desc","image",...], "proposed": { ... from scrape ... } }
     Media fields: download from proposed.medias[field].url via existing upload logic.
     """
+    err = require_gamelist()
+    if err:
+        return err
     body = request.get_json(silent=True) or {}
     fields = body.get("fields") or []
     proposed = body.get("proposed") or {}
@@ -1780,7 +1899,8 @@ def api_ss_apply(index):
 
 
 
-# --- Arcade Database (Arcade Italia) -----------------------------------------
+# --- Arcade Database (Arcade Italia) ------------------------------------------
+# Best suited to MAME / FBNeo romset names. Same proposed/apply shape as SS.
 ADB_API = "https://adb.arcadeitalia.net/service_scraper.php"
 ADB_UA = f"{APP_UA} (ArcadeDB scraper; +https://github.com/Kraran/gamelist-media-editor)"
 
@@ -1924,6 +2044,9 @@ def api_adb_scrape(index):
     Look up a game on Arcade Database (MAME romset name).
     Optional body: { "romset": "mslug" } to force a specific set.
     """
+    err = require_gamelist()
+    if err:
+        return err
     try:
         tree, game = get_game_elem(index)
     except IndexError:
@@ -2081,6 +2204,9 @@ def api_adb_scrape(index):
 @app.route("/api/adb/apply/<int:index>", methods=["POST"])
 def api_adb_apply(index):
     """Apply selected Arcade Database fields — same contract as /api/ss/apply."""
+    err = require_gamelist()
+    if err:
+        return err
     body = request.get_json(silent=True) or {}
     fields = body.get("fields") or []
     proposed = body.get("proposed") or {}
@@ -2225,34 +2351,61 @@ def api_shutdown():
     return jsonify({"success": True, "message": st("server.shutdown")})
 
 
-if __name__ == "__main__":
+def _open_browser(url):
+    try:
+        import webbrowser
+        webbrowser.open(url)
+    except Exception:
+        pass
+
+
+def main():
+    """Entry point for source runs and the frozen Windows .exe."""
+    global XML_PATH, BASE_DIR
+    if getattr(sys, "frozen", False):
+        try:
+            import multiprocessing
+            multiprocessing.freeze_support()
+        except Exception:
+            pass
+
     print("=" * 60)
     print(f"  Gamelist Media Editor v{APP_VERSION}")
     print("=" * 60)
     print()
+
+    # Optional CLI path still supported (drag-drop onto .exe / Lancer.bat)
+    xml_arg = None
     if len(sys.argv) > 1:
         xml_arg = sys.argv[1].strip().strip('"').strip("'")
+    if xml_arg:
+        try:
+            info = set_gamelist_path(xml_arg)
+            print(f"  XML            : {info['xml_path']}")
+            print(f"  Dossier medias : {info['base_dir']}")
+        except Exception as e:
+            print(f"  [WARN] Impossible d'ouvrir le gamelist fourni : {e}")
+            print("  Demarre sans gamelist — utilise le menu « Gamelist… ».")
+            XML_PATH = None
+            BASE_DIR = APP_DIR
+            _xml_cache["mtime"] = None
+            _xml_cache["tree"] = None
     else:
-        print("Indique le chemin complet vers ton fichier gamelist.xml")
-        print("(tu peux glisser-deposer le fichier dans le terminal)")
-        print()
-        xml_arg = input("Chemin du gamelist.xml : ").strip().strip('"').strip("'")
-    if not xml_arg:
-        print("Aucun fichier indique. Arret.")
-        sys.exit(1)
-    xml_arg = os.path.abspath(xml_arg)
-    if not os.path.isfile(xml_arg):
-        print(f"\nErreur : fichier introuvable ->\n  {xml_arg}")
-        sys.exit(1)
-    XML_PATH = xml_arg
-    BASE_DIR = os.path.dirname(xml_arg)
-    _xml_cache["mtime"] = None
-    _xml_cache["tree"] = None
+        print("  Aucun gamelist charge.")
+        print("  Ouvre un fichier via le bouton « Gamelist… » dans l'interface.")
+
+    url = "http://127.0.0.1:5050"
     print()
-    print(f"  XML            : {XML_PATH}")
-    print(f"  Dossier medias : {BASE_DIR}")
-    print()
-    print("  Ouvre http://127.0.0.1:5050 dans ton navigateur")
-    print("  (Ctrl+C pour arreter le serveur)")
+    print(f"  Interface : {url}")
+    print("  (Ctrl+C ou bouton Quitter pour arreter)")
     print("=" * 60)
-    app.run(host="127.0.0.1", port=5050, debug=False)
+
+    # Open the browser shortly after the server starts (exe-friendly)
+    threading.Timer(0.9, lambda: _open_browser(url)).start()
+
+    # use_reloader=False required for PyInstaller / single process
+    app.run(host="127.0.0.1", port=5050, debug=False, use_reloader=False, threaded=True)
+
+
+if __name__ == "__main__":
+    main()

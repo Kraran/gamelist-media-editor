@@ -14,7 +14,7 @@
     "reload_title": "Recarregar gamelist.xml do disco",
     "tools": "⚙ Ferramentas",
     "tools_title": "Ferramentas e ações globais",
-    "quit": "✕ Sair",
+    "quit": "⏻ Sair",
     "quit_title": "Parar o servidor e fechar",
     "open_gamelist": "📂 Gamelist…",
     "open_gamelist_title": "Abrir outro gamelist.xml sem reiniciar"
@@ -33,7 +33,8 @@
     "filter_any": "Alguma média em falta",
     "empty_select": "Seleciona um jogo na lista<br>e arrasta as tuas médias",
     "empty_no_match": "Nenhum jogo corresponde aos filtros",
-    "empty_no_games": "Nenhum jogo no gamelist"
+    "empty_no_games": "Nenhum jogo no gamelist",
+    "empty_no_gamelist": "Nenhum <code>gamelist.xml</code> carregado.<br>Abre um ficheiro para começar."
   },
   "editor": {
     "save_name": "Guardar",
@@ -95,7 +96,8 @@
     "done": "Concluído",
     "testing": "A testar…",
     "applying_download": "Transferência / aplicação…",
-    "opening_gamelist": "A abrir gamelist…"
+    "opening_gamelist": "A abrir gamelist…",
+    "no_gamelist": "Nenhum gamelist carregado"
   },
   "toast": {
     "no_file_url": "Nenhum ficheiro ou URL detetado",
@@ -275,39 +277,40 @@
     "open_not_xml": "O ficheiro deve ser um .xml",
     "open_bad_xml": "XML inválido: {detail}",
     "open_failed": "Não foi possível abrir o gamelist: {detail}",
-    "browse_not_dir": "Folder not found: {path}",
-    "browse_denied": "Access denied to {path}: {detail}"
+    "browse_not_dir": "Pasta não encontrada: {path}",
+    "browse_denied": "Acesso negado a {path}: {detail}",
+    "no_gamelist": "Nenhum gamelist.xml carregado — abre um ficheiro via « Gamelist… »."
   },
   "open_gl": {
     "title": "📂 Abrir um gamelist.xml",
-    "intro": "Browse to the system folder, select a <code>gamelist.xml</code>, or paste the full path. The images / videos / manuals folders must sit next to it.",
+    "intro": "Navega até à pasta do sistema, seleciona um <code>gamelist.xml</code> ou cola o caminho completo.",
     "current": "Ficheiro atual",
-    "path_label": "Selected path",
+    "path_label": "Caminho selecionado",
     "path_ph": "C:\\RetroBat\\roms\\snes\\gamelist.xml",
     "recent": "Recentes",
     "recent_empty": "Ainda sem ficheiros recentes.",
     "apply": "Abrir",
     "need_path": "Indica o caminho do gamelist.xml",
     "drop_hint": "O browser não dá o caminho completo — cola o caminho a partir do explorador.",
-    "up_title": "Parent folder",
-    "refresh_title": "Refresh",
-    "loading": "Loading…",
-    "empty_folder": "No folders or .xml files here.",
-    "browse_error": "Could not list this folder."
+    "up_title": "Pasta superior",
+    "refresh_title": "Atualizar",
+    "loading": "A carregar…",
+    "empty_folder": "Sem pastas ou ficheiros .xml aqui.",
+    "browse_error": "Não foi possível listar esta pasta."
   },
   "about": {
-    "open_title": "About",
-    "title": "About",
-    "desc": "Local web app to edit EmulationStation / RetroBat gamelist.xml media and metadata. Drag-and-drop, ScreenScraper & Arcade Database scrapers, filters, backups and a multilingual UI.",
+    "open_title": "Acerca de",
+    "title": "Acerca de",
+    "desc": "Aplicação web local para editar media e metadados de um gamelist.xml EmulationStation / RetroBat. Arrastar e largar, scrapers ScreenScraper e Arcade Database, filtros, backups e interface multilingue.",
     "version": "Version",
     "date": "Date",
-    "author": "Author",
-    "license": "License",
-    "repo": "Repository",
-    "stack": "Stack",
-    "note": "Software provided “as is”. No ROMs are distributed. Scrapers call public ScreenScraper and Arcade Database (Arcade Italia) services — please use them responsibly.",
-    "author_page": "Kraran profile",
-    "github": "GitHub repo",
-    "close": "Close"
+    "author": "Autor",
+    "license": "Licença",
+    "repo": "Repositório",
+    "stack": "Tecnologia",
+    "note": "Software fornecido « tal como está ». Nenhuma ROM é distribuída. Os scrapers acedem aos serviços públicos ScreenScraper e Arcade Database (Arcade Italia) — usa-os com moderação.",
+    "author_page": "Perfil Kraran",
+    "github": "Repositório GitHub",
+    "close": "Fechar"
   }
 }

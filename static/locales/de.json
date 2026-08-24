@@ -14,7 +14,7 @@
     "reload_title": "gamelist.xml von der Festplatte neu laden",
     "tools": "⚙ Werkzeuge",
     "tools_title": "Werkzeuge und globale Aktionen",
-    "quit": "✕ Beenden",
+    "quit": "⏻ Beenden",
     "quit_title": "Server stoppen und schließen",
     "open_gamelist": "📂 Gamelist…",
     "open_gamelist_title": "Andere gamelist.xml öffnen ohne Neustart"
@@ -33,7 +33,8 @@
     "filter_any": "Ein Medium fehlt",
     "empty_select": "Wähle ein Spiel in der Liste<br>und ziehe dann Medien hinein",
     "empty_no_match": "Keine Spiele entsprechen den Filtern",
-    "empty_no_games": "Keine Spiele in der Gamelist"
+    "empty_no_games": "Keine Spiele in der Gamelist",
+    "empty_no_gamelist": "Keine <code>gamelist.xml</code> geladen.<br>Öffne eine Datei, um zu starten."
   },
   "editor": {
     "save_name": "Speichern",
@@ -95,7 +96,8 @@
     "done": "Fertig",
     "testing": "Test läuft…",
     "applying_download": "Download / Anwenden…",
-    "opening_gamelist": "Gamelist wird geöffnet…"
+    "opening_gamelist": "Gamelist wird geöffnet…",
+    "no_gamelist": "Keine Gamelist geladen"
   },
   "toast": {
     "no_file_url": "Keine Datei oder URL erkannt",
@@ -275,39 +277,40 @@
     "open_not_xml": "Die Datei muss eine .xml sein",
     "open_bad_xml": "Ungültiges XML: {detail}",
     "open_failed": "Gamelist konnte nicht geöffnet werden: {detail}",
-    "browse_not_dir": "Folder not found: {path}",
-    "browse_denied": "Access denied to {path}: {detail}"
+    "browse_not_dir": "Ordner nicht gefunden: {path}",
+    "browse_denied": "Zugriff verweigert auf {path}: {detail}",
+    "no_gamelist": "Keine gamelist.xml geladen — öffne eine Datei über „Gamelist…“."
   },
   "open_gl": {
     "title": "📂 gamelist.xml öffnen",
-    "intro": "Browse to the system folder, select a <code>gamelist.xml</code>, or paste the full path. The images / videos / manuals folders must sit next to it.",
+    "intro": "Navigiere zum Systemordner, wähle eine <code>gamelist.xml</code> oder füge den vollständigen Pfad ein.",
     "current": "Aktuelle Datei",
-    "path_label": "Selected path",
+    "path_label": "Ausgewählter Pfad",
     "path_ph": "C:\\RetroBat\\roms\\snes\\gamelist.xml",
     "recent": "Zuletzt",
     "recent_empty": "Noch keine zuletzt geöffneten Dateien.",
     "apply": "Öffnen",
     "need_path": "Pfad zur gamelist.xml angeben",
     "drop_hint": "Der Browser liefert keinen vollständigen Pfad — bitte aus dem Explorer einfügen.",
-    "up_title": "Parent folder",
-    "refresh_title": "Refresh",
-    "loading": "Loading…",
-    "empty_folder": "No folders or .xml files here.",
-    "browse_error": "Could not list this folder."
+    "up_title": "Übergeordneter Ordner",
+    "refresh_title": "Aktualisieren",
+    "loading": "Laden…",
+    "empty_folder": "Keine Ordner oder .xml-Dateien hier.",
+    "browse_error": "Ordner konnte nicht gelesen werden."
   },
   "about": {
-    "open_title": "About",
-    "title": "About",
-    "desc": "Local web app to edit EmulationStation / RetroBat gamelist.xml media and metadata. Drag-and-drop, ScreenScraper & Arcade Database scrapers, filters, backups and a multilingual UI.",
+    "open_title": "Über",
+    "title": "Über",
+    "desc": "Lokale Web-App zum Bearbeiten von Medien und Metadaten einer EmulationStation-/RetroBat-gamelist.xml. Drag-and-drop, ScreenScraper- & Arcade-Database-Scraper, Filter, Backups und mehrsprachige Oberfläche.",
     "version": "Version",
     "date": "Date",
-    "author": "Author",
-    "license": "License",
+    "author": "Autor",
+    "license": "Lizenz",
     "repo": "Repository",
-    "stack": "Stack",
-    "note": "Software provided “as is”. No ROMs are distributed. Scrapers call public ScreenScraper and Arcade Database (Arcade Italia) services — please use them responsibly.",
-    "author_page": "Kraran profile",
-    "github": "GitHub repo",
-    "close": "Close"
+    "stack": "Technik",
+    "note": "Software wird „wie besehen“ bereitgestellt. Es werden keine ROMs verteilt. Scraper greifen auf die öffentlichen Dienste ScreenScraper und Arcade Database (Arcade Italia) zu — bitte sparsam nutzen.",
+    "author_page": "Profil Kraran",
+    "github": "GitHub-Repository",
+    "close": "Schließen"
   }
 }

@@ -1,3 +1,7 @@
+/* Gamelist Media Editor — layout & components.
+ * Dark theme; CSS variables in :root.
+ * .btn-quit matches RomSet Verifier solid red action button.
+ */
 :root {
       --bg: #0f1117; --surface: #1a1d27; --surface2: #242836; --border: #2e3345;
       --text: #e4e6f0; --text-muted: #8b90a5; --accent: #6c5ce7; --accent-hover: #7f71f0;
@@ -806,3 +810,28 @@ body.ss-busy button, body.ss-busy .btn { cursor: wait; }
   .about-layout { grid-template-columns: 1fr; }
   .about-portrait img { min-height: 200px; max-height: 220px; }
 }
+
+/* --- Quit button (RomSet Verifier style) --- */
+.btn.btn-quit {
+  background: #da3633;
+  border: 1px solid #da3633;
+  color: #fff;
+  font-weight: 600;
+  transition: background .15s, border-color .15s, filter .15s;
+}
+.btn.btn-quit:hover {
+  background: #f85149;
+  border-color: #f85149;
+  color: #fff;
+  filter: brightness(1.05);
+}
+.btn.btn-quit:active {
+  background: #b62324;
+  border-color: #b62324;
+}
+.btn.btn-quit:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  filter: none;
+}
+

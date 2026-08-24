@@ -17,7 +17,7 @@
     <h1 class="app-brand">
       <button type="button" class="brand-btn" id="btn-about" title="À propos" data-i18n-title="about.open_title">
         <img class="app-logo" src="/static/favicon.svg" width="28" height="28" alt="" aria-hidden="true" />
-        <span><span>Gamelist</span> Media Editor <small class="brand-ver" id="brand-version">v1.1.3</small></span>
+        <span><span>Gamelist</span> Media Editor <small class="brand-ver" id="brand-version">v1.2.0</small></span>
       </button>
     </h1>
     <span class="badge" id="game-count" data-i18n="header.game_count" data-i18n-params='{"n":0}'>0 jeux</span>
@@ -36,8 +36,8 @@
     <button class="btn" id="btn-tools" data-i18n="header.tools" data-i18n-title="header.tools_title" title="Outils et actions globales">
       ⚙ Outils
     </button>
-    <button class="btn" id="btn-quit" data-i18n="header.quit" data-i18n-title="header.quit_title" title="Arrêter le serveur et fermer">
-      ✕ Quitter
+    <button type="button" class="btn btn-quit" id="btn-quit" data-i18n="header.quit" data-i18n-title="header.quit_title" title="Fermer l'application et arrêter le serveur">
+      ⏻ Quitter
     </button>
   </header>
 
@@ -60,8 +60,17 @@
 
     <section class="content" id="content">
       <div class="empty-state" id="empty-state">
-        <p class="empty-state-icon" aria-hidden="true">🎮</p>
-        <p data-i18n-html="sidebar.empty_select">Sélectionne un jeu dans la liste<br>puis glisse-dépose tes médias</p>
+        <div id="empty-state-open">
+          <p class="empty-state-icon" aria-hidden="true">📂</p>
+          <p data-i18n-html="sidebar.empty_no_gamelist">Aucun <code>gamelist.xml</code> chargé.<br>Ouvre un fichier pour commencer.</p>
+          <p style="margin-top:16px">
+            <button type="button" class="btn btn-accent" id="btn-empty-open-gamelist" data-i18n="header.open_gamelist">📂 Gamelist…</button>
+          </p>
+        </div>
+        <div id="empty-state-select" hidden>
+          <p class="empty-state-icon" aria-hidden="true">🎮</p>
+          <p data-i18n-html="sidebar.empty_select">Sélectionne un jeu dans la liste<br>puis glisse-dépose tes médias</p>
+        </div>
       </div>
 
       <div id="editor" class="editor" hidden>
@@ -243,7 +252,7 @@
               <img class="app-about-icon" src="/static/icon-256.png" alt="Gamelist Media Editor" width="56" height="56" />
               <div>
                 <h2>Gamelist Media Editor</h2>
-                <div class="ver" id="about-version-label">v1.1.3</div>
+                <div class="ver" id="about-version-label">v1.2.0</div>
               </div>
             </div>
             <p class="about-desc" data-i18n="about.desc">
@@ -253,9 +262,9 @@
             </p>
             <dl class="about-grid">
               <dt data-i18n="about.version">Version</dt>
-              <dd id="about-version">1.1.3</dd>
+              <dd id="about-version">1.2.0</dd>
               <dt data-i18n="about.date">Date</dt>
-              <dd id="about-date">2026-08-16</dd>
+              <dd id="about-date">2026-08-24</dd>
               <dt data-i18n="about.author">Auteur</dt>
               <dd>Franck Fornasari (<a href="https://github.com/Kraran" target="_blank" rel="noopener">Kraran</a>)</dd>
               <dt data-i18n="about.license">Licence</dt>

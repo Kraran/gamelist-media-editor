@@ -2,7 +2,7 @@
 
 Local web app to edit EmulationStation / **RetroBat** `gamelist.xml` media and metadata with drag-and-drop.
 
-**Version 1.1.3** · [Documentation (Wiki)](https://github.com/Kraran/gamelist-media-editor/wiki) · [Releases](https://github.com/Kraran/gamelist-media-editor/releases)
+**Version 1.2.0** · [Documentation (Wiki)](https://github.com/Kraran/gamelist-media-editor/wiki) · [Releases](https://github.com/Kraran/gamelist-media-editor/releases)
 
 ---
 
@@ -30,7 +30,14 @@ Local web app to edit EmulationStation / **RetroBat** `gamelist.xml` media and m
 
 ## Installation
 
-### Option A — Windows Setup (recommended)
+### Option A — Windows .exe (recommended)
+
+1. Download **GamelistMediaEditor-Windows-v1.2.0.zip** from the [latest release](https://github.com/Kraran/gamelist-media-editor/releases/latest)
+2. Extract anywhere and run **`GamelistMediaEditor.exe`**
+3. The browser opens on http://127.0.0.1:5050 — use **📂 Gamelist…** to open a `gamelist.xml`
+4. Optional: drag a `gamelist.xml` onto the `.exe` to open it immediately
+
+### Option B — Windows Setup (Python-based installer)
 
 1. Download **GamelistMediaEditor-Windows-Setup-v1.1.3.zip** from the [latest release](https://github.com/Kraran/gamelist-media-editor/releases/latest)
 2. Extract and run **`Installer.bat`**

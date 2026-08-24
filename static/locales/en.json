@@ -14,7 +14,7 @@
     "reload_title": "Reload gamelist.xml from disk",
     "tools": "⚙ Tools",
     "tools_title": "Tools and global actions",
-    "quit": "✕ Quit",
+    "quit": "⏻ Quit",
     "quit_title": "Stop the server and close",
     "open_gamelist": "📂 Gamelist…",
     "open_gamelist_title": "Open another gamelist.xml without restarting"
@@ -33,7 +33,8 @@
     "filter_any": "Any media missing",
     "empty_select": "Select a game in the list<br>then drag and drop your media",
     "empty_no_match": "No games match the filters",
-    "empty_no_games": "No games in the gamelist"
+    "empty_no_games": "No games in the gamelist",
+    "empty_no_gamelist": "No <code>gamelist.xml</code> loaded.<br>Open a file to get started."
   },
   "editor": {
     "save_name": "Save",
@@ -95,7 +96,8 @@
     "done": "Done",
     "testing": "Testing…",
     "applying_download": "Download / apply…",
-    "opening_gamelist": "Opening gamelist…"
+    "opening_gamelist": "Opening gamelist…",
+    "no_gamelist": "No gamelist loaded"
   },
   "toast": {
     "no_file_url": "No file or URL detected",
@@ -276,7 +278,8 @@
     "open_bad_xml": "Invalid XML: {detail}",
     "open_failed": "Could not open gamelist: {detail}",
     "browse_not_dir": "Folder not found: {path}",
-    "browse_denied": "Access denied to {path}: {detail}"
+    "browse_denied": "Access denied to {path}: {detail}",
+    "no_gamelist": "No gamelist.xml loaded — open a file via “Gamelist…”."
   },
   "open_gl": {
     "title": "📂 Open a gamelist.xml",
