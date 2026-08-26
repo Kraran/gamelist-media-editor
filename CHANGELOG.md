@@ -2,6 +2,14 @@
 
 All notable changes to Gamelist Media Editor are documented in this file.
 
+## [Unreleased]
+
+### Added
+- **Application window** (Chromium `--app=`): no tabs / address bar
+- Prefers the **default browser** when it is Chrome, Edge or Brave; otherwise Edge/Chrome/Brave; else normal browser
+- Closing the window or **Quit** stops the local server
+- Isolated profile folder `app-window/` (gitignored)
+
 ## [1.2.0] - 2026-08-24
 
 ### Added
