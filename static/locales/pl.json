@@ -34,7 +34,12 @@
     "empty_select": "Wybierz grę z listy<br>i przeciągnij media",
     "empty_no_match": "Żadna gra nie pasuje do filtrów",
     "empty_no_games": "Brak gier w gamelist",
-    "empty_no_gamelist": "Brak załadowanego <code>gamelist.xml</code>.<br>Otwórz plik, aby zacząć."
+    "empty_no_gamelist": "Brak załadowanego <code>gamelist.xml</code>.<br>Otwórz plik, aby zacząć.",
+    "filter_cartridge": "Bez support",
+    "filter_boxart": "Bez okładki",
+    "filter_fanart": "Bez fanartu",
+    "filter_mix": "Bez miksu",
+    "filter_map": "Bez mapy"
   },
   "editor": {
     "save_name": "Zapisz",
@@ -57,21 +62,35 @@
     "ss_scrape": "📡 ScreenScraper",
     "ss_scrape_title": "Pobierz media i metadane z ScreenScraper",
     "adb_scrape": "🕹️ Arcade DB",
-    "adb_scrape_title": "Arcade Database (MAME/FBNeo) — najlepiej dla systemów arcade"
+    "adb_scrape_title": "Arcade Database (MAME/FBNeo) — najlepiej dla systemów arcade",
+    "steam_scrape": "🎮 Steam",
+    "steam_scrape_title": "Download the Steam trailer (best quality ≤ 50 MB, else 480p)",
+    "region": "Region",
+    "favorite": "Ulubione",
+    "hidden": "Ukryte",
+    "kidgame": "Gra dla dzieci",
+    "arcadesystemname": "Arcade system"
   },
   "fields": {
     "image": "Obraz (screenshot)",
     "video": "Wideo",
     "marquee": "Marquee",
     "manual": "Instrukcja (PDF)",
-    "boxback": "Box Back"
+    "boxback": "Box Back",
+    "cartridge": "Support",
+    "boxart": "Okładka",
+    "fanart": "Fanart",
+    "mix": "Mix",
+    "map": "Maps"
   },
   "zone": {
     "drop": "Upuść plik tutaj<br>lub obraz z internetu",
     "manual_pdf": "Instrukcja PDF",
     "open": "Otwórz",
     "preview_unavailable": "Podgląd niedostępny",
-    "clear_title": "Usuń"
+    "clear_title": "Usuń",
+    "zoom_title": "Powiększ",
+    "lightbox_close": "Zamknij"
   },
   "status": {
     "loading": "Ładowanie…",
@@ -97,7 +116,8 @@
     "testing": "Testowanie…",
     "applying_download": "Pobieranie / stosowanie…",
     "opening_gamelist": "Otwieranie gamelist…",
-    "no_gamelist": "Brak załadowanej gamelist"
+    "no_gamelist": "Brak załadowanej gamelist",
+    "filling_arcade": "Reading mame.xml…"
   },
   "toast": {
     "no_file_url": "Nie wykryto pliku ani URL",
@@ -115,7 +135,8 @@
     "ss_saved": "✓ Ustawienia ScreenScraper zapisane",
     "no_fields": "Nie wybrano pola",
     "list_reloaded": "Lista odświeżona",
-    "gamelist_opened": "Otwarto gamelist: {name} ({n} gier)"
+    "gamelist_opened": "Otwarto gamelist: {name} ({n} gier)",
+    "arcade_sys_ok": "{n} filled · {skip} already set · {miss} not found"
   },
   "errors": {
     "offline": "Brak połączenia sieciowego.",
@@ -144,7 +165,9 @@
     "delete_title": "Usunąć „{name}”?",
     "delete_body": "<p>Trwałe usunięcie:</p><ul><li>ROM-u</li><li>obrazu, wideo, marquee, instrukcji, boxback</li><li>całego wpisu w <code>gamelist.xml</code></li></ul><p><strong>Tej operacji nie można cofnąć</strong> (poza ręcznym przywróceniem .bak).</p>",
     "delete_ok": "Usuń",
-    "this_game": "tej gry"
+    "this_game": "tej gry",
+    "arcade_sys_title": "Fill arcadesystemname?",
+    "arcade_sys_body": "Existing values are kept. A .bak backup is recommended."
   },
   "tools": {
     "title": "⚙ Narzędzia",
@@ -174,7 +197,19 @@
     "lang_apply": "Zastosuj język",
     "lang_changed": "✓ Język: Polski",
     "ss_pass_saved_ph": "(zapisane — zostaw puste, by nie zmieniać)",
-    "ss_pass_optional_ph": "Hasło członka (opcjonalne)"
+    "ss_pass_optional_ph": "Hasło członka (opcjonalne)",
+    "ss_type_image": "Obraz",
+    "ss_type_image_ss": "Screenshot (ss)",
+    "ss_type_image_sstitle": "Screenshot tytułu (sstitle)",
+    "ss_type_boxart": "Boxart",
+    "ss_type_boxart_2d": "Przód pudełka (box-2D)",
+    "ss_type_boxart_3d": "Pudełko 3D (box-3D)",
+    "ss_type_mix": "Mix",
+    "ss_type_mix_v1": "Mix Recalbox v1 (mixrbv1)",
+    "ss_type_mix_v2": "Mix Recalbox v2 (mixrbv2)",
+    "arcade_sys_title": "Fill arcade systems",
+    "arcade_sys_desc": "Reads a MAME <code>mame.xml</code> dump and writes <code>&lt;arcadesystemname&gt;</code>.",
+    "arcade_sys_btn": "Fill from MAME"
   },
   "scrape": {
     "ss_search": "Wyszukiwanie ScreenScraper…",
@@ -226,7 +261,29 @@
     "field_marquee": "Marquee",
     "field_manual": "Instrukcja",
     "field_boxback": "Boxback",
-    "adb_info": "Romset „{romset}” · „{name}” · folder {folder} · match: {method}"
+    "adb_info": "Romset „{romset}” · „{name}” · folder {folder} · match: {method}",
+    "steam_search": "Steam: searching…",
+    "steam_load": "Steam: loading store page…",
+    "steam_status_search": "Steam: searching…",
+    "steam_status_choice": "Steam: choose a game",
+    "steam_status_ready": "Steam: trailer ready",
+    "steam_modal_apply": "🎮 Steam — apply fields",
+    "steam_modal_choose": "🎮 Steam — choose game",
+    "no_proposal_steam": "No Steam proposal",
+    "steam_info": "AppID {appid} · “{name}” · {trailer} · {quality} · {size}",
+    "field_cartridge": "Support",
+    "field_boxart": "Okładka",
+    "field_fanart": "Fanart",
+    "field_mix": "Mix",
+    "field_map": "Maps",
+    "field_region": "Region",
+    "field_family": "Rodzina",
+    "field_kidgame": "Gra dla dzieci",
+    "field_bezel": "Bezel",
+    "field_pad2key": "Pad2Key",
+    "select_all": "Zaznacz wszystko",
+    "deselect_all": "Odznacz wszystko",
+    "field_arcadesystemname": "Arcade system"
   },
   "ss_modal": {
     "title": "📡 Scraper — zastosuj pola",
@@ -279,7 +336,25 @@
     "open_failed": "Nie udało się otworzyć gamelist: {detail}",
     "browse_not_dir": "Nie znaleziono folderu: {path}",
     "browse_denied": "Odmowa dostępu do {path}: {detail}",
-    "no_gamelist": "Brak gamelist.xml — otwórz plik przez « Gamelist… »."
+    "no_gamelist": "Brak gamelist.xml — otwórz plik przez « Gamelist… ».",
+    "steam_http": "Steam HTTP {status}",
+    "steam_app_missing": "Steam game not found (AppID {id})",
+    "steam_timeout": "Steam request timed out",
+    "steam_error": "Steam error: {detail}",
+    "steam_no_movies": "No downloadable Steam trailer for “{name}”",
+    "steam_not_found": "No Steam game found for “{name}”",
+    "steam_candidates": "Several Steam matches — pick the right one.",
+    "steam_too_large": "Steam video too large (50 MB limit)",
+    "green_placeholder": "Empty ScreenScraper boxback (solid green image ignored).",
+    "mame_xml_missing": "No mame.xml found. Put a « mame.exe -listxml > mame.xml » dump next to the gamelist, in emulators/mame/ or bios/mame/.",
+    "mame_xml_bad": "Cannot read mame.xml: {detail}",
+    "mame_xml_empty": "mame.xml has no usable machine/game entries.",
+    "no_ss_url": "no ScreenScraper URL",
+    "no_adb_url": "no Arcade Database URL",
+    "no_steam_url": "no Steam URL",
+    "url_not_http": "URL is not http(s)",
+    "rating_range_value": "rating out of range: {value}",
+    "rating_invalid_value": "invalid rating: {value}"
   },
   "open_gl": {
     "title": "📂 Otwórz gamelist.xml",

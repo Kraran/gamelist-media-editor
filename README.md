@@ -2,16 +2,17 @@
 
 Local web app to edit EmulationStation / **RetroBat** `gamelist.xml` media and metadata with drag-and-drop.
 
-**Version 1.2.0** · [Documentation (Wiki)](https://github.com/Kraran/gamelist-media-editor/wiki) · [Releases](https://github.com/Kraran/gamelist-media-editor/releases)
+**Version 1.3.0** · [Documentation (Wiki)](https://github.com/Kraran/gamelist-media-editor/wiki) · [Releases](https://github.com/Kraran/gamelist-media-editor/releases)
 
 ---
 
 ## Features
 
-- Drag-and-drop for **image**, **video**, **marquee**, **manual**, **boxback** (local files or URLs)
-- Edit **name**, **description**, **genre** (hierarchical), **rating**, **releasedate**, **developer**, **publisher**, **family**, **players**, **lang** (with flags)
-- **ScreenScraper** scrape per field (hash / name match, candidate picker, optional member boost)
-- **Arcade Database** (Arcade Italia) scrape for MAME/FBNeo romsets
+- Drag-and-drop for **image**, **video**, **marquee**, **manual**, **boxback**, **support**, **boxart**, **fanart**, **mix**, **maps**
+- Edit **name**, **description**, **genre**, **rating**, **releasedate**, **developer**, **publisher**, **family**, **players**, **lang**, **region**, **arcadesystemname**, plus RetroBat flags (favorite / hidden / kidgame)
+- **ScreenScraper** scrape per field (configurable media types, hash / name match, candidate picker)
+- **Arcade Database** scrape for MAME / FBNeo / Neo-Geo / Atomiswave (PCB→Support, Cabinet→Boxart, Flyer→Boxback, Decal→Marquee)
+- **Steam** trailer download (FR when available, 720p ≤ 50 MB else 480p)
 - Filter games by **missing media** (with live counts)
 - Current **system name** in the header (folder of the gamelist)
 - Keyboard navigation (arrows, Page Up/Down, Home/End)
@@ -32,7 +33,7 @@ Local web app to edit EmulationStation / **RetroBat** `gamelist.xml` media and m
 
 ### Option A — Windows .exe (recommended)
 
-1. Download **GamelistMediaEditor-Windows-v1.2.0.zip** from the [latest release](https://github.com/Kraran/gamelist-media-editor/releases/latest)
+1. Download **GamelistMediaEditor-Windows-v1.3.0.zip** from the [latest release](https://github.com/Kraran/gamelist-media-editor/releases/latest)
 2. Extract anywhere and run **`GamelistMediaEditor.exe`**
 3. The browser opens on http://127.0.0.1:5050 — use **📂 Gamelist…** to open a `gamelist.xml`
 4. Optional: drag a `gamelist.xml` onto the `.exe` to open it immediately
@@ -45,7 +46,7 @@ Local web app to edit EmulationStation / **RetroBat** `gamelist.xml` media and m
 4. The installer will:
    - copy the app
    - install **Python** if needed (system, winget, or portable)
-   - install `flask`, `lxml`, `requests`
+   - install `flask`, `lxml`, `requests`, `Pillow`
    - create Desktop + Start Menu shortcuts
 
 ### Option B — Manual

@@ -7,11 +7,16 @@
  * No gamelist at start: setNoGamelistUi(false) + openGamelistModal() from boot().
  */
 const FIELD_DEFS = [
-{ key: "image",   icon: "🖼️" },
-{ key: "video",   icon: "🎬" },
-{ key: "marquee", icon: "🏷️" },
-{ key: "manual",  icon: "📖" },
-{ key: "boxback", icon: "📦" },
+{ key: "image",     icon: "🖼️" },
+{ key: "video",     icon: "🎬" },
+{ key: "marquee",   icon: "🏷️" },
+{ key: "manual",    icon: "📖" },
+{ key: "boxart",    icon: "🗃️" },
+{ key: "boxback",   icon: "📦" },
+{ key: "cartridge", icon: "💾" },
+{ key: "fanart",    icon: "🌄" },
+{ key: "mix",       icon: "🎨" },
+{ key: "map",       icon: "🗺️" },
 ];
 function getFields() {
   return FIELD_DEFS.map(f => ({
@@ -175,7 +180,7 @@ let GENRES = {};
  * games[]          : sorted by name; each item has .index = original XML position
  * currentIndex     : XML index (API routes)
  * currentListIndex : index inside games[] (list selection)
- * mediaFilter      : all | image | video | marquee | manual | boxback | any
+ * mediaFilter      : all | image | video | marquee | manual | boxart | boxback | cartridge | fanart | mix | any
  */
 let games = [];
 let currentIndex = null;
@@ -382,14 +387,15 @@ function updateGameCount(visibleCount) {
 
 function updateFilterCounts(q) {
   const query = (q || "").toLowerCase().trim();
-  const counts = { all: 0, image: 0, video: 0, marquee: 0, manual: 0, boxback: 0, any: 0 };
+  const counts = { all: 0, any: 0 };
+  getFields().forEach(f => { counts[f.key] = 0; });
   games.forEach(g => {
     if (!matchesSearch(g, query)) return;
     counts.all++;
     getFields().forEach(f => {
       if (!hasMedia(g, f.key)) counts[f.key]++;
     });
-    if (FIELDS.some(f => !hasMedia(g, f.key))) counts.any++;
+    if (getFields().some(f => !hasMedia(g, f.key))) counts.any++;
   });
   document.querySelectorAll(".filter-chip").forEach(btn => {
     const key = btn.dataset.filter;
@@ -438,8 +444,10 @@ function setNoGamelistUi(loaded) {
   if (reload) reload.disabled = !loaded;
   const ss = document.getElementById("btn-ss-scrape");
   const adb = document.getElementById("btn-adb-scrape");
+  const steam = document.getElementById("btn-steam-scrape");
   if (ss) ss.disabled = true;
   if (adb) adb.disabled = true;
+  if (steam) steam.disabled = true;
   if (!loaded) {
     if (empty) empty.hidden = false;
     if (emptySelect) emptySelect.hidden = true;
@@ -508,6 +516,8 @@ async function loadGames() {
         if (_ssBtn2) _ssBtn2.disabled = true;
         const _adbBtn2 = document.getElementById("btn-adb-scrape");
         if (_adbBtn2) _adbBtn2.disabled = true;
+        const _steamBtn2 = document.getElementById("btn-steam-scrape");
+        if (_steamBtn2) _steamBtn2.disabled = true;
         renderList();
       }
     } else {
@@ -602,6 +612,8 @@ const _ssBtn = document.getElementById("btn-ss-scrape");
 if (_ssBtn) _ssBtn.disabled = false;
 const _adbBtn = document.getElementById("btn-adb-scrape");
 if (_adbBtn) _adbBtn.disabled = false;
+const _steamBtn = document.getElementById("btn-steam-scrape");
+if (_steamBtn) _steamBtn.disabled = false;
 document.getElementById("game-name-input").value = g.name;
 document.getElementById("game-path").textContent = g.path;
 document.getElementById("desc-textarea").value = g.desc || "";
@@ -612,6 +624,11 @@ document.getElementById("meta-publisher").value = g.publisher || "";
 document.getElementById("meta-family").value = g.family || "";
 document.getElementById("meta-players").value = g.players || "";
 document.getElementById("meta-lang").value = g.lang || "";
+document.getElementById("meta-region").value = g.region || "";
+document.getElementById("meta-arcadesystemname").value = g.arcadesystemname || "";
+document.getElementById("meta-favorite").checked = String(g.favorite || "").toLowerCase() === "true";
+document.getElementById("meta-hidden").checked = String(g.hidden || "").toLowerCase() === "true";
+document.getElementById("meta-kidgame").checked = String(g.kidgame || "").toLowerCase() === "true";
 updateLangFlag(g.lang || "");
 setGenreUI(g.genre || "");
 document.querySelectorAll(".game-item").forEach(el => {
@@ -667,7 +684,7 @@ previewHtml = `<video class="preview-video" src="${url}" controls muted></video>
 } else if (f.key === "manual") {
 previewHtml = `<div class="placeholder"><div class="big">📄</div><div>${t("zone.manual_pdf")}</div><a class="manual-link" href="${url}" target="_blank" rel="noopener">${t("zone.open")}</a></div>`;
 } else {
-previewHtml = `<img src="${url}" alt="${f.label}" onerror="this.parentElement.innerHTML='<div class=\'placeholder\'><div class=\'big\'>⚠️</div>${t("zone.preview_unavailable")}</div>'" />`;
+previewHtml = `<img class="zoomable" src="${url}" alt="${f.label}" title="${t("zone.zoom_title")}" onerror="this.parentElement.innerHTML='<div class=\'placeholder\'><div class=\'big\'>⚠️</div>${t("zone.preview_unavailable")}</div>'" />`;
 }
 } else {
 previewHtml = `<div class="placeholder"><div class="big">${f.icon}</div><div>${t("zone.drop")}</div></div>`;
@@ -685,6 +702,14 @@ zone.addEventListener("dragleave", e => { e.preventDefault(); e.currentTarget.cl
 zone.addEventListener("drop", onDrop);
 const clearBtn = zone.querySelector('[data-action="clear"]');
 if (clearBtn) clearBtn.addEventListener("click", e => { e.stopPropagation(); clearField(f.key); });
+const zoomImg = zone.querySelector("img.zoomable");
+if (zoomImg) {
+  zoomImg.addEventListener("click", e => {
+    e.preventDefault();
+    e.stopPropagation();
+    openLightbox(zoomImg.src, f.label);
+  });
+}
 grid.appendChild(zone);
 });
 }
@@ -803,6 +828,11 @@ async function saveMeta() {
     family: document.getElementById("meta-family").value,
     players: document.getElementById("meta-players").value,
     lang: document.getElementById("meta-lang").value,
+    region: document.getElementById("meta-region").value,
+    arcadesystemname: document.getElementById("meta-arcadesystemname").value,
+    favorite: document.getElementById("meta-favorite").checked ? "true" : "",
+    hidden: document.getElementById("meta-hidden").checked ? "true" : "",
+    kidgame: document.getElementById("meta-kidgame").checked ? "true" : "",
     genre: buildGenreValue(),
   };
   setStatus(t("status.saving_meta"));
@@ -851,7 +881,37 @@ document.getElementById("media-filters").addEventListener("click", e => {
   renderList();
 });
 
+function openLightbox(src, label) {
+  const overlay = document.getElementById("media-lightbox");
+  const img = document.getElementById("lightbox-img");
+  if (!overlay || !img || !src) return;
+  img.src = src;
+  img.alt = label || "";
+  overlay.classList.add("open");
+}
+function closeLightbox() {
+  const overlay = document.getElementById("media-lightbox");
+  const img = document.getElementById("lightbox-img");
+  if (overlay) overlay.classList.remove("open");
+  if (img) img.removeAttribute("src");
+}
+document.getElementById("lightbox-close")?.addEventListener("click", e => {
+  e.stopPropagation();
+  closeLightbox();
+});
+document.getElementById("media-lightbox")?.addEventListener("click", e => {
+  if (e.target.id === "media-lightbox" || e.target.id === "lightbox-img") closeLightbox();
+});
+
 document.addEventListener("keydown", e => {
+  const lightbox = document.getElementById("media-lightbox");
+  if (lightbox && lightbox.classList.contains("open")) {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      closeLightbox();
+    }
+    return;
+  }
   // Ignore while confirmation modal is open
   const modal = document.getElementById("confirm-modal");
   if (modal && modal.classList.contains("open")) return;
@@ -1038,6 +1098,31 @@ document.getElementById("btn-manual-backup").addEventListener("click", async () 
     const data = await apiFetch("/api/backup", { method: "POST" });
     toast(t("toast.backup_ok", { filename: data.filename || "gamelist.xml.bak" }));
     setStatus(t("status.backup_ok_status"));
+  } catch (e) {
+    handleError(e);
+  }
+});
+
+document.getElementById("btn-fill-arcade")?.addEventListener("click", async () => {
+  closeToolsPanel();
+  const choice = await askConfirm({
+    title: t("confirm.arcade_sys_title"),
+    bodyHtml: t("confirm.arcade_sys_body"),
+  });
+  if (!choice.confirmed) return;
+  setStatus(t("status.filling_arcade"));
+  try {
+    const data = await apiFetch("/api/fill-arcadesystem", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ backup: choice.backup }),
+    });
+    toast(t("toast.arcade_sys_ok", {
+      n: data.filled || 0,
+      skip: data.skipped || 0,
+      miss: data.missing || 0,
+    }));
+    await loadGames();
   } catch (e) {
     handleError(e);
   }
@@ -1333,9 +1418,9 @@ document.getElementById("open-gl-path").addEventListener("drop", (e) => {
 
 /* --- About dialog (RomSet Verifier style) --- */
 const APP_ABOUT = {
-  version: "1.2.0",
-  versionLabel: "v1.2.0",
-  date: "2026-08-24",
+  version: "1.3.0",
+  versionLabel: "v1.3.0",
+  date: "2026-09-01",
   author: "Franck Fornasari",
   repo: "https://github.com/Kraran/gamelist-media-editor",
   authorUrl: "https://github.com/Kraran",
@@ -1414,6 +1499,8 @@ function setSsLoading(on, message) {
   if (scrapeBtn) scrapeBtn.disabled = on || currentIndex === null;
   const adbBtn = document.getElementById("btn-adb-scrape");
   if (adbBtn) adbBtn.disabled = on || currentIndex === null;
+  const steamBtn = document.getElementById("btn-steam-scrape");
+  if (steamBtn) steamBtn.disabled = on || currentIndex === null;
   const applyBtn = document.getElementById("ss-modal-apply");
   if (applyBtn && !applyBtn.hidden) applyBtn.disabled = on;
   const testBtn = document.getElementById("btn-ss-test");
@@ -1421,13 +1508,20 @@ function setSsLoading(on, message) {
 }
 
 let ssLastProposed = null;
-let scrapeSource = "screenscraper"; // or arcadeitalia
+let scrapeSource = "screenscraper"; // screenscraper | arcadeitalia | steam
 
 async function loadSsConfig() {
   try {
     const cfg = await apiFetch("/api/ss/config");
     document.getElementById("ss-ssid").value = cfg.ssid || "";
     document.getElementById("ss-region").value = cfg.prefer_region || "fr";
+    const mt = cfg.media_types || {};
+    const img = document.getElementById("ss-type-image");
+    const box = document.getElementById("ss-type-boxart");
+    const mix = document.getElementById("ss-type-mix");
+    if (img) img.value = mt.image || "ss";
+    if (box) box.value = mt.boxart || "box-3D";
+    if (mix) mix.value = mt.mix || "mixrbv2";
     document.getElementById("ss-sspassword").placeholder = cfg.sspassword_set
       ? t("tools.ss_pass_saved_ph")
       : t("tools.ss_pass_optional_ph");
@@ -1449,6 +1543,11 @@ async function saveSsConfig() {
   const payload = {
     ssid: document.getElementById("ss-ssid").value.trim(),
     prefer_region: document.getElementById("ss-region").value,
+    media_types: {
+      image: document.getElementById("ss-type-image").value,
+      boxart: document.getElementById("ss-type-boxart").value,
+      mix: document.getElementById("ss-type-mix").value,
+    },
   };
   const sspass = document.getElementById("ss-sspassword").value;
   if (sspass) payload.sspassword = sspass;
@@ -1495,6 +1594,10 @@ async function testSsConfig() {
   }
 }
 
+function setSsSelectBarVisible(on) {
+  const bar = document.getElementById("ss-select-bar");
+  if (bar) bar.hidden = !on;
+}
 function openSsModal() {
   document.getElementById("ss-modal").classList.add("open");
 }
@@ -1505,6 +1608,7 @@ function closeSsModal() {
   const fields = document.getElementById("ss-fields");
   if (cand) { cand.hidden = true; cand.innerHTML = ""; }
   if (fields) fields.hidden = false;
+  setSsSelectBarVisible(true);
   const apply = document.getElementById("ss-modal-apply");
   if (apply) apply.hidden = false;
 }
@@ -1522,13 +1626,24 @@ function buildSsFieldRows(proposed, current) {
     { key: "genre", label: t("scrape.field_genre") },
     { key: "players", label: t("scrape.field_players") },
     { key: "lang", label: t("scrape.field_lang") },
+    { key: "region", label: t("scrape.field_region") },
+    { key: "family", label: t("scrape.field_family") },
+    { key: "kidgame", label: t("scrape.field_kidgame") },
+    { key: "arcadesystemname", label: t("scrape.field_arcadesystemname") },
   ];
   const mediaFields = [
     { key: "image", label: t("scrape.field_image") },
     { key: "video", label: t("scrape.field_video") },
     { key: "marquee", label: t("scrape.field_marquee") },
     { key: "manual", label: t("scrape.field_manual") },
+    { key: "boxart", label: t("scrape.field_boxart") },
     { key: "boxback", label: t("scrape.field_boxback") },
+    { key: "cartridge", label: t("scrape.field_cartridge") },
+    { key: "fanart", label: t("scrape.field_fanart") },
+    { key: "mix", label: t("scrape.field_mix") },
+    { key: "map", label: t("scrape.field_map") },
+    { key: "bezel", label: t("scrape.field_bezel") },
+    { key: "pad2key", label: t("scrape.field_pad2key") },
   ];
 
   function addRow(key, label, newVal, oldVal, isMedia) {
@@ -1538,7 +1653,11 @@ function buildSsFieldRows(proposed, current) {
     const checked = hasNew && (!oldVal || isMedia);
     const preview = isMedia
       ? (hasNew
-          ? `<span class="ss-new">URL ${escapeHtml(proposed.medias[key].type || "media")}</span>` +
+          ? `<span class="ss-new">${escapeHtml(proposed.medias[key].type || "media")}` +
+            (proposed.medias[key].trailer ? ` · ${escapeHtml(proposed.medias[key].trailer)}` : "") +
+            (proposed.medias[key].quality ? ` · ${escapeHtml(String(proposed.medias[key].quality))}` : "") +
+            (proposed.medias[key].bytes ? ` · ${Math.round(proposed.medias[key].bytes/1048576)} Mo` : "") +
+            `</span>` +
             (oldVal ? `<br><span class="ss-old">${escapeHtml(oldVal)}</span>` : "")
           : "<em>non disponible</em>")
       : (hasNew
@@ -1600,7 +1719,9 @@ async function scrapeCurrentGame(gameid) {
     if (titleEl) {
       titleEl.textContent = scrapeSource === "arcadeitalia"
         ? t("scrape.adb_modal_apply")
-        : t("scrape.ss_modal_apply");
+        : scrapeSource === "steam"
+          ? t("scrape.steam_modal_apply")
+          : t("scrape.ss_modal_apply");
     }
     const info = document.getElementById("ss-modal-info");
     const method = data.match_method || "?";
@@ -1618,6 +1739,7 @@ async function scrapeCurrentGame(gameid) {
     document.getElementById("ss-fields").hidden = false;
     document.getElementById("ss-candidates").hidden = true;
     document.getElementById("ss-modal-apply").hidden = false;
+    setSsSelectBarVisible(true);
     buildSsFieldRows(data.proposed, data.current || {});
     openSsModal();
     setStatus(t("scrape.ss_status_ready"));
@@ -1633,13 +1755,16 @@ function showSsCandidates(data) {
   const fields = document.getElementById("ss-fields");
   fields.hidden = true;
   box.hidden = false;
+  setSsSelectBarVisible(false);
   document.getElementById("ss-modal-apply").hidden = true;
   scrapeSource = data.source || "screenscraper";
   const titleEl = document.getElementById("ss-modal-title");
   if (titleEl) {
     titleEl.textContent = scrapeSource === "arcadeitalia"
       ? t("scrape.adb_modal_choose")
-      : t("scrape.ss_modal_choose");
+      : scrapeSource === "steam"
+        ? t("scrape.steam_modal_choose")
+        : t("scrape.ss_modal_choose");
   }
   const info = document.getElementById("ss-modal-info");
   info.textContent =
@@ -1663,6 +1788,7 @@ function showSsCandidates(data) {
     btn.addEventListener("click", () => {
       closeSsModal();
       if (scrapeSource === "arcadeitalia") scrapeAdbGame(c.ss_id || c.romset);
+      else if (scrapeSource === "steam") scrapeSteamGame(c.ss_id || c.appid);
       else scrapeCurrentGame(c.ss_id);
     });
     box.appendChild(btn);
@@ -1686,7 +1812,9 @@ async function applySsSelection() {
   try {
     const applyUrl = scrapeSource === "arcadeitalia"
       ? `/api/adb/apply/${currentIndex}`
-      : `/api/ss/apply/${currentIndex}`;
+      : scrapeSource === "steam"
+        ? `/api/steam/apply/${currentIndex}`
+        : `/api/ss/apply/${currentIndex}`;
     const data = await apiFetch(applyUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1752,6 +1880,7 @@ async function scrapeAdbGame(romset) {
     document.getElementById("ss-fields").hidden = false;
     document.getElementById("ss-candidates").hidden = true;
     document.getElementById("ss-modal-apply").hidden = false;
+    setSsSelectBarVisible(true);
     buildSsFieldRows(data.proposed, data.current || {});
     openSsModal();
     setStatus(t("scrape.adb_status_ready"));
@@ -1762,8 +1891,68 @@ async function scrapeAdbGame(romset) {
   }
 }
 
+
+async function scrapeSteamGame(appid) {
+  if (currentIndex === null) return;
+  if (ssBusy) return;
+  if (appid != null && typeof appid !== "string" && typeof appid !== "number") appid = null;
+  if (appid != null) appid = String(appid).trim() || null;
+
+  setSsLoading(true, appid ? t("scrape.steam_load") : t("scrape.steam_search"));
+  setStatus(t("scrape.steam_status_search"));
+  scrapeSource = "steam";
+  try {
+    const opts = {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(appid ? { appid } : {}),
+    };
+    const data = await apiFetch(`/api/steam/scrape/${currentIndex}`, opts);
+    if (data.need_choice && data.candidates && data.candidates.length) {
+      showSsCandidates(data);
+      setStatus(t("scrape.steam_status_choice"));
+      return;
+    }
+    if (!data.proposed) throw new Error(t("scrape.no_proposal_steam"));
+    ssLastProposed = data.proposed;
+    scrapeSource = "steam";
+    const titleEl = document.getElementById("ss-modal-title");
+    if (titleEl) titleEl.textContent = t("scrape.steam_modal_apply");
+    const info = document.getElementById("ss-modal-info");
+    const q = data.video_quality || data.proposed.video_quality || "";
+    const bytes = data.video_bytes || data.proposed.video_bytes;
+    const sizeTxt = bytes ? `${Math.round(bytes / 1048576)} Mo` : "";
+    info.textContent = t("scrape.steam_info", {
+      appid: data.proposed.steam_appid || data.steam_appid || "?",
+      name: data.proposed.name || "?",
+      trailer: data.trailer || data.proposed.trailer || "?",
+      quality: q || "?",
+      size: sizeTxt || "?",
+    });
+    document.getElementById("ss-fields").hidden = false;
+    document.getElementById("ss-candidates").hidden = true;
+    document.getElementById("ss-modal-apply").hidden = false;
+    setSsSelectBarVisible(true);
+    buildSsFieldRows(data.proposed, data.current || {});
+    openSsModal();
+    setStatus(t("scrape.steam_status_ready"));
+  } catch (e) {
+    handleError(e, "Steam");
+  } finally {
+    setSsLoading(false);
+  }
+}
+
 document.getElementById("btn-ss-scrape").addEventListener("click", () => scrapeCurrentGame());
+document.getElementById("btn-steam-scrape").addEventListener("click", () => scrapeSteamGame());
 document.getElementById("btn-adb-scrape").addEventListener("click", () => scrapeAdbGame());
+function setSsFieldsChecked(on) {
+  document.querySelectorAll("#ss-fields input[data-ss-field]").forEach(cb => {
+    if (!cb.disabled) cb.checked = on;
+  });
+}
+document.getElementById("ss-select-all")?.addEventListener("click", () => setSsFieldsChecked(true));
+document.getElementById("ss-select-none")?.addEventListener("click", () => setSsFieldsChecked(false));
 document.getElementById("ss-modal-close").addEventListener("click", closeSsModal);
 document.getElementById("ss-modal-cancel").addEventListener("click", closeSsModal);
 document.getElementById("ss-modal-apply").addEventListener("click", applySsSelection);

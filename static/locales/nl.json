@@ -34,7 +34,12 @@
     "empty_select": "Selecteer een game in de lijst<br>en sleep daarna je media",
     "empty_no_match": "Geen games komen overeen met de filters",
     "empty_no_games": "Geen games in de gamelist",
-    "empty_no_gamelist": "Geen <code>gamelist.xml</code> geladen.<br>Open een bestand om te beginnen."
+    "empty_no_gamelist": "Geen <code>gamelist.xml</code> geladen.<br>Open een bestand om te beginnen.",
+    "filter_cartridge": "Zonder support",
+    "filter_boxart": "Zonder boxart",
+    "filter_fanart": "Zonder fanart",
+    "filter_mix": "Zonder mix",
+    "filter_map": "Zonder map"
   },
   "editor": {
     "save_name": "Opslaan",
@@ -57,21 +62,35 @@
     "ss_scrape": "📡 ScreenScraper",
     "ss_scrape_title": "Media en metadata ophalen van ScreenScraper",
     "adb_scrape": "🕹️ Arcade DB",
-    "adb_scrape_title": "Arcade Database (MAME/FBNeo) — ideaal voor arcadesystemen"
+    "adb_scrape_title": "Arcade Database (MAME/FBNeo) — ideaal voor arcadesystemen",
+    "steam_scrape": "🎮 Steam",
+    "steam_scrape_title": "Download the Steam trailer (best quality ≤ 50 MB, else 480p)",
+    "region": "Regio",
+    "favorite": "Favoriet",
+    "hidden": "Verborgen",
+    "kidgame": "Kinderspel",
+    "arcadesystemname": "Arcade system"
   },
   "fields": {
     "image": "Afbeelding (screenshot)",
     "video": "Video",
     "marquee": "Marquee",
     "manual": "Handleiding (PDF)",
-    "boxback": "Box Back"
+    "boxback": "Box Back",
+    "cartridge": "Support",
+    "boxart": "Boxart",
+    "fanart": "Fanart",
+    "mix": "Mix",
+    "map": "Maps"
   },
   "zone": {
     "drop": "Sleep een bestand hierheen<br>of een afbeelding van het web",
     "manual_pdf": "PDF-handleiding",
     "open": "Openen",
     "preview_unavailable": "Voorbeeld niet beschikbaar",
-    "clear_title": "Verwijderen"
+    "clear_title": "Verwijderen",
+    "zoom_title": "Vergroten",
+    "lightbox_close": "Sluiten"
   },
   "status": {
     "loading": "Laden…",
@@ -97,7 +116,8 @@
     "testing": "Testen…",
     "applying_download": "Download / toepassen…",
     "opening_gamelist": "Gamelist openen…",
-    "no_gamelist": "Geen gamelist geladen"
+    "no_gamelist": "Geen gamelist geladen",
+    "filling_arcade": "Reading mame.xml…"
   },
   "toast": {
     "no_file_url": "Geen bestand of URL gevonden",
@@ -115,7 +135,8 @@
     "ss_saved": "✓ ScreenScraper-instellingen opgeslagen",
     "no_fields": "Geen veld geselecteerd",
     "list_reloaded": "Lijst herladen",
-    "gamelist_opened": "Gamelist geopend: {name} ({n} spellen)"
+    "gamelist_opened": "Gamelist geopend: {name} ({n} spellen)",
+    "arcade_sys_ok": "{n} filled · {skip} already set · {miss} not found"
   },
   "errors": {
     "offline": "Geen netwerkverbinding.",
@@ -144,7 +165,9 @@
     "delete_title": "“{name}” verwijderen?",
     "delete_body": "<p>Definitieve verwijdering van:</p><ul><li>de ROM</li><li>afbeelding, video, marquee, handleiding, boxback</li><li>het hele item in <code>gamelist.xml</code></li></ul><p><strong>Dit kan niet ongedaan worden gemaakt</strong> (behalve handmatig .bak-herstel).</p>",
     "delete_ok": "Verwijderen",
-    "this_game": "dit spel"
+    "this_game": "dit spel",
+    "arcade_sys_title": "Fill arcadesystemname?",
+    "arcade_sys_body": "Existing values are kept. A .bak backup is recommended."
   },
   "tools": {
     "title": "⚙ Tools",
@@ -174,7 +197,19 @@
     "lang_apply": "Taal toepassen",
     "lang_changed": "✓ Taal: Nederlands",
     "ss_pass_saved_ph": "(opgeslagen — leeg laten om te behouden)",
-    "ss_pass_optional_ph": "Lidwachtwoord (optioneel)"
+    "ss_pass_optional_ph": "Lidwachtwoord (optioneel)",
+    "ss_type_image": "Afbeelding",
+    "ss_type_image_ss": "Screenshot (ss)",
+    "ss_type_image_sstitle": "Titel-screenshot (sstitle)",
+    "ss_type_boxart": "Boxart",
+    "ss_type_boxart_2d": "Voorkant doos (box-2D)",
+    "ss_type_boxart_3d": "3D-doos (box-3D)",
+    "ss_type_mix": "Mix",
+    "ss_type_mix_v1": "Recalbox mix v1 (mixrbv1)",
+    "ss_type_mix_v2": "Recalbox mix v2 (mixrbv2)",
+    "arcade_sys_title": "Fill arcade systems",
+    "arcade_sys_desc": "Reads a MAME <code>mame.xml</code> dump and writes <code>&lt;arcadesystemname&gt;</code>.",
+    "arcade_sys_btn": "Fill from MAME"
   },
   "scrape": {
     "ss_search": "ScreenScraper-zoekopdracht…",
@@ -226,7 +261,29 @@
     "field_marquee": "Marquee",
     "field_manual": "Handleiding",
     "field_boxback": "Boxback",
-    "adb_info": "Romset “{romset}” · “{name}” · map {folder} · match: {method}"
+    "adb_info": "Romset “{romset}” · “{name}” · map {folder} · match: {method}",
+    "steam_search": "Steam: searching…",
+    "steam_load": "Steam: loading store page…",
+    "steam_status_search": "Steam: searching…",
+    "steam_status_choice": "Steam: choose a game",
+    "steam_status_ready": "Steam: trailer ready",
+    "steam_modal_apply": "🎮 Steam — apply fields",
+    "steam_modal_choose": "🎮 Steam — choose game",
+    "no_proposal_steam": "No Steam proposal",
+    "steam_info": "AppID {appid} · “{name}” · {trailer} · {quality} · {size}",
+    "field_cartridge": "Support",
+    "field_boxart": "Boxart",
+    "field_fanart": "Fanart",
+    "field_mix": "Mix",
+    "field_map": "Maps",
+    "field_region": "Regio",
+    "field_family": "Familie",
+    "field_kidgame": "Kinderspel",
+    "field_bezel": "Bezel",
+    "field_pad2key": "Pad2Key",
+    "select_all": "Alles selecteren",
+    "deselect_all": "Alles deselecteren",
+    "field_arcadesystemname": "Arcade system"
   },
   "ss_modal": {
     "title": "📡 Scraper — velden toepassen",
@@ -279,7 +336,25 @@
     "open_failed": "Gamelist kon niet worden geopend: {detail}",
     "browse_not_dir": "Map niet gevonden: {path}",
     "browse_denied": "Toegang geweigerd tot {path}: {detail}",
-    "no_gamelist": "Geen gamelist.xml geladen — open een bestand via « Gamelist… »."
+    "no_gamelist": "Geen gamelist.xml geladen — open een bestand via « Gamelist… ».",
+    "steam_http": "Steam HTTP {status}",
+    "steam_app_missing": "Steam game not found (AppID {id})",
+    "steam_timeout": "Steam request timed out",
+    "steam_error": "Steam error: {detail}",
+    "steam_no_movies": "No downloadable Steam trailer for “{name}”",
+    "steam_not_found": "No Steam game found for “{name}”",
+    "steam_candidates": "Several Steam matches — pick the right one.",
+    "steam_too_large": "Steam video too large (50 MB limit)",
+    "green_placeholder": "Empty ScreenScraper boxback (solid green image ignored).",
+    "mame_xml_missing": "No mame.xml found. Put a « mame.exe -listxml > mame.xml » dump next to the gamelist, in emulators/mame/ or bios/mame/.",
+    "mame_xml_bad": "Cannot read mame.xml: {detail}",
+    "mame_xml_empty": "mame.xml has no usable machine/game entries.",
+    "no_ss_url": "no ScreenScraper URL",
+    "no_adb_url": "no Arcade Database URL",
+    "no_steam_url": "no Steam URL",
+    "url_not_http": "URL is not http(s)",
+    "rating_range_value": "rating out of range: {value}",
+    "rating_invalid_value": "invalid rating: {value}"
   },
   "open_gl": {
     "title": "📂 Open een gamelist.xml",

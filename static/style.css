@@ -148,6 +148,9 @@
     }
     .meta-field input:focus, .meta-field select:focus { border-color: var(--accent); }
     .hint { color: var(--text-muted); font-weight: 400; }
+    .meta-flags { display: flex; flex-direction: column; gap: 6px; justify-content: flex-end; }
+    .meta-check { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--text); cursor: pointer; user-select: none; }
+    .meta-check input { width: 16px; height: 16px; accent-color: var(--accent); }
     .lang-row { display: flex; align-items: center; gap: 8px; }
     .lang-flag img { width: 22px; height: 16px; border-radius: 2px; object-fit: cover; }
     .btn {
@@ -182,6 +185,23 @@
   z-index: 1000; align-items: center; justify-content: center; padding: 16px;
 }
 .modal-overlay.open { display: flex; }
+.lightbox-overlay {
+  z-index: 1100; background: rgba(0,0,0,0.88); padding: 28px 16px 16px;
+  cursor: zoom-out;
+}
+.lightbox-overlay img {
+  max-width: min(96vw, 1400px); max-height: 92vh;
+  object-fit: contain; border-radius: 8px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+  cursor: default;
+}
+.lightbox-close {
+  position: absolute; top: 12px; right: 16px;
+  background: rgba(255,255,255,0.12); color: #fff; border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 8px; width: 36px; height: 36px; font-size: 1.1rem; cursor: pointer;
+}
+.lightbox-close:hover { background: rgba(255,255,255,0.22); }
+.preview-area img.zoomable { cursor: zoom-in; }
 .modal {
   background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
   max-width: 440px; width: 100%; box-shadow: var(--shadow); padding: 20px 22px;
@@ -335,6 +355,10 @@ textarea:focus-visible {
 /* --- ScreenScraper --- */
 .game-header-actions { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px; }
 .tool-card-ss { flex-direction: column; align-items: stretch; }
+.ss-media-prefs {
+  margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 8px;
+}
 .ss-form { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
 .ss-form-row { display: flex; flex-direction: column; gap: 3px; }
 .ss-form-row label { font-size: 0.75rem; color: var(--text-muted); }
@@ -349,6 +373,10 @@ textarea:focus-visible {
 .ss-status.err { color: #e74c3c; }
 
 .ss-modal { width: min(640px, 94vw); max-height: 85vh; display: flex; flex-direction: column; }
+.ss-select-bar {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  padding: 0 20px 8px;
+}
 .ss-fields {
   padding: 8px 20px 16px;
   overflow-y: auto;

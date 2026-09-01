@@ -9,7 +9,7 @@ Architecture
   (or passes a path on the CLI / drops a file onto the .exe).
 * Media files live under the gamelist folder (images/, videos/, manuals/).
 * XML is cached by mtime; writes are serialized with a process lock.
-* ScreenScraper + Arcade Database scrapers share the same apply contract.
+* ScreenScraper, Arcade Database and Steam scrapers share the same apply contract.
 * PyInstaller: templates/static from sys._MEIPASS; writable config next to the .exe.
 
 Entry points: ``main()`` (source or frozen), routes under ``/api/…``.
@@ -193,11 +193,16 @@ MEDIA_DIRS = {
     "image": "images", "video": "videos", "marquee": "images",
     "manual": "manuals", "boxback": "images", "thumbnail": "images",
     "fanart": "images", "map": "images",
+    "cartridge": "images", "boxart": "images", "mix": "images",
+    "bezel": "images",
 }
 META_FIELDS = {
     "rating", "releasedate", "developer", "publisher",
-    "family", "players", "lang", "genre",
+    "family", "players", "lang", "region", "genre",
+    "kidgame", "hidden", "favorite", "arcadesystemname",
 }
+BOOL_META_FIELDS = {"kidgame", "hidden", "favorite"}
+P2K_TYPES = ("p2k", "padtokey", "pad2key", "pad-to-key")
 
 # --- XML cache + process lock -------------------------------------------------
 # Cache avoids re-parsing a large gamelist on every API call.
@@ -284,11 +289,13 @@ def resolve_under_base(rel_path):
 
 
 def sanitize_filename(name):
+    """Keep a ROM stem usable as ``game-image.png`` (no path separators)."""
     name = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "", name).strip(" .")
     return name or "unknown"
 
 
 def get_base_name(game_elem):
+    """File stem of ``<path>`` without extension, sanitized."""
     path = game_elem.findtext("path", "") or ""
     if path:
         return sanitize_filename(os.path.splitext(os.path.basename(path))[0])
@@ -309,6 +316,11 @@ def get_games(tree):
             "marquee": game.findtext("marquee", "") or "",
             "manual": game.findtext("manual", "") or "",
             "boxback": game.findtext("boxback", "") or "",
+            "cartridge": game.findtext("cartridge", "") or "",
+            "boxart": game.findtext("boxart", "") or "",
+            "fanart": game.findtext("fanart", "") or "",
+            "mix": game.findtext("mix", "") or "",
+            "map": game.findtext("map", "") or "",
             "rating": game.findtext("rating", "") or "",
             "releasedate": game.findtext("releasedate", "") or "",
             "developer": game.findtext("developer", "") or "",
@@ -316,7 +328,12 @@ def get_games(tree):
             "family": game.findtext("family", "") or "",
             "players": game.findtext("players", "") or "",
             "lang": game.findtext("lang", "") or "",
+            "region": game.findtext("region", "") or "",
             "genre": game.findtext("genre", "") or "",
+            "kidgame": game.findtext("kidgame", "") or "",
+            "hidden": game.findtext("hidden", "") or "",
+            "favorite": game.findtext("favorite", "") or "",
+            "arcadesystemname": game.findtext("arcadesystemname", "") or "",
         })
     games.sort(key=lambda g: g["name"].lower())
     return games
@@ -342,23 +359,447 @@ def default_ext_for_field(field):
     return ".png"
 
 
-def ext_from_content_type(ct, field):
-    ct = (ct or "").lower()
-    if "png" in ct:
+# Script endpoints (ScreenScraper image.php, etc.) are not real file types.
+_FAKE_EXTS = {
+    ".php", ".asp", ".aspx", ".jsp", ".cgi", ".html", ".htm",
+    ".exe", ".dll", ".json", ".xml", ".txt",
+}
+_MEDIA_EXTS = {
+    ".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp",
+    ".mp4", ".webm", ".avi", ".mkv", ".mp3",
+    ".pdf",
+}
+
+
+def ext_from_magic(data):
+    """Detect image/video/pdf from the first bytes. None if unknown."""
+    if not data or len(data) < 12:
+        head = data or b""
+    else:
+        head = data
+    if head.startswith(b"\x89PNG\r\n\x1a\n"):
         return ".png"
-    if "jpeg" in ct or "jpg" in ct:
+    if head.startswith(b"\xff\xd8\xff"):
         return ".jpg"
-    if "gif" in ct:
+    if head.startswith(b"GIF87a") or head.startswith(b"GIF89a"):
         return ".gif"
-    if "webp" in ct:
+    if len(head) >= 12 and head[:4] == b"RIFF" and head[8:12] == b"WEBP":
         return ".webp"
-    if "mp4" in ct:
+    if head.startswith(b"BM"):
+        return ".bmp"
+    if head.startswith(b"%PDF"):
+        return ".pdf"
+    if len(head) >= 8 and head[4:8] == b"ftyp":
         return ".mp4"
-    if "webm" in ct:
+    if head.startswith(b"\x1a\x45\xdf\xa3"):
         return ".webm"
+    return None
+
+
+def ext_from_content_type(ct, field=None):
+    """Map Content-Type to an extension, or None if not a real media type."""
+    ct = (ct or "").split(";")[0].strip().lower()
+    mapping = {
+        "image/png": ".png",
+        "image/jpeg": ".jpg",
+        "image/jpg": ".jpg",
+        "image/gif": ".gif",
+        "image/webp": ".webp",
+        "image/bmp": ".bmp",
+        "video/mp4": ".mp4",
+        "video/webm": ".webm",
+        "application/pdf": ".pdf",
+        "application/x-pdf": ".pdf",
+    }
+    if ct in mapping:
+        return mapping[ct]
+    if ct.startswith("image/"):
+        return ".png"
+    if ct.startswith("video/"):
+        return ".mp4"
     if "pdf" in ct:
         return ".pdf"
-    return default_ext_for_field(field)
+    return None
+
+
+def ext_from_url_path(url):
+    """Use the URL path extension only if it is a real media suffix."""
+    if not url:
+        return None
+    path = unquote(urlparse(url).path or "")
+    ext = os.path.splitext(path)[1].lower()
+    if ext == ".jpeg":
+        ext = ".jpg"
+    if ext in _MEDIA_EXTS and ext not in _FAKE_EXTS:
+        return ext
+    return None
+
+
+def resolve_media_ext(url, content_type, field, head=b""):
+    """Prefer file signature, then Content-Type, then a real URL suffix."""
+    return (
+        ext_from_magic(head)
+        or ext_from_content_type(content_type, field)
+        or ext_from_url_path(url)
+        or default_ext_for_field(field)
+    )
+
+
+def is_ss_green_placeholder(data):
+    """True if the image is a flat lime-green ScreenScraper boxback dummy.
+
+    SS often returns a solid #00FF00 PNG/JPEG when box-2D-back is missing.
+    We treat that as « no media » so we do not pollute images/ nor the XML.
+    """
+    if not data or len(data) < 24:
+        return False
+    try:
+        from PIL import Image
+        import io
+        im = Image.open(io.BytesIO(data)).convert("RGB")
+        extrema = im.getextrema()
+        if not extrema or len(extrema) < 3:
+            return False
+        (rmin, rmax), (gmin, gmax), (bmin, bmax) = extrema[:3]
+        if rmax - rmin > 24 or gmax - gmin > 24 or bmax - bmin > 24:
+            return False
+        r = (rmin + rmax) // 2
+        g = (gmin + gmax) // 2
+        b = (bmin + bmax) // 2
+        return g >= 170 and r <= 60 and b <= 60
+    except Exception:
+        return _png_is_solid_green(data)
+
+
+def _png_is_solid_green(data):
+    """Stdlib fallback: 8-bit non-interlaced PNG, RGB / RGBA / palette."""
+    if data[:8] != b"\x89PNG\r\n\x1a\n":
+        return False
+    import struct
+    import zlib
+    pos = 8
+    ihdr = plte = None
+    idats = []
+    while pos + 8 <= len(data):
+        length = struct.unpack(">I", data[pos:pos + 4])[0]
+        ctype = data[pos + 4:pos + 8]
+        start = pos + 8
+        end = start + length
+        if end + 4 > len(data):
+            break
+        chunk = data[start:end]
+        if ctype == b"IHDR":
+            ihdr = chunk
+        elif ctype == b"PLTE":
+            plte = chunk
+        elif ctype == b"IDAT":
+            idats.append(chunk)
+        elif ctype == b"IEND":
+            break
+        pos = end + 4
+    if not ihdr or len(ihdr) < 13 or not idats:
+        return False
+    width, height, bit, color, comp, filt, inter = struct.unpack(">IIBBBBB", ihdr[:13])
+    if inter or bit != 8 or color not in (2, 3, 6) or width <= 0 or height <= 0:
+        return False
+    if width * height > 8_000_000:
+        return False
+    try:
+        raw = zlib.decompress(b"".join(idats))
+    except Exception:
+        return False
+    bpp = {2: 3, 6: 4, 3: 1}[color]
+    stride = width * bpp
+    expected = (stride + 1) * height
+    if len(raw) < expected:
+        return False
+    prev = bytearray(stride)
+    rmin = gmin = bmin = 255
+    rmax = gmax = bmax = 0
+
+    def _paeth(a, b, c):
+        p = a + b - c
+        pa, pb, pc = abs(p - a), abs(p - b), abs(p - c)
+        if pa <= pb and pa <= pc:
+            return a
+        if pb <= pc:
+            return b
+        return c
+
+    off = 0
+    for _y in range(height):
+        ftype = raw[off]
+        row = bytearray(raw[off + 1:off + 1 + stride])
+        off += 1 + stride
+        if ftype == 1:
+            for i in range(stride):
+                row[i] = (row[i] + (row[i - bpp] if i >= bpp else 0)) & 255
+        elif ftype == 2:
+            for i in range(stride):
+                row[i] = (row[i] + prev[i]) & 255
+        elif ftype == 3:
+            for i in range(stride):
+                left = row[i - bpp] if i >= bpp else 0
+                row[i] = (row[i] + ((left + prev[i]) // 2)) & 255
+        elif ftype == 4:
+            for i in range(stride):
+                left = row[i - bpp] if i >= bpp else 0
+                up = prev[i]
+                ul = prev[i - bpp] if i >= bpp else 0
+                row[i] = (row[i] + _paeth(left, up, ul)) & 255
+        elif ftype != 0:
+            return False
+        prev = row
+        if color == 3:
+            if not plte or len(plte) < 3:
+                return False
+            for i in range(width):
+                idx = row[i] * 3
+                if idx + 2 >= len(plte):
+                    return False
+                r, g, b = plte[idx], plte[idx + 1], plte[idx + 2]
+                rmin, rmax = min(rmin, r), max(rmax, r)
+                gmin, gmax = min(gmin, g), max(gmax, g)
+                bmin, bmax = min(bmin, b), max(bmax, b)
+        else:
+            for i in range(0, stride, bpp):
+                r, g, b = row[i], row[i + 1], row[i + 2]
+                rmin, rmax = min(rmin, r), max(rmax, r)
+                gmin, gmax = min(gmin, g), max(gmax, g)
+                bmin, bmax = min(bmin, b), max(bmax, b)
+        if rmax - rmin > 24 or gmax - gmin > 24 or bmax - bmin > 24:
+            return False
+    r = (rmin + rmax) // 2
+    g = (gmin + gmax) // 2
+    b = (bmin + bmax) // 2
+    return g >= 170 and r <= 60 and b <= 60
+
+
+def download_remote_media(url, media_dir, base_name, field, headers=None, timeout=40):
+    """Download a remote media file and save it with a real image/video/pdf extension.
+
+    ScreenScraper URLs often end with ``image.php`` — that suffix is ignored.
+    Returns the dest filename (not a path).
+    """
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        raise ValueError("url_not_allowed")
+    r = requests.get(
+        url,
+        headers=headers or {"User-Agent": APP_UA},
+        timeout=timeout,
+        stream=True,
+    )
+    r.raise_for_status()
+    cl = r.headers.get("content-length")
+    if cl and str(cl).isdigit() and int(cl) > MAX_DOWNLOAD_BYTES:
+        r.close()
+        raise ValueError("too_large")
+    chunks = []
+    written = 0
+    for chunk in r.iter_content(8192):
+        if not chunk:
+            continue
+        written += len(chunk)
+        if written > MAX_DOWNLOAD_BYTES:
+            raise ValueError("too_large")
+        chunks.append(chunk)
+    data = b"".join(chunks)
+    if not data:
+        raise ValueError("empty")
+    if field == "boxback" and is_ss_green_placeholder(data):
+        raise ValueError("green_placeholder")
+    ext = resolve_media_ext(url, r.headers.get("content-type"), field, data[:64])
+    filename = f"{base_name}-{field}{ext}"
+    dest = os.path.join(media_dir, filename)
+    with open(dest, "wb") as f:
+        f.write(data)
+    return filename
+
+
+def pad2key_dest(game):
+    """RetroBat: same folder as the ROM, same basename, extension .keys."""
+    path_rel = game.findtext("path", "") or ""
+    full = resolve_under_base(path_rel) if path_rel else None
+    if full:
+        return os.path.splitext(full)[0] + ".keys"
+    return os.path.join(BASE_DIR, get_base_name(game) + ".keys")
+
+
+def download_pad2key(url, dest):
+    """Download a RetroBat ``.keys`` (Pad2Key) file next to the ROM."""
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        raise ValueError("url_not_allowed")
+    r = requests.get(url, headers={"User-Agent": APP_UA}, timeout=40)
+    r.raise_for_status()
+    data = r.content or b""
+    if len(data) > MAX_DOWNLOAD_BYTES:
+        raise ValueError("too_large")
+    if not data:
+        raise ValueError("empty")
+    parent = os.path.dirname(dest)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+    with open(dest, "wb") as f:
+        f.write(data)
+    return dest
+
+
+_MAME_DRIVERS = None
+
+
+def load_mame_drivers():
+    """sourcefile stem → short board name (cps1 → CPS1). Cached."""
+    global _MAME_DRIVERS
+    if _MAME_DRIVERS is not None:
+        return _MAME_DRIVERS
+    path = resource_path("static", "mame_drivers.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            raw = json.load(f)
+        _MAME_DRIVERS = {str(k).lower(): str(v) for k, v in raw.items()}
+    except Exception:
+        _MAME_DRIVERS = {}
+    return _MAME_DRIVERS
+
+
+_DRIVER_PREFIXES = (
+    ("segas16", "System 16"),
+    ("sega16", "System 16"),
+    ("segas32", "System 32"),
+    ("sega32", "System 32"),
+    ("gaelco", "Gaelco"),
+    ("cps3", "CPS3"),
+    ("cps2", "CPS2"),
+    ("cps1", "CPS1"),
+    ("neogeo", "Neo-Geo"),
+    ("hng64", "Hyper Neo-Geo 64"),
+    ("playch", "PlayChoice-10"),
+    ("vsnes", "Vs. System"),
+    ("decocass", "DECO Cassette"),
+    ("konamigx", "Konami GX"),
+    ("namcos", "Namco"),
+    ("taito_type_x", "Taito Type X"),
+    ("taitotx", "Taito Type X"),
+    ("typex", "Taito Type X"),
+    ("atomiswave", "Atomiswave"),
+    ("lindbergh", "Lindbergh"),
+    ("chihiro", "Chihiro"),
+    ("triforce", "Triforce"),
+    ("model3", "Model 3"),
+    ("model2", "Model 2"),
+    ("model1", "Model 1"),
+    ("stv", "ST-V"),
+    ("naomi2", "NAOMI 2"),
+    ("naomi", "NAOMI"),
+    ("cave", "Cave"),
+    ("pgm", "PolyGame Master"),
+    ("zn2", "ZN-2"),
+    ("zn1", "ZN-1"),
+    ("zn", "ZN"),
+    ("taito_", "Taito"),
+    ("taito", "Taito"),
+    ("konami", "Konami"),
+    ("mid", "Midway"),
+    ("irem", "Irem"),
+    ("sega", "Sega"),
+    ("atari", "Atari"),
+    ("namco", "Namco"),
+)
+
+
+def pretty_arcade_system(sourcefile, romset=""):
+    """cps1.cpp → CPS1. Empty when the driver is named after this single game."""
+    if not sourcefile:
+        return ""
+    path = str(sourcefile).replace("\\", "/").strip()
+    stem = os.path.splitext(os.path.basename(path))[0].lower()
+    rom = os.path.splitext(os.path.basename(str(romset).replace("\\", "/")))[0].lower()
+    if rom and stem == rom:
+        return ""
+    mapped = load_mame_drivers().get(stem)
+    if mapped:
+        return mapped
+    for prefix, label in _DRIVER_PREFIXES:
+        if stem.startswith(prefix):
+            return label
+    pretty = stem.replace("_", " ").replace("-", " ").strip()
+    return pretty.title() if pretty else ""
+
+
+def adb_fetch_driver(romset):
+    """Read « Driver source: capcom/cps1.cpp » from the ADB game page."""
+    if not romset:
+        return ""
+    try:
+        _throttle_api("adb")
+        r = requests.get(
+            "https://adb.arcadeitalia.net/dettaglio_mame.php",
+            params={"game_name": romset},
+            headers={"User-Agent": APP_UA},
+            timeout=25,
+        )
+        r.raise_for_status()
+        m = re.search(
+            r"Driver source:.*?<span class=\"dettaglio\">\s*([^<]+?\.cpp)",
+            r.text,
+            re.I | re.S,
+        )
+        return (m.group(1).strip() if m else "")
+    except Exception:
+        return ""
+
+
+def find_mame_listxml():
+    """Look for a MAME -listxml dump near the gamelist or RetroBat tree."""
+    candidates = []
+    if BASE_DIR:
+        candidates.extend([
+            os.path.join(BASE_DIR, "mame.xml"),
+            os.path.join(BASE_DIR, "mame", "mame.xml"),
+            os.path.join(os.path.dirname(BASE_DIR), "mame.xml"),
+        ])
+        root = BASE_DIR
+        for _ in range(5):
+            parent = os.path.dirname(root)
+            if parent == root:
+                break
+            root = parent
+            candidates.extend([
+                os.path.join(root, "mame.xml"),
+                os.path.join(root, "bios", "mame", "mame.xml"),
+                os.path.join(root, "emulators", "mame", "mame.xml"),
+                os.path.join(root, "emulators", "mame", "hash", "mame.xml"),
+            ])
+    candidates.append(os.path.join(APP_DIR, "mame.xml"))
+    seen = set()
+    for p in candidates:
+        if not p or p in seen:
+            continue
+        seen.add(p)
+        if os.path.isfile(p) and os.path.getsize(p) > 1000:
+            return p
+    return None
+
+
+def index_mame_listxml(path):
+    """romset name → sourcefile from MAME -listxml (machine or game tags)."""
+    idx, clones = {}, {}
+    for _event, elem in etree.iterparse(path, events=("end",), tag=("machine", "game")):
+        name = (elem.get("name") or "").strip()
+        src = (elem.get("sourcefile") or "").strip()
+        cloneof = (elem.get("cloneof") or "").strip()
+        if name:
+            if src:
+                idx[name.lower()] = src
+            if cloneof:
+                clones[name.lower()] = cloneof.lower()
+        elem.clear()
+    for name, parent in clones.items():
+        if name not in idx and parent in idx:
+            idx[name] = idx[parent]
+    return idx
 
 
 
@@ -367,7 +808,7 @@ def ext_from_content_type(ct, field):
 # on the SS API. End users may add their member login for a quota boost.
 SS_API = "https://api.screenscraper.fr/api2"
 SS_SOFTNAME = "GamelistMediaEditor"
-APP_VERSION = "1.2.0"
+APP_VERSION = "1.3.0"
 APP_UA = f"{SS_SOFTNAME}/{APP_VERSION}"
 SS_CONFIG_NAME = "screenscraper_config.json"
 
@@ -432,13 +873,32 @@ SS_SYSTEM_MAP = {
 }
 
 
-# ES field → preferred ScreenScraper media type(s), first match wins
+# ES field → ScreenScraper type. No fallback to another artwork kind if missing.
 SS_MEDIA_PREF = {
-    "image": ["ss", "sstitle", "mixrbv1", "mixrbv2", "box-2D", "screenshot"],
-    "video": ["video-normalized", "video"],
-    "marquee": ["wheel-hd", "wheel", "screenmarquee", "marquee"],
-    "manual": ["manuel", "manual"],
-    "boxback": ["box-2D-back", "box-texture-back", "box-2D"],
+    "image": ["ss"],
+    "video": ["video-normalized"],
+    "marquee": ["wheel-hd"],
+    "manual": ["manuel"],
+    "boxback": ["box-2D-back"],
+    "boxart": ["box-3D"],
+    "cartridge": ["support-2D"],
+    "fanart": ["fanart"],
+    "mix": ["mixrbv2"],
+    "map": ["maps"],
+    "thumbnail": ["box-2D"],
+    "bezel": ["bezel-16-9"],
+}
+
+# User-configurable type (Outils → ScreenScraper). Only that type is requested.
+SS_MEDIA_CHOICES = {
+    "image": ("ss", "sstitle"),
+    "boxart": ("box-2D", "box-3D"),
+    "mix": ("mixrbv1", "mixrbv2"),
+}
+SS_MEDIA_DEFAULTS = {
+    "image": "ss",
+    "boxart": "box-3D",
+    "mix": "mixrbv2",
 }
 
 
@@ -447,13 +907,40 @@ def ss_config_path():
     return os.path.join(APP_DIR, SS_CONFIG_NAME)
 
 
+def normalize_ss_media_types(raw):
+    """Keep only allowed image/boxart/mix types; fill defaults for missing keys."""
+    out = dict(SS_MEDIA_DEFAULTS)
+    if not isinstance(raw, dict):
+        return out
+    for field, allowed in SS_MEDIA_CHOICES.items():
+        val = str(raw.get(field) or "").strip()
+        for opt in allowed:
+            if val.lower() == opt.lower():
+                out[field] = opt
+                break
+    return out
+
+
+def ss_media_pref(cfg=None):
+    """Exact SS type per field. Configurable fields use only the saved choice."""
+    cfg = cfg or load_ss_config()
+    chosen = cfg.get("media_types") or SS_MEDIA_DEFAULTS
+    prefs = {k: list(v) for k, v in SS_MEDIA_PREF.items()}
+    for field, first in chosen.items():
+        if field not in prefs or not first:
+            continue
+        prefs[field] = [first]
+    return prefs
+
+
 def load_ss_config():
-    """User boost credentials + region (local file). Dev credentials are built-in."""
+    """User boost credentials + region + media type prefs (local file)."""
     path = ss_config_path()
     defaults = {
         "ssid": "",
         "sspassword": "",
         "prefer_region": "fr",
+        "media_types": dict(SS_MEDIA_DEFAULTS),
     }
     if not os.path.isfile(path):
         return defaults
@@ -462,16 +949,17 @@ def load_ss_config():
             data = json.load(f)
         if not isinstance(data, dict):
             return defaults
-        for k in defaults:
+        for k in ("ssid", "sspassword", "prefer_region"):
             if k in data and data[k] is not None:
                 defaults[k] = str(data[k]).strip()
+        defaults["media_types"] = normalize_ss_media_types(data.get("media_types"))
         return defaults
     except Exception:
         return defaults
 
 
 def save_ss_config(data):
-    """Persist user boost + region only (never write built-in dev password to disk)."""
+    """Persist user boost, region and media type prefs (never write built-in dev password)."""
     cfg = load_ss_config()
     for k in ("ssid", "prefer_region"):
         if k in data and data[k] is not None:
@@ -480,7 +968,8 @@ def save_ss_config(data):
         cfg["sspassword"] = str(data["sspassword"])
     if data.get("clear_sspassword"):
         cfg["sspassword"] = ""
-    # Drop legacy keys if present
+    if "media_types" in data:
+        cfg["media_types"] = normalize_ss_media_types(data.get("media_types"))
     cfg.pop("devid", None)
     cfg.pop("devpassword", None)
     path = ss_config_path()
@@ -496,6 +985,7 @@ def ss_public_config(cfg=None):
         "ssid": cfg.get("ssid") or "",
         "sspassword_set": bool(cfg.get("sspassword")),
         "prefer_region": cfg.get("prefer_region") or "fr",
+        "media_types": normalize_ss_media_types(cfg.get("media_types")),
         "softname": SS_SOFTNAME,
         "configured": True,
         "user_boost": bool(cfg.get("ssid") and cfg.get("sspassword")),
@@ -712,14 +1202,16 @@ def ss_candidate_summary(jeu, query_name=""):
 # Minimum interval between outbound API calls (politeness + avoid bursts)
 _SS_MIN_INTERVAL = 1.1
 _ADB_MIN_INTERVAL = 0.45
+_STEAM_MIN_INTERVAL = 0.45
 _ss_last_call = 0.0
 _adb_last_call = 0.0
+_steam_last_call = 0.0
 _api_throttle_lock = threading.Lock()
 
 
 def _throttle_api(service):
     """Serialize and space calls per service (one logical client)."""
-    global _ss_last_call, _adb_last_call
+    global _ss_last_call, _adb_last_call, _steam_last_call
     with _api_throttle_lock:
         now = time.time()
         if service == "ss":
@@ -727,6 +1219,11 @@ def _throttle_api(service):
             if wait > 0:
                 time.sleep(wait)
             _ss_last_call = time.time()
+        elif service == "steam":
+            wait = _STEAM_MIN_INTERVAL - (now - _steam_last_call)
+            if wait > 0:
+                time.sleep(wait)
+            _steam_last_call = time.time()
         else:
             wait = _ADB_MIN_INTERVAL - (now - _adb_last_call)
             if wait > 0:
@@ -878,17 +1375,18 @@ def _ss_pick_media(medias, preferred_types, prefer_region="fr"):
     if not isinstance(medias, list):
         medias = [medias]
     prefer = [prefer_region, "wor", "eu", "us", "jp", "ss", ""]
+    prefs_l = [t.strip().lower() for t in preferred_types]
     candidates = []
     for m in medias:
         if not isinstance(m, dict):
             continue
-        mtype = (m.get("type") or "").lower()
+        mtype = (m.get("type") or "").strip().lower()
         url = m.get("url") or ""
         if not url:
             continue
         region = (m.get("region") or "").lower()
         try:
-            type_rank = preferred_types.index(mtype)
+            type_rank = prefs_l.index(mtype)
         except ValueError:
             continue
         try:
@@ -903,7 +1401,7 @@ def _ss_pick_media(medias, preferred_types, prefer_region="fr"):
     return best[2], best[3]
 
 
-def parse_ss_game(jeu, prefer_region="fr"):
+def parse_ss_game(jeu, prefer_region="fr", media_pref=None):
     """Map ScreenScraper jeu object → ES-oriented dict."""
     if not jeu or not isinstance(jeu, dict):
         return None
@@ -956,6 +1454,16 @@ def parse_ss_game(jeu, prefer_region="fr"):
         if isinstance(g0, dict):
             gn = g0.get("noms") or g0.get("nom")
             genre = _ss_pick_text(gn, prefer_region).upper()
+    family = ""
+    familles = jeu.get("familles") or jeu.get("famille") or []
+    if isinstance(familles, dict):
+        familles = [familles]
+    if isinstance(familles, list) and familles:
+        f0 = familles[0]
+        if isinstance(f0, dict):
+            family = _ss_pick_text(f0.get("noms") or f0.get("nom"), prefer_region)
+        elif isinstance(f0, str):
+            family = f0.strip()
     players = ""
     joueurs = jeu.get("joueurs") or {}
     if isinstance(joueurs, dict):
@@ -968,12 +1476,36 @@ def parse_ss_game(jeu, prefer_region="fr"):
         lang = (langues.get("text") or "").strip().split(",")[0].strip().lower()
     elif isinstance(langues, str):
         lang = langues.split(",")[0].strip().lower()
+    region = ""
+    regions = jeu.get("regions") or jeu.get("region") or {}
+    if isinstance(regions, dict):
+        region = (regions.get("text") or "").strip().split(",")[0].strip().lower()
+        if not region:
+            inner = regions.get("region") or regions.get("regions") or []
+            if isinstance(inner, list) and inner:
+                r0 = inner[0]
+                region = (r0.get("text") if isinstance(r0, dict) else str(r0)).strip().lower()
+            elif isinstance(inner, dict):
+                region = (inner.get("text") or "").strip().lower()
+            elif isinstance(inner, str):
+                region = inner.strip().lower()
+    elif isinstance(regions, list) and regions:
+        r0 = regions[0]
+        region = (r0.get("text") if isinstance(r0, dict) else str(r0)).strip().lower()
+    elif isinstance(regions, str):
+        region = regions.split(",")[0].strip().lower()
+    if "," in region:
+        region = region.split(",")[0].strip()
     medias = jeu.get("medias") or []
     media_out = {}
-    for field, prefs in SS_MEDIA_PREF.items():
+    prefs_map = media_pref or ss_media_pref()
+    for field, prefs in prefs_map.items():
         url, mtype = _ss_pick_media(medias, prefs, prefer_region)
         if url:
             media_out[field] = {"url": url, "type": mtype}
+    p2k_url, p2k_type = _ss_pick_media(medias, P2K_TYPES, prefer_region)
+    if p2k_url:
+        media_out["pad2key"] = {"url": p2k_url, "type": p2k_type}
     return {
         "ss_id": str(jeu.get("id") or ""),
         "name": name,
@@ -982,9 +1514,12 @@ def parse_ss_game(jeu, prefer_region="fr"):
         "releasedate": releasedate,
         "developer": developer,
         "publisher": publisher,
+        "family": family,
         "genre": genre,
         "players": players,
         "lang": lang,
+        "region": region,
+        "arcadesystemname": "",
         "medias": media_out,
     }
 
@@ -1187,52 +1722,30 @@ def upload(index, field):
                 size = None
             if size is not None and size > MAX_DOWNLOAD_BYTES:
                 return api_err(st("server.file_too_large", n=MAX_DOWNLOAD_BYTES // (1024*1024)), 400, code="file_too_large")
-            ext = os.path.splitext(file.filename)[1].lower() or default_ext_for_field(field)
+            ext = os.path.splitext(file.filename)[1].lower()
+            if ext == ".jpeg":
+                ext = ".jpg"
+            if ext not in _MEDIA_EXTS:
+                head = file.stream.read(64)
+                file.stream.seek(0)
+                ext = ext_from_magic(head) or default_ext_for_field(field)
             new_filename = f"{base_name}-{field}{ext}"
             file.save(os.path.join(media_dir, new_filename))
             rel_path = f"./{media_dir_name}/{new_filename}"
         elif url:
             try:
-                parsed = urlparse(url)
-                if parsed.scheme not in ("http", "https"):
-                    return api_err(st("server.url_not_allowed"), 400, code="url_not_allowed")
-                ext = os.path.splitext(unquote(parsed.path))[1].lower()
-                if not ext or len(ext) > 6:
-                    ext = ""
-                r = requests.get(
-                    url,
-                    headers={"User-Agent": APP_UA},
-                    timeout=20,
-                    stream=True,
+                new_filename = download_remote_media(
+                    url, media_dir, base_name, field, timeout=20
                 )
-                r.raise_for_status()
-                if not ext:
-                    ext = ext_from_content_type(r.headers.get("content-type"), field)
-                cl = r.headers.get("content-length")
-                if cl is not None:
-                    try:
-                        if int(cl) > MAX_DOWNLOAD_BYTES:
-                            r.close()
-                            return api_err(st("server.file_too_large", n=MAX_DOWNLOAD_BYTES // (1024*1024)), 400, code="file_too_large")
-                    except ValueError:
-                        pass
-                new_filename = f"{base_name}-{field}{ext}"
-                dest = os.path.join(media_dir, new_filename)
-                written = 0
-                with open(dest, "wb") as f:
-                    for chunk in r.iter_content(8192):
-                        if not chunk:
-                            continue
-                        written += len(chunk)
-                        if written > MAX_DOWNLOAD_BYTES:
-                            f.close()
-                            try:
-                                os.remove(dest)
-                            except OSError:
-                                pass
-                            return api_err(st("server.file_too_large", n=MAX_DOWNLOAD_BYTES // (1024*1024)), 400, code="file_too_large")
-                        f.write(chunk)
                 rel_path = f"./{media_dir_name}/{new_filename}"
+            except ValueError as e:
+                if str(e) == "url_not_allowed":
+                    return api_err(st("server.url_not_allowed"), 400, code="url_not_allowed")
+                if str(e) == "too_large":
+                    return api_err(st("server.file_too_large", n=MAX_DOWNLOAD_BYTES // (1024*1024)), 400, code="file_too_large")
+                if str(e) == "green_placeholder":
+                    return api_err(st("server.green_placeholder"), 400, code="green_placeholder")
+                return api_err(st("server.download_failed", detail=e), 400, code="download_failed")
             except requests.RequestException as e:
                 return api_err(st("server.download_failed", detail=e), 400, code="download_failed")
             except Exception as e:
@@ -1363,6 +1876,8 @@ def update_meta(index):
                     return api_err(st("server.rating_invalid"), 400, code="rating_invalid")
             if field == "lang" and value:
                 value = value.lower()
+            if field in BOOL_META_FIELDS:
+                value = "true" if value.lower() in ("true", "1", "yes", "on") else ""
             elem = game.find(field)
             if value == "":
                 if elem is not None:
@@ -1424,6 +1939,58 @@ def purge_regions():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/fill-arcadesystem", methods=["POST"])
+def fill_arcadesystem():
+    """Fill <arcadesystemname> from a MAME -listxml dump (mame.xml)."""
+    err = require_gamelist()
+    if err:
+        return err
+    body = request.get_json(silent=True) or {}
+    xml_path = (body.get("xml_path") or "").strip() or find_mame_listxml()
+    if not xml_path or not os.path.isfile(xml_path):
+        return api_err(st("server.mame_xml_missing"), 404, code="mame_xml_missing")
+    try:
+        idx = index_mame_listxml(xml_path)
+    except Exception as e:
+        return api_err(st("server.mame_xml_bad", detail=e), 400, code="mame_xml_bad")
+    if not idx:
+        return api_err(st("server.mame_xml_empty"), 400, code="mame_xml_empty")
+
+    do_backup = bool(body.get("backup", False))
+    backup_path = backup_xml() if do_backup else None
+    overwrite = bool(body.get("overwrite", False))
+    tree = load_xml()
+    filled, skipped, missing = 0, 0, 0
+    for game in tree.getroot().findall("game"):
+        existing = (game.findtext("arcadesystemname") or "").strip()
+        if existing and not overwrite:
+            skipped += 1
+            continue
+        path = game.findtext("path", "") or ""
+        romset = os.path.splitext(os.path.basename(path.replace("\\", "/")))[0].lower()
+        src = idx.get(romset)
+        name = pretty_arcade_system(src, romset) if src else ""
+        if not name:
+            missing += 1
+            continue
+        elem = game.find("arcadesystemname")
+        if elem is None:
+            elem = etree.SubElement(game, "arcadesystemname")
+        elem.text = name
+        filled += 1
+    if filled:
+        save_xml(tree)
+    return jsonify({
+        "success": True,
+        "filled": filled,
+        "skipped": skipped,
+        "missing": missing,
+        "source": xml_path,
+        "machines": len(idx),
+        "backup": backup_path,
+    })
+
+
 @app.route("/api/delete-game/<int:index>", methods=["POST"])
 def delete_game(index):
     """Delete ROM + media files on disk + XML entry for the game."""
@@ -1446,7 +2013,8 @@ def delete_game(index):
         name = game.findtext("name", "") or st("server.game_fallback", index=index)
         media_tags = [
             "path", "image", "video", "marquee", "manual", "boxback",
-            "thumbnail", "fanart", "map", "boxfront", "cartridge", "mix",
+            "thumbnail", "fanart", "map", "boxfront", "boxart", "cartridge", "mix",
+            "bezel",
         ]
         deleted_files, failed_files = [], []
         for tag in media_tags:
@@ -1459,6 +2027,13 @@ def delete_game(index):
                 full = resolve_under_base(rel)
                 if full and os.path.exists(full):
                     failed_files.append(rel)
+        keys_path = pad2key_dest(game)
+        if keys_path and os.path.isfile(keys_path):
+            try:
+                os.remove(keys_path)
+                deleted_files.append(os.path.relpath(keys_path, BASE_DIR))
+            except OSError:
+                failed_files.append(keys_path)
         root.remove(game)
         save_xml(tree)
         return jsonify({
@@ -1484,6 +2059,8 @@ def api_ss_config():
             payload["ssid"] = (body.get("ssid") or "").strip()
         if "prefer_region" in body:
             payload["prefer_region"] = (body.get("prefer_region") or "fr").strip()
+        if "media_types" in body:
+            payload["media_types"] = body.get("media_types") or {}
         if body.get("sspassword"):
             payload["sspassword"] = body["sspassword"]
         if body.get("clear_sspassword"):
@@ -1559,7 +2136,7 @@ def api_ss_scrape(index):
     api_errors = []  # collect real SS messages (auth, not found, …)
 
     def full_from_jeu(jeu, match_method):
-        parsed = parse_ss_game(jeu, prefer)
+        parsed = parse_ss_game(jeu, prefer, ss_media_pref(cfg))
         if not parsed:
             return None
         current = {
@@ -1788,7 +2365,9 @@ def api_ss_apply(index):
         "name": "name", "desc": "desc", "rating": "rating",
         "releasedate": "releasedate", "developer": "developer",
         "publisher": "publisher", "genre": "genre",
-        "players": "players", "lang": "lang",
+        "players": "players", "lang": "lang", "region": "region",
+        "family": "family", "kidgame": "kidgame",
+        "arcadesystemname": "arcadesystemname",
     }
 
     # Text / meta fields
@@ -1802,10 +2381,10 @@ def api_ss_apply(index):
                 try:
                     fval = float(value)
                     if not (0.0 <= fval <= 1.0):
-                        errors.append(f"rating hors plage: {value}")
+                        errors.append(st("server.rating_range_value", value=value))
                         continue
                 except ValueError:
-                    errors.append(f"rating invalide: {value}")
+                    errors.append(st("server.rating_invalid_value", value=value))
                     continue
             if field == "lang" and value:
                 value = value.lower()
@@ -1831,51 +2410,29 @@ def api_ss_apply(index):
                 elem.text = value
             applied.append(field)
 
-    # Media fields — download
+    # Media fields — download. Thumbnail is always applied when SS has box-2D.
     medias = proposed.get("medias") or {}
     base_name = get_base_name(game)
-    for field in fields:
-        if field not in MEDIA_DIRS:
-            continue
+    media_fields = [f for f in fields if f in MEDIA_DIRS]
+    if "thumbnail" not in media_fields:
+        media_fields.append("thumbnail")
+    if "bezel" not in media_fields:
+        media_fields.append("bezel")
+    for field in media_fields:
         info = medias.get(field) or {}
         url = (info.get("url") or "").strip()
         if not url:
-            errors.append(f"{field}: pas d'URL ScreenScraper")
+            if field in ("thumbnail", "bezel"):
+                continue
+            errors.append(f"{field}: {st('server.no_ss_url')}")
             continue
         media_dir_name = MEDIA_DIRS[field]
         media_dir = os.path.join(BASE_DIR, media_dir_name)
         os.makedirs(media_dir, exist_ok=True)
         try:
-            parsed = urlparse(url)
-            if parsed.scheme not in ("http", "https"):
-                errors.append(f"{field}: URL non http(s)")
-                continue
-            r = requests.get(
-                url,
-                headers={"User-Agent": APP_UA},
-                timeout=40,
-                stream=True,
+            new_filename = download_remote_media(
+                url, media_dir, base_name, field, timeout=40
             )
-            r.raise_for_status()
-            ext = os.path.splitext(unquote(parsed.path))[1].lower()
-            if not ext or len(ext) > 6:
-                ext = ext_from_content_type(r.headers.get("content-type"), field)
-            new_filename = f"{base_name}-{field}{ext}"
-            dest = os.path.join(media_dir, new_filename)
-            written = 0
-            with open(dest, "wb") as f:
-                for chunk in r.iter_content(8192):
-                    if not chunk:
-                        continue
-                    written += len(chunk)
-                    if written > MAX_DOWNLOAD_BYTES:
-                        f.close()
-                        try:
-                            os.remove(dest)
-                        except OSError:
-                            pass
-                        raise ValueError(st("server.file_too_large", n=MAX_DOWNLOAD_BYTES // (1024*1024)))
-                    f.write(chunk)
             rel_path = f"./{media_dir_name}/{new_filename}"
             old_rel = game.findtext(field, "") or ""
             if old_rel and resolve_under_base(old_rel) != resolve_under_base(rel_path):
@@ -1885,8 +2442,27 @@ def api_ss_apply(index):
                 elem = etree.SubElement(game, field)
             elem.text = rel_path
             applied.append(field)
+        except ValueError as e:
+            if str(e) == "too_large":
+                errors.append(f"{field}: {st('server.file_too_large', n=MAX_DOWNLOAD_BYTES // (1024*1024))}")
+            elif str(e) == "url_not_allowed":
+                errors.append(f"{field}: {st('server.url_not_http')}")
+            elif str(e) == "green_placeholder":
+                continue
+            else:
+                errors.append(f"{field}: {e}")
         except Exception as e:
             errors.append(f"{field}: {e}")
+
+    p2k = (medias.get("pad2key") or {})
+    p2k_url = (p2k.get("url") or "").strip()
+    if p2k_url:
+        try:
+            dest = pad2key_dest(game)
+            download_pad2key(p2k_url, dest)
+            applied.append("pad2key")
+        except Exception as e:
+            errors.append(f"pad2key: {e}")
 
     if applied:
         save_xml(tree)
@@ -1944,6 +2520,43 @@ def adb_request(ajax, params, timeout=30):
         return False, f"Réseau Arcade Database: {e}", 502
 
 
+def arcade_system_from_adb(item):
+    """Map ADB romset → driver file → short board name (CPS1, Neo-Geo…)."""
+    if not isinstance(item, dict):
+        return ""
+    romset = (item.get("game_name") or "").strip()
+    src = (item.get("sourcefile") or item.get("source_file") or item.get("driver") or "").strip()
+    if not src:
+        src = adb_fetch_driver(romset)
+    name = pretty_arcade_system(src, romset)
+    if name:
+        return name
+    for key in ("hardware", "system"):
+        val = (item.get(key) or "").strip()
+        if val:
+            return val
+    return ""
+
+
+def enrich_adb_item_media(item):
+    """Merge QUERY_MAME_MEDIA URLs (pcb, decal, cabinet, flyer, …) into the item."""
+    if not item or not isinstance(item, dict):
+        return item
+    gname = (item.get("game_name") or "").strip()
+    if not gname:
+        return item
+    ok, data, _ = adb_request("query_mame_media", {"game_name": gname})
+    if not ok or not isinstance(data, dict):
+        return item
+    results = data.get("result") or []
+    if not results or not isinstance(results[0], dict):
+        return item
+    for k, v in results[0].items():
+        if isinstance(k, str) and k.startswith("url_") and v:
+            item[k] = v
+    return item
+
+
 def parse_adb_game(item):
     """Map one ADB result object → same proposed shape as ScreenScraper."""
     if not item or not isinstance(item, dict):
@@ -1993,15 +2606,23 @@ def parse_adb_game(item):
     u, t = pick_url("url_video_shortplay_hd", "url_video_shortplay")
     if u:
         medias["video"] = {"url": u, "type": t}
-    u, t = pick_url("url_image_marquee", "url_image_logo", "url_image_flyer")
+    # Arcade mapping (MAME / FBNeo / NeoGeo / Atomiswave / …):
+    # PCB → Support (cartridge), CABINET → Boxart, FLYER → Boxback, DECAL → Marquee
+    u, t = pick_url("url_image_decal")
     if u:
         medias["marquee"] = {"url": u, "type": t}
     u, t = pick_url("url_manual")
     if u:
         medias["manual"] = {"url": u, "type": t}
-    u, t = pick_url("url_image_box", "url_image_cabinet", "url_image_flyer")
+    u, t = pick_url("url_image_cabinet")
+    if u:
+        medias["boxart"] = {"url": u, "type": t}
+    u, t = pick_url("url_image_flyer")
     if u:
         medias["boxback"] = {"url": u, "type": t}
+    u, t = pick_url("url_image_pcb")
+    if u:
+        medias["cartridge"] = {"url": u, "type": t}
 
     return {
         "ss_id": str(item.get("game_name") or ""),  # romset id used as key
@@ -2016,6 +2637,8 @@ def parse_adb_game(item):
         "players": players,
         "lang": lang,
         "medias": medias,
+        "family": (item.get("serie") or "").strip(),
+        "arcadesystemname": arcade_system_from_adb(item),
         "source": "arcadeitalia",
         "cloneof": (item.get("cloneof") or "").strip(),
         "status": (item.get("status") or "").strip(),
@@ -2127,6 +2750,7 @@ def api_adb_scrape(index):
                 full = (data3.get("result") or []) if isinstance(data3, dict) else []
                 if full:
                     item = full[0]
+        item = enrich_adb_item_media(item)
         parsed = parse_adb_game(item)
         if not parsed:
             return api_err(st("server.adb_unusable"), 502)
@@ -2172,7 +2796,7 @@ def api_adb_scrape(index):
         if ok3:
             full = (data3.get("result") or []) if isinstance(data3, dict) else []
             if full:
-                parsed = parse_adb_game(full[0])
+                parsed = parse_adb_game(enrich_adb_item_media(full[0]))
                 if parsed:
                     return jsonify({
                         "success": True,
@@ -2209,8 +2833,10 @@ def api_adb_apply(index):
     if err:
         return err
     body = request.get_json(silent=True) or {}
-    fields = body.get("fields") or []
+    fields = list(body.get("fields") or [])
     proposed = body.get("proposed") or {}
+    if (proposed.get("arcadesystemname") or "").strip() and "arcadesystemname" not in fields:
+        fields.append("arcadesystemname")
     if not fields:
         return api_err(st("server.no_fields"), 400, code="no_fields")
     try:
@@ -2224,7 +2850,9 @@ def api_adb_apply(index):
         "name": "name", "desc": "desc", "rating": "rating",
         "releasedate": "releasedate", "developer": "developer",
         "publisher": "publisher", "genre": "genre",
-        "players": "players", "lang": "lang",
+        "players": "players", "lang": "lang", "region": "region",
+        "family": "family", "kidgame": "kidgame",
+        "arcadesystemname": "arcadesystemname",
     }
 
     for field in fields:
@@ -2238,10 +2866,10 @@ def api_adb_apply(index):
             try:
                 fval = float(value)
                 if not (0.0 <= fval <= 1.0):
-                    errors.append(f"rating hors plage: {value}")
+                    errors.append(st("server.rating_range_value", value=value))
                     continue
             except ValueError:
-                errors.append(f"rating invalide: {value}")
+                errors.append(st("server.rating_invalid_value", value=value))
                 continue
         if field == "lang" and value:
             value = value.lower()
@@ -2275,44 +2903,17 @@ def api_adb_apply(index):
         info = medias.get(field) or {}
         url = (info.get("url") or "").strip()
         if not url:
-            errors.append(f"{field}: pas d'URL Arcade Database")
+            errors.append(f"{field}: {st('server.no_adb_url')}")
             continue
         media_dir_name = MEDIA_DIRS[field]
         media_dir = os.path.join(BASE_DIR, media_dir_name)
         os.makedirs(media_dir, exist_ok=True)
         try:
-            parsed = urlparse(url)
-            if parsed.scheme not in ("http", "https"):
-                errors.append(f"{field}: URL non http(s)")
-                continue
-            r = requests.get(
-                url,
+            new_filename = download_remote_media(
+                url, media_dir, base_name, field,
                 headers={"User-Agent": ADB_UA},
                 timeout=40,
-                stream=True,
             )
-            r.raise_for_status()
-            ext = os.path.splitext(unquote(parsed.path))[1].lower()
-            if not ext or len(ext) > 6:
-                ext = ext_from_content_type(r.headers.get("content-type"), field)
-            new_filename = f"{base_name}-{field}{ext}"
-            dest = os.path.join(media_dir, new_filename)
-            written = 0
-            with open(dest, "wb") as f:
-                for chunk in r.iter_content(8192):
-                    if not chunk:
-                        continue
-                    written += len(chunk)
-                    if written > MAX_DOWNLOAD_BYTES:
-                        f.close()
-                        try:
-                            os.remove(dest)
-                        except OSError:
-                            pass
-                        raise ValueError(
-                            st("server.file_too_large", n=MAX_DOWNLOAD_BYTES // (1024*1024))
-                        )
-                    f.write(chunk)
             rel_path = f"./{media_dir_name}/{new_filename}"
             old_rel = game.findtext(field, "") or ""
             if old_rel and resolve_under_base(old_rel) != resolve_under_base(rel_path):
@@ -2322,6 +2923,15 @@ def api_adb_apply(index):
                 elem = etree.SubElement(game, field)
             elem.text = rel_path
             applied.append(field)
+        except ValueError as e:
+            if str(e) == "too_large":
+                errors.append(f"{field}: {st('server.file_too_large', n=MAX_DOWNLOAD_BYTES // (1024*1024))}")
+            elif str(e) == "url_not_allowed":
+                errors.append(f"{field}: {st('server.url_not_http')}")
+            elif str(e) == "green_placeholder":
+                continue
+            else:
+                errors.append(f"{field}: {e}")
         except Exception as e:
             errors.append(f"{field}: {e}")
 
@@ -2330,6 +2940,563 @@ def api_adb_apply(index):
 
     return jsonify({"success": True, "applied": applied, "errors": errors, "source": "arcadeitalia"})
 
+
+
+
+# --- Steam store trailers -----------------------------------------------------
+# Unofficial store API + legacy progressive MP4 on the Steam CDN.
+# movie_max.mp4 ≈ best quality (often 1080p); movie480.mp4 = 480p fallback.
+STEAM_APPDETAILS = "https://store.steampowered.com/api/appdetails"
+STEAM_STORESEARCH = "https://store.steampowered.com/api/storesearch/"
+STEAM_SEARCHAPPS = "https://steamcommunity.com/actions/SearchApps/"
+STEAM_UA = f"{APP_UA} (Steam trailer; +https://github.com/Kraran/gamelist-media-editor)"
+STEAM_CDN_MP4 = "https://cdn.akamai.steamstatic.com/steam/apps/{mid}/{name}"
+
+
+def _steam_https(url):
+    url = (url or "").strip()
+    if url.startswith("http://"):
+        return "https://" + url[7:]
+    return url
+
+
+def _steam_headers():
+    return {"User-Agent": STEAM_UA, "Accept": "application/json"}
+
+
+def parse_steam_appid(text):
+    """Extract a Steam AppID from an URL, path, or bare number."""
+    if text is None:
+        return None
+    s = str(text).strip()
+    if not s:
+        return None
+    m = re.search(r"(?:store\.steampowered\.com/app/|/app/)(\d{1,10})", s, re.I)
+    if m:
+        return m.group(1)
+    if re.fullmatch(r"\d{1,10}", s):
+        return s
+    return None
+
+
+def steam_probe(url, timeout=12):
+    """HEAD a Steam CDN URL.
+
+    Returns (exists, size_or_none).
+    exists is False on 404/410/empty HTML error pages — never treat that as 'unknown size'.
+    """
+    url = _steam_https(url)
+    if not url:
+        return False, None
+    try:
+        r = requests.head(
+            url,
+            headers={"User-Agent": STEAM_UA},
+            timeout=timeout,
+            allow_redirects=True,
+        )
+        if r.status_code in (404, 410, 403):
+            return False, None
+        if r.status_code >= 400:
+            return False, None
+        ct = (r.headers.get("Content-Type") or "").lower()
+        if "text/html" in ct:
+            return False, None
+        cl = r.headers.get("Content-Length")
+        size = int(cl) if cl and str(cl).isdigit() else None
+        if size is not None and size < 4096:
+            return False, None
+        return True, size
+    except requests.RequestException:
+        return False, None
+
+
+def steam_cdn_mp4(movie_id, quality):
+    name = "movie_max.mp4" if quality == "max" else "movie480.mp4"
+    return STEAM_CDN_MP4.format(mid=movie_id, name=name)
+
+
+def steam_pick_video(movie):
+    """
+    Choose a progressive MP4 for one Steam movie.
+    Prefer max if it exists and size <= 50 MB, else 480p.
+    Returns dict or None when this movie has no downloadable MP4.
+    """
+    if not isinstance(movie, dict):
+        return None
+    mid = movie.get("id")
+    if mid in (None, ""):
+        return None
+    mp4 = movie.get("mp4") or {}
+    if not isinstance(mp4, dict):
+        mp4 = {}
+    url_max = _steam_https(mp4.get("max") or "") or steam_cdn_mp4(mid, "max")
+    url_480 = _steam_https(mp4.get("480") or "") or steam_cdn_mp4(mid, "480")
+
+    exists_max, size_max = steam_probe(url_max)
+    exists_480, size_480 = steam_probe(url_480)
+
+    def usable(exists, size):
+        if not exists:
+            return False
+        if size is None:
+            return True
+        return 0 < size <= MAX_DOWNLOAD_BYTES
+
+    chosen = quality = size = None
+    fallback = fallback_size = None
+
+    if usable(exists_max, size_max):
+        chosen, quality, size = url_max, "max", size_max
+    elif usable(exists_480, size_480):
+        chosen, quality, size = url_480, "480", size_480
+
+    if chosen and quality == "max" and exists_480 and url_480 != chosen:
+        fallback, fallback_size = url_480, size_480
+
+    if not chosen:
+        return None
+    return {
+        "url": chosen,
+        "fallback_url": fallback or "",
+        "type": f"steam-mp4-{quality}",
+        "quality": quality,
+        "bytes": size,
+        "fallback_bytes": fallback_size,
+        "movie_id": str(mid),
+        "trailer": (movie.get("name") or "").strip(),
+        "highlight": bool(movie.get("highlight")),
+    }
+
+
+_STEAM_FR_NAME = re.compile(
+    r"(?:^|[\s\-_\(\[/])(fr|fra|french|fran[cç]ais|vf|vff|vofr|france)(?:$|[\s\-_\.\)\]])",
+    re.I,
+)
+
+
+def steam_movie_is_french(name):
+    """True when the trailer title looks localized in French."""
+    return bool(_STEAM_FR_NAME.search(name or ""))
+
+
+def steam_request_appdetails(appid, lang="french", cc="FR", timeout=25):
+    """Return (ok, data_or_error, status). data is the inner app payload."""
+    _throttle_api("steam")
+    try:
+        r = requests.get(
+            STEAM_APPDETAILS,
+            params={"appids": str(appid), "l": lang, "cc": cc},
+            headers=_steam_headers(),
+            timeout=timeout,
+        )
+        if r.status_code != 200:
+            return False, st("server.steam_http", status=r.status_code), r.status_code
+        payload = r.json()
+        block = payload.get(str(appid)) or payload.get(appid)
+        if not isinstance(block, dict) or not block.get("success"):
+            return False, st("server.steam_app_missing", id=appid), 404
+        data = block.get("data") or {}
+        if not isinstance(data, dict):
+            return False, st("server.steam_app_missing", id=appid), 404
+        return True, data, r.status_code
+    except requests.Timeout:
+        return False, st("server.steam_timeout"), 504
+    except Exception as e:
+        return False, st("server.steam_error", detail=e), 502
+
+
+def steam_search(term, timeout=20):
+    """Return list of {ss_id, name, score, system} candidates."""
+    term = (term or "").strip()
+    if not term:
+        return []
+    found = []
+    _throttle_api("steam")
+    try:
+        r = requests.get(
+            STEAM_STORESEARCH,
+            params={"term": term, "l": "french", "cc": "FR"},
+            headers=_steam_headers(),
+            timeout=timeout,
+        )
+        if r.status_code == 200:
+            items = (r.json() or {}).get("items") or []
+            if isinstance(items, list):
+                for it in items:
+                    if not isinstance(it, dict):
+                        continue
+                    aid = it.get("id")
+                    name = (it.get("name") or "").strip()
+                    if not aid or not name:
+                        continue
+                    found.append({
+                        "ss_id": str(aid),
+                        "name": name,
+                        "names": [name],
+                        "system": "Steam",
+                        "score": round(name_similarity(term, name), 3),
+                        "appid": str(aid),
+                    })
+    except Exception:
+        pass
+    if found:
+        return found
+    # Fallback community search
+    _throttle_api("steam")
+    try:
+        from urllib.parse import quote
+        r = requests.get(
+            STEAM_SEARCHAPPS + quote(term),
+            headers=_steam_headers(),
+            timeout=timeout,
+        )
+        if r.status_code == 200:
+            items = r.json() or []
+            if isinstance(items, list):
+                for it in items:
+                    if not isinstance(it, dict):
+                        continue
+                    aid = it.get("appid") or it.get("id")
+                    name = (it.get("name") or "").strip()
+                    if not aid or not name:
+                        continue
+                    found.append({
+                        "ss_id": str(aid),
+                        "name": name,
+                        "names": [name],
+                        "system": "Steam",
+                        "score": round(name_similarity(term, name), 3),
+                        "appid": str(aid),
+                    })
+    except Exception:
+        pass
+    return found
+
+
+def parse_steam_game(data, video_info):
+    """Map Steam appdetails + chosen trailer → SS-shaped proposed dict."""
+    name = (data.get("name") or "").strip()
+    desc = (data.get("short_description") or data.get("about_the_game") or "").strip()
+    # strip simple HTML from about_the_game if used
+    if desc and "<" in desc:
+        desc = re.sub(r"<[^>]+>", " ", desc)
+        desc = re.sub(r"\s+", " ", desc).strip()
+    developers = data.get("developers") or []
+    publishers = data.get("publishers") or []
+    developer = ", ".join(developers) if isinstance(developers, list) else str(developers or "")
+    publisher = ", ".join(publishers) if isinstance(publishers, list) else str(publishers or "")
+    releasedate = ""
+    rd = data.get("release_date") or {}
+    date_txt = (rd.get("date") or "") if isinstance(rd, dict) else ""
+    digits = "".join(c for c in date_txt if c.isdigit())
+    if len(digits) >= 8:
+        releasedate = digits[:8] + "T000000"
+    elif len(digits) == 4:
+        releasedate = digits + "0101T000000"
+    genre = ""
+    genres = data.get("genres") or []
+    if isinstance(genres, list) and genres:
+        g0 = genres[0]
+        if isinstance(g0, dict):
+            genre = (g0.get("description") or "").strip().upper()
+    medias = {}
+    if video_info and video_info.get("url"):
+        medias["video"] = {
+            "url": video_info["url"],
+            "fallback_url": video_info.get("fallback_url") or "",
+            "type": video_info.get("type") or "steam-mp4",
+            "quality": video_info.get("quality") or "",
+            "bytes": video_info.get("bytes"),
+            "trailer": video_info.get("trailer") or "",
+        }
+    return {
+        "ss_id": str(data.get("steam_appid") or ""),
+        "steam_appid": str(data.get("steam_appid") or ""),
+        "name": name,
+        "desc": desc,
+        "rating": "",
+        "releasedate": releasedate,
+        "developer": developer,
+        "publisher": publisher,
+        "genre": genre,
+        "players": "",
+        "lang": "fr",
+        "medias": medias,
+        "source": "steam",
+        "trailer": (video_info or {}).get("trailer") or "",
+        "video_quality": (video_info or {}).get("quality") or "",
+        "video_bytes": (video_info or {}).get("bytes"),
+    }
+
+
+def steam_choose_movie(movies):
+    """Prefer a French-titled trailer when one exists, else the newest."""
+    if not isinstance(movies, list):
+        return None, None
+    usable = []
+    for movie in movies:
+        if not isinstance(movie, dict) or movie.get("id") is None:
+            continue
+        info = steam_pick_video(movie)
+        if info:
+            usable.append((movie, info))
+    if not usable:
+        return None, None
+    french = [pair for pair in usable if steam_movie_is_french(pair[0].get("name"))]
+    pool = french or usable
+    pool.sort(key=lambda pair: int(pair[0].get("id") or 0), reverse=True)
+    return pool[0]
+
+
+def steam_load_app(appid):
+    """French store page first; fall back to English movies if FR has none."""
+    ok_fr, data_fr, status_fr = steam_request_appdetails(appid, lang="french", cc="FR")
+    if not ok_fr:
+        return steam_request_appdetails(appid, lang="english", cc="US")
+    movies = data_fr.get("movies") or []
+    if not movies:
+        ok_en, data_en, _ = steam_request_appdetails(appid, lang="english", cc="US")
+        if ok_en and isinstance(data_en, dict):
+            data_fr["movies"] = data_en.get("movies") or []
+    return True, data_fr, status_fr
+
+
+@app.route("/api/steam/scrape/<int:index>", methods=["POST"])
+def api_steam_scrape(index):
+    """
+    Look up a Steam store trailer for the current game.
+    Body optional: { "appid": "400" } or { "gameid": "400" } after a candidate pick.
+    French store text when available. Newest French trailer if named as such,
+    else newest trailer. movie_max.mp4 if <= 50 MB else movie480.mp4.
+    """
+    err = require_gamelist()
+    if err:
+        return err
+    try:
+        tree, game = get_game_elem(index)
+    except IndexError:
+        return api_err(st("server.invalid_index"), 404, code="invalid_index")
+
+    body = request.get_json(silent=True) or {}
+    force_id = str(body.get("appid") or body.get("gameid") or "").strip()
+    path_rel = game.findtext("path", "") or ""
+    rom_name = os.path.basename(path_rel) if path_rel else ""
+    local_name = game.findtext("name", "") or os.path.splitext(rom_name)[0]
+    _, system_folder = detect_system_id()
+
+    appid = parse_steam_appid(force_id) or parse_steam_appid(local_name) or parse_steam_appid(path_rel)
+
+    def current_map():
+        return adb_current_from_game(game)
+
+    def finish(data, method):
+        movies = data.get("movies") or []
+        movie, video_info = steam_choose_movie(movies)
+        if not video_info:
+            return api_err(
+                st("server.steam_no_movies", name=data.get("name") or appid or "?"),
+                404,
+                code="steam_no_movies",
+            )
+        parsed = parse_steam_game(data, video_info)
+        return jsonify({
+            "success": True,
+            "match_method": method,
+            "source": "steam",
+            "system_folder": system_folder,
+            "rom_name": rom_name,
+            "local_name": local_name,
+            "proposed": parsed,
+            "current": current_map(),
+            "steam_appid": parsed.get("steam_appid"),
+            "trailer": video_info.get("trailer"),
+            "video_quality": video_info.get("quality"),
+            "video_bytes": video_info.get("bytes"),
+        })
+
+    if appid:
+        ok, data, _ = steam_load_app(appid)
+        if not ok:
+            return api_err(str(data), 404, code="steam_app_missing")
+        return finish(data, "appid")
+
+    search_name = clean_game_name(local_name) or clean_game_name(rom_name) or local_name
+    candidates = steam_search(search_name)
+    if not candidates:
+        return api_err(
+            st("server.steam_not_found", name=local_name or rom_name or "?"),
+            404,
+            code="steam_not_found",
+        )
+
+    by_id = {}
+    for c in candidates:
+        sid = c.get("ss_id")
+        if not sid:
+            continue
+        if sid not in by_id or c.get("score", 0) > by_id[sid].get("score", 0):
+            by_id[sid] = c
+    candidates = sorted(by_id.values(), key=lambda c: c.get("score", 0), reverse=True)
+
+    if len(candidates) == 1 and candidates[0].get("score", 0) >= 0.85:
+        ok, data, _ = steam_load_app(candidates[0]["ss_id"])
+        if ok:
+            return finish(data, "name-unique")
+
+    if candidates[0].get("score", 0) >= 0.95 and (
+        len(candidates) == 1 or candidates[0]["score"] > candidates[1].get("score", 0) + 0.15
+    ):
+        ok, data, _ = steam_load_app(candidates[0]["ss_id"])
+        if ok:
+            return finish(data, "name-unique")
+
+    return jsonify({
+        "success": True,
+        "need_choice": True,
+        "match_method": "search",
+        "source": "steam",
+        "system_folder": system_folder,
+        "rom_name": rom_name,
+        "local_name": local_name,
+        "search": search_name,
+        "candidates": candidates[:15],
+        "message": st("server.steam_candidates"),
+    })
+
+
+@app.route("/api/steam/apply/<int:index>", methods=["POST"])
+def api_steam_apply(index):
+    """Apply selected Steam fields. Video: max then 480p fallback if over 50 MB."""
+    err = require_gamelist()
+    if err:
+        return err
+    body = request.get_json(silent=True) or {}
+    fields = body.get("fields") or []
+    proposed = body.get("proposed") or {}
+    if not fields:
+        return api_err(st("server.no_fields"), 400, code="no_fields")
+    try:
+        tree, game = get_game_elem(index)
+    except IndexError:
+        return api_err(st("server.invalid_index"), 404, code="invalid_index")
+
+    applied = []
+    errors = []
+    meta_map = {
+        "name": "name", "desc": "desc", "rating": "rating",
+        "releasedate": "releasedate", "developer": "developer",
+        "publisher": "publisher", "genre": "genre",
+        "players": "players", "lang": "lang", "region": "region",
+        "family": "family", "kidgame": "kidgame",
+        "arcadesystemname": "arcadesystemname",
+    }
+
+    for field in fields:
+        if field not in meta_map:
+            continue
+        value = (proposed.get(field) or "").strip()
+        if field == "name" and not value:
+            errors.append(st("server.name_empty_ignored"))
+            continue
+        tag = meta_map[field]
+        elem = game.find(tag)
+        if value == "":
+            if elem is not None:
+                game.remove(elem)
+        else:
+            if elem is None:
+                if tag == "name":
+                    elem = etree.Element("name")
+                    game.insert(0, elem)
+                elif tag == "desc":
+                    name_elem = game.find("name")
+                    elem = etree.Element("desc")
+                    if name_elem is not None:
+                        name_elem.addnext(elem)
+                    else:
+                        game.append(elem)
+                else:
+                    elem = etree.SubElement(game, tag)
+            elem.text = value
+        applied.append(field)
+
+    medias = proposed.get("medias") or {}
+    base_name = get_base_name(game)
+
+    def download_url(url, dest):
+        r = requests.get(
+            _steam_https(url),
+            headers={"User-Agent": STEAM_UA},
+            timeout=60,
+            stream=True,
+        )
+        r.raise_for_status()
+        written = 0
+        with open(dest, "wb") as f:
+            for chunk in r.iter_content(8192):
+                if not chunk:
+                    continue
+                written += len(chunk)
+                if written > MAX_DOWNLOAD_BYTES:
+                    f.close()
+                    try:
+                        os.remove(dest)
+                    except OSError:
+                        pass
+                    raise ValueError("too_large")
+                f.write(chunk)
+        return written
+
+    for field in fields:
+        if field not in MEDIA_DIRS:
+            continue
+        info = medias.get(field) or {}
+        urls = []
+        if info.get("url"):
+            urls.append(info["url"])
+        if info.get("fallback_url") and info["fallback_url"] not in urls:
+            urls.append(info["fallback_url"])
+        if not urls:
+            errors.append(f"{field}: {st('server.no_steam_url')}")
+            continue
+        media_dir_name = MEDIA_DIRS[field]
+        media_dir = os.path.join(BASE_DIR, media_dir_name)
+        os.makedirs(media_dir, exist_ok=True)
+        dest = os.path.join(media_dir, f"{base_name}-{field}.mp4")
+        last_err = None
+        saved = False
+        for url in urls:
+            parsed = urlparse(_steam_https(url))
+            if parsed.scheme not in ("http", "https"):
+                last_err = "URL non http(s)"
+                continue
+            try:
+                download_url(url, dest)
+                saved = True
+                break
+            except ValueError:
+                last_err = st("server.file_too_large", n=MAX_DOWNLOAD_BYTES // (1024 * 1024))
+                continue
+            except Exception as e:
+                last_err = str(e)
+                continue
+        if not saved:
+            errors.append(f"{field}: {last_err or st('server.steam_too_large')}")
+            continue
+        rel_path = f"./{media_dir_name}/{base_name}-{field}.mp4"
+        old_rel = game.findtext(field, "") or ""
+        if old_rel and resolve_under_base(old_rel) != resolve_under_base(rel_path):
+            safe_delete_file(old_rel)
+        elem = game.find(field)
+        if elem is None:
+            elem = etree.SubElement(game, field)
+        elem.text = rel_path
+        applied.append(field)
+
+    if applied:
+        save_xml(tree)
+    return jsonify({"success": True, "applied": applied, "errors": errors, "source": "steam"})
 
 
 @app.route("/media/<path:filepath>")

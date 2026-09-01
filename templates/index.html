@@ -52,7 +52,12 @@
         <button type="button" class="filter-chip" data-filter="video" aria-pressed="false"><span data-i18n="sidebar.filter_video">Sans vidéo</span><span class="filter-count">0</span></button>
         <button type="button" class="filter-chip" data-filter="marquee" aria-pressed="false"><span data-i18n="sidebar.filter_marquee">Sans marquee</span><span class="filter-count">0</span></button>
         <button type="button" class="filter-chip" data-filter="manual" aria-pressed="false"><span data-i18n="sidebar.filter_manual">Sans manuel</span><span class="filter-count">0</span></button>
+        <button type="button" class="filter-chip" data-filter="boxart" aria-pressed="false"><span data-i18n="sidebar.filter_boxart">Sans boxart</span><span class="filter-count">0</span></button>
         <button type="button" class="filter-chip" data-filter="boxback" aria-pressed="false"><span data-i18n="sidebar.filter_boxback">Sans boxback</span><span class="filter-count">0</span></button>
+        <button type="button" class="filter-chip" data-filter="cartridge" aria-pressed="false"><span data-i18n="sidebar.filter_cartridge">Sans support</span><span class="filter-count">0</span></button>
+        <button type="button" class="filter-chip" data-filter="fanart" aria-pressed="false"><span data-i18n="sidebar.filter_fanart">Sans fanart</span><span class="filter-count">0</span></button>
+        <button type="button" class="filter-chip" data-filter="mix" aria-pressed="false"><span data-i18n="sidebar.filter_mix">Sans mix</span><span class="filter-count">0</span></button>
+        <button type="button" class="filter-chip" data-filter="map" aria-pressed="false"><span data-i18n="sidebar.filter_map">Sans map</span><span class="filter-count">0</span></button>
         <button type="button" class="filter-chip" data-filter="any" aria-pressed="false"><span data-i18n="sidebar.filter_any">≥1 manquant</span><span class="filter-count">0</span></button>
       </div>
       <div class="game-list" id="game-list" role="listbox" aria-label="Liste des jeux"></div>
@@ -86,6 +91,9 @@
             </button>
             <button type="button" class="btn btn-accent" id="btn-adb-scrape" data-i18n-title="editor.adb_scrape_title" title="Arcade Database (MAME/FBNeo) — à utiliser sur les systèmes arcade">
               <span data-i18n="editor.adb_scrape">🕹️ Arcade DB</span>
+            </button>
+            <button type="button" class="btn btn-accent" id="btn-steam-scrape" data-i18n-title="editor.steam_scrape_title" title="Télécharger la bande-annonce Steam (max ≤ 50 Mo, sinon 480p)">
+              <span data-i18n="editor.steam_scrape">🎮 Steam</span>
             </button>
           </div>
         </div>
@@ -148,6 +156,19 @@
                 </span>
               </div>
             </div>
+            <div class="meta-field">
+              <label data-i18n="editor.region">Région</label>
+              <input type="text" id="meta-region" placeholder="us" maxlength="6" />
+            </div>
+            <div class="meta-field">
+              <label data-i18n="editor.arcadesystemname">Système arcade</label>
+              <input type="text" id="meta-arcadesystemname" placeholder="Capcom Play System II" />
+            </div>
+            <div class="meta-field meta-flags">
+              <label class="meta-check"><input type="checkbox" id="meta-favorite" /> <span data-i18n="editor.favorite">Favori</span></label>
+              <label class="meta-check"><input type="checkbox" id="meta-hidden" /> <span data-i18n="editor.hidden">Caché</span></label>
+              <label class="meta-check"><input type="checkbox" id="meta-kidgame" /> <span data-i18n="editor.kidgame">Jeu enfant</span></label>
+            </div>
           </div>
         </div>
       </div>
@@ -159,6 +180,11 @@
     <span>↑↓ naviguer · Ctrl+S enregistrer · Ctrl+F rechercher · ↻ recharger</span>
   </div>
   <div class="toast" id="toast"></div>
+
+  <div class="modal-overlay lightbox-overlay" id="media-lightbox" role="dialog" aria-modal="true" aria-label="Aperçu">
+    <button type="button" class="lightbox-close" id="lightbox-close" title="Fermer" data-i18n-title="zone.lightbox_close">✕</button>
+    <img id="lightbox-img" alt="" />
+  </div>
 
   <div class="modal-overlay" id="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
     <div class="modal">
@@ -185,6 +211,10 @@
         <button type="button" class="btn" id="ss-modal-close" title="Fermer">✕</button>
       </div>
       <p class="tools-intro" id="ss-modal-info" data-i18n="ss_modal.info">Choisis les champs à importer pour ce jeu.</p>
+      <div class="ss-select-bar" id="ss-select-bar">
+        <button type="button" class="btn" id="ss-select-all" data-i18n="scrape.select_all">Tout sélectionner</button>
+        <button type="button" class="btn" id="ss-select-none" data-i18n="scrape.deselect_all">Tout désélectionner</button>
+      </div>
       <div class="ss-candidates" id="ss-candidates" hidden></div>
       <div class="ss-fields" id="ss-fields"></div>
       <div class="tools-footer">
@@ -252,7 +282,7 @@
               <img class="app-about-icon" src="/static/icon-256.png" alt="Gamelist Media Editor" width="56" height="56" />
               <div>
                 <h2>Gamelist Media Editor</h2>
-                <div class="ver" id="about-version-label">v1.2.0</div>
+                <div class="ver" id="about-version-label">v1.3.0</div>
               </div>
             </div>
             <p class="about-desc" data-i18n="about.desc">
@@ -262,9 +292,9 @@
             </p>
             <dl class="about-grid">
               <dt data-i18n="about.version">Version</dt>
-              <dd id="about-version">1.2.0</dd>
+              <dd id="about-version">1.3.0</dd>
               <dt data-i18n="about.date">Date</dt>
-              <dd id="about-date">2026-08-24</dd>
+              <dd id="about-date">2026-09-01</dd>
               <dt data-i18n="about.author">Auteur</dt>
               <dd>Franck Fornasari (<a href="https://github.com/Kraran" target="_blank" rel="noopener">Kraran</a>)</dd>
               <dt data-i18n="about.license">Licence</dt>
@@ -356,6 +386,29 @@
                   <option value="wor">wor (World)</option>
                 </select>
               </div>
+              <div class="ss-media-prefs">
+                <div class="ss-form-row">
+                  <label for="ss-type-image" data-i18n="tools.ss_type_image">Image</label>
+                  <select id="ss-type-image">
+                    <option value="ss" data-i18n="tools.ss_type_image_ss">Screenshot (ss)</option>
+                    <option value="sstitle" data-i18n="tools.ss_type_image_sstitle">Screenshot titre (sstitle)</option>
+                  </select>
+                </div>
+                <div class="ss-form-row">
+                  <label for="ss-type-boxart" data-i18n="tools.ss_type_boxart">Boxart</label>
+                  <select id="ss-type-boxart">
+                    <option value="box-3D" data-i18n="tools.ss_type_boxart_3d">Boîtier 3D (box-3D)</option>
+                    <option value="box-2D" data-i18n="tools.ss_type_boxart_2d">Boîtier avant (box-2D)</option>
+                  </select>
+                </div>
+                <div class="ss-form-row">
+                  <label for="ss-type-mix" data-i18n="tools.ss_type_mix">Mix</label>
+                  <select id="ss-type-mix">
+                    <option value="mixrbv2" data-i18n="tools.ss_type_mix_v2">Mix Recalbox v2 (mixrbv2)</option>
+                    <option value="mixrbv1" data-i18n="tools.ss_type_mix_v1">Mix Recalbox v1 (mixrbv1)</option>
+                  </select>
+                </div>
+              </div>
               <div class="ss-form-actions">
                 <button type="button" class="btn btn-accent" id="btn-ss-save" data-i18n="tools.ss_save">Enregistrer</button>
                 <button type="button" class="btn" id="btn-ss-test" data-i18n="tools.ss_test">Tester la connexion</button>
@@ -363,6 +416,17 @@
               </div>
             </div>
           </div>
+        </div>
+
+        <div class="tool-card">
+          <div class="tool-card-info">
+            <div class="tool-card-title" data-i18n="tools.arcade_sys_title">Remplir les systèmes arcade</div>
+            <div class="tool-card-desc" data-i18n-html="tools.arcade_sys_desc">
+              Lit un dump MAME <code>mame.xml</code> (<code>mame.exe -listxml</code>)
+              et écrit <code>&lt;arcadesystemname&gt;</code> (CPS2, Neo-Geo…).
+            </div>
+          </div>
+          <button type="button" class="btn btn-accent" id="btn-fill-arcade" data-i18n="tools.arcade_sys_btn">Remplir depuis MAME</button>
         </div>
 
         <div class="tool-card">

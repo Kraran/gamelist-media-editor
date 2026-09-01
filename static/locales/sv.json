@@ -34,7 +34,12 @@
     "empty_select": "Välj ett spel i listan<br>och dra sedan in media",
     "empty_no_match": "Inga spel matchar filtren",
     "empty_no_games": "Inga spel i gamelist",
-    "empty_no_gamelist": "Ingen <code>gamelist.xml</code> laddad.<br>Öppna en fil för att börja."
+    "empty_no_gamelist": "Ingen <code>gamelist.xml</code> laddad.<br>Öppna en fil för att börja.",
+    "filter_cartridge": "Utan support",
+    "filter_boxart": "Utan omslag",
+    "filter_fanart": "Utan fanart",
+    "filter_mix": "Utan mix",
+    "filter_map": "Utan karta"
   },
   "editor": {
     "save_name": "Spara",
@@ -57,21 +62,35 @@
     "ss_scrape": "📡 ScreenScraper",
     "ss_scrape_title": "Hämta media och metadata från ScreenScraper",
     "adb_scrape": "🕹️ Arcade DB",
-    "adb_scrape_title": "Arcade Database (MAME/FBNeo) — bäst för arkadsystem"
+    "adb_scrape_title": "Arcade Database (MAME/FBNeo) — bäst för arkadsystem",
+    "steam_scrape": "🎮 Steam",
+    "steam_scrape_title": "Download the Steam trailer (best quality ≤ 50 MB, else 480p)",
+    "region": "Region",
+    "favorite": "Favorit",
+    "hidden": "Dold",
+    "kidgame": "Barnspel",
+    "arcadesystemname": "Arcade system"
   },
   "fields": {
     "image": "Bild (screenshot)",
     "video": "Video",
     "marquee": "Marquee",
     "manual": "Manual (PDF)",
-    "boxback": "Box Back"
+    "boxback": "Box Back",
+    "cartridge": "Support",
+    "boxart": "Omslag",
+    "fanart": "Fanart",
+    "mix": "Mix",
+    "map": "Maps"
   },
   "zone": {
     "drop": "Släpp en fil här<br>eller en bild från webben",
     "manual_pdf": "PDF-manual",
     "open": "Öppna",
     "preview_unavailable": "Förhandsvisning saknas",
-    "clear_title": "Ta bort"
+    "clear_title": "Ta bort",
+    "zoom_title": "Förstora",
+    "lightbox_close": "Stäng"
   },
   "status": {
     "loading": "Laddar…",
@@ -97,7 +116,8 @@
     "testing": "Testar…",
     "applying_download": "Nedladdning / tillämpning…",
     "opening_gamelist": "Öppnar gamelist…",
-    "no_gamelist": "Ingen gamelist laddad"
+    "no_gamelist": "Ingen gamelist laddad",
+    "filling_arcade": "Reading mame.xml…"
   },
   "toast": {
     "no_file_url": "Ingen fil eller URL upptäcktes",
@@ -115,7 +135,8 @@
     "ss_saved": "✓ ScreenScraper-inställningar sparade",
     "no_fields": "Inget fält valt",
     "list_reloaded": "Lista omladdad",
-    "gamelist_opened": "Gamelist öppnad: {name} ({n} spel)"
+    "gamelist_opened": "Gamelist öppnad: {name} ({n} spel)",
+    "arcade_sys_ok": "{n} filled · {skip} already set · {miss} not found"
   },
   "errors": {
     "offline": "Ingen nätverksanslutning.",
@@ -144,7 +165,9 @@
     "delete_title": "Ta bort “{name}”?",
     "delete_body": "<p>Permanent borttagning av:</p><ul><li>ROM-filen</li><li>bild, video, marquee, manual, boxback</li><li>hela posten i <code>gamelist.xml</code></li></ul><p><strong>Kan inte ångras</strong> (utom manuell .bak-återställning).</p>",
     "delete_ok": "Ta bort",
-    "this_game": "detta spel"
+    "this_game": "detta spel",
+    "arcade_sys_title": "Fill arcadesystemname?",
+    "arcade_sys_body": "Existing values are kept. A .bak backup is recommended."
   },
   "tools": {
     "title": "⚙ Verktyg",
@@ -174,7 +197,19 @@
     "lang_apply": "Tillämpa språk",
     "lang_changed": "✓ Språk: Svenska",
     "ss_pass_saved_ph": "(sparat — lämna tomt för att behålla)",
-    "ss_pass_optional_ph": "Medlemslösenord (valfritt)"
+    "ss_pass_optional_ph": "Medlemslösenord (valfritt)",
+    "ss_type_image": "Bild",
+    "ss_type_image_ss": "Screenshot (ss)",
+    "ss_type_image_sstitle": "Titelskärm (sstitle)",
+    "ss_type_boxart": "Boxart",
+    "ss_type_boxart_2d": "Framsida (box-2D)",
+    "ss_type_boxart_3d": "3D-box (box-3D)",
+    "ss_type_mix": "Mix",
+    "ss_type_mix_v1": "Recalbox mix v1 (mixrbv1)",
+    "ss_type_mix_v2": "Recalbox mix v2 (mixrbv2)",
+    "arcade_sys_title": "Fill arcade systems",
+    "arcade_sys_desc": "Reads a MAME <code>mame.xml</code> dump and writes <code>&lt;arcadesystemname&gt;</code>.",
+    "arcade_sys_btn": "Fill from MAME"
   },
   "scrape": {
     "ss_search": "ScreenScraper-sökning…",
@@ -226,7 +261,29 @@
     "field_marquee": "Marquee",
     "field_manual": "Manual",
     "field_boxback": "Boxback",
-    "adb_info": "Romset “{romset}” · “{name}” · mapp {folder} · match: {method}"
+    "adb_info": "Romset “{romset}” · “{name}” · mapp {folder} · match: {method}",
+    "steam_search": "Steam: searching…",
+    "steam_load": "Steam: loading store page…",
+    "steam_status_search": "Steam: searching…",
+    "steam_status_choice": "Steam: choose a game",
+    "steam_status_ready": "Steam: trailer ready",
+    "steam_modal_apply": "🎮 Steam — apply fields",
+    "steam_modal_choose": "🎮 Steam — choose game",
+    "no_proposal_steam": "No Steam proposal",
+    "steam_info": "AppID {appid} · “{name}” · {trailer} · {quality} · {size}",
+    "field_cartridge": "Support",
+    "field_boxart": "Omslag",
+    "field_fanart": "Fanart",
+    "field_mix": "Mix",
+    "field_map": "Maps",
+    "field_region": "Region",
+    "field_family": "Familj",
+    "field_kidgame": "Barnspel",
+    "field_bezel": "Bezel",
+    "field_pad2key": "Pad2Key",
+    "select_all": "Markera alla",
+    "deselect_all": "Avmarkera alla",
+    "field_arcadesystemname": "Arcade system"
   },
   "ss_modal": {
     "title": "📡 Scraper — tillämpa fält",
@@ -279,7 +336,25 @@
     "open_failed": "Kunde inte öppna gamelist: {detail}",
     "browse_not_dir": "Mappen hittades inte: {path}",
     "browse_denied": "Åtkomst nekad till {path}: {detail}",
-    "no_gamelist": "Ingen gamelist.xml laddad — öppna en fil via « Gamelist… »."
+    "no_gamelist": "Ingen gamelist.xml laddad — öppna en fil via « Gamelist… ».",
+    "steam_http": "Steam HTTP {status}",
+    "steam_app_missing": "Steam game not found (AppID {id})",
+    "steam_timeout": "Steam request timed out",
+    "steam_error": "Steam error: {detail}",
+    "steam_no_movies": "No downloadable Steam trailer for “{name}”",
+    "steam_not_found": "No Steam game found for “{name}”",
+    "steam_candidates": "Several Steam matches — pick the right one.",
+    "steam_too_large": "Steam video too large (50 MB limit)",
+    "green_placeholder": "Empty ScreenScraper boxback (solid green image ignored).",
+    "mame_xml_missing": "No mame.xml found. Put a « mame.exe -listxml > mame.xml » dump next to the gamelist, in emulators/mame/ or bios/mame/.",
+    "mame_xml_bad": "Cannot read mame.xml: {detail}",
+    "mame_xml_empty": "mame.xml has no usable machine/game entries.",
+    "no_ss_url": "no ScreenScraper URL",
+    "no_adb_url": "no Arcade Database URL",
+    "no_steam_url": "no Steam URL",
+    "url_not_http": "URL is not http(s)",
+    "rating_range_value": "rating out of range: {value}",
+    "rating_invalid_value": "invalid rating: {value}"
   },
   "open_gl": {
     "title": "📂 Öppna en gamelist.xml",
