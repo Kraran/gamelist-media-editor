@@ -15,3 +15,8 @@ Thumbs.db
 
 screenscraper_config.json
 app-window/
+
+# PyInstaller output (exe stays on GitHub Releases only)
+build/
+dist/
+*.spec.bak
