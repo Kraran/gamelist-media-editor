@@ -1,46 +1,53 @@
 # Fonctionnalités
 
-Version documentée : **1.2.0**
+Version documentée : **1.3.0**
 
-## Médias & métadonnées
+## Médias
 
-- Glisser-déposer **image**, **video**, **marquee**, **manual**, **boxback** (fichier ou URL)
-- Édition **name**, **desc**, **genre** (hiérarchique), **rating**, **releasedate**, **developer**, **publisher**, **family**, **players**, **lang** (drapeaux)
-- Suppression du tag média XML (fichier disque conservé) ou suppression complète du jeu
+- Glisser-déposer : image, video, marquee, manual, boxback, **support**, **boxart**, **fanart**, **mix**, **maps**
+- Clic image → lightbox
+- Extensions réelles (PNG/JPG/MP4…), jamais `.php`
+- Thumbnail RetroBat automatique au scrape SS
+- Bezel 16:9 et Pad2Key (`.keys`) au scrape SS
+
+## Métadonnées
+
+- name, desc, genre, rating, releasedate, developer, publisher, family, players, lang, **region**
+- **arcadesystemname** (CPS1, Neo-Geo, System 16…)
+- Flags RetroBat : favorite, hidden, kidgame (pas d’inférence automatique « jeu enfant »)
 
 ## Scrapers
 
-- **ScreenScraper** (hash + nom + candidats + boost membre optionnel)
-- **Arcade Database** (romsets MAME)
-- Throttle et messages de quota localisés
+- ScreenScraper (hash + nom, types configurables, boost membre)
+- Arcade Database (PCB / Cabinet / Flyer / Decal)
+- Steam (trailer FR, 720p / 480p, limite 50 Mo)
+- Tout sélectionner / tout désélectionner
 
-## Liste & navigation
+## Liste
 
-- Tri alphabétique par nom
-- Filtres « médias manquants » avec compteurs
-- Recherche, flèches clavier, Page Up/Down, Home/End
-- Badge **système** (dossier du gamelist) dans l’en-tête
+- Tri alphabétique, recherche, filtres médias manquants + compteurs
+- Flèches, Page Up/Down, Home/End
+- Badge système dans l’en-tête
 
-## Session & fichiers
+## Session
 
-- Démarrage **sans** gamelist obligatoire
-- **Ouvrir un autre gamelist.xml** sans redémarrer (explorateur + récents)
-- **Recharger** la liste depuis le disque
-- Sauvegarde **`.bak`** manuelle ; option backup avant purge / suppression
-- Purge globale des balises `<region>`
+- Démarre **sans** gamelist
+- Ouvrir un autre XML (explorateur + récents)
+- Recharger depuis le disque
+- `.bak` manuel ; option backup avant purge / suppression
+- Purge globale `<region>`
+- Fenêtre Chromium `--app=` (pas de barre d’adresse)
 
 ## Interface
 
-- **13 langues** (FR, EN, ES, DE, IT, PT, NL, PL, TR, SV, NO, DA, RU)
-- Dialogue **À propos** (logo en-tête)
-- Bouton **⏻ Quitter** (style rouge plein)
-- Favicon / icône application
+- 13 langues
+- À propos (clic logo)
+- ⏻ Quitter
 
 ## Technique
 
-- Écoute **127.0.0.1:5050** uniquement
-- Chemins médias sécurisés (pas de path traversal)
-- Limite upload 50 Mo, verrou d’écriture XML
-- Build Windows : **PyInstaller** (`BUILD_EXE.bat`)
+- `127.0.0.1:5050` uniquement
+- Limite 50 Mo, verrou d’écriture XML
+- `build/` et `dist/` ignorés par Git ; exe sur la [release](https://github.com/Kraran/gamelist-media-editor/releases/tag/v1.3.0)
 
-**Gamelist Media Editor** · v1.2.0
+**Gamelist Media Editor** · v1.3.0

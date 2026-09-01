@@ -1,73 +1,81 @@
 # Utilisation
 
-Version documentée : **1.2.0**
+Version documentée : **1.3.0**
 
 ## Démarrage
 
-1. Lance **`GamelistMediaEditor.exe`** (ou `Lancer.bat` / `python app.py`)
-2. Le navigateur s’ouvre sur [http://127.0.0.1:5050](http://127.0.0.1:5050)
-3. Si aucun gamelist n’est chargé, l’écran invite à ouvrir un fichier et le dialogue **📂 Gamelist…** peut s’ouvrir tout seul
+1. Lance l’exe (ou `Lancer.bat` / `python app.py`)
+2. Une fenêtre application s’ouvre si possible, sinon le navigateur
+3. **📂 Gamelist…** si aucun XML n’est chargé
 
-### Ouvrir un gamelist.xml
-
-- Bouton **📂 Gamelist…** dans l’en-tête
-- Explorateur de dossiers intégré (dossiers, fichiers `.xml`, lecteur Windows, dossier parent)
-- Liste des **fichiers récents**
-- Double-clic sur un `gamelist.xml` pour l’ouvrir
-- Ou colle le chemin complet dans le champ texte
-
-Tu peux **changer de système** (autre `gamelist.xml`) à tout moment sans redémarrer l’application.
+Tu peux changer de système à tout moment sans redémarrer.
 
 ## Interface
 
 | Zone | Rôle |
 |------|------|
-| En-tête | Logo / **À propos**, nom du système, compteur de jeux, Gamelist…, Outils, Recharger, Supprimer le jeu, **⏻ Quitter** |
-| Liste gauche | Recherche, filtres « médias manquants », liste alphabétique |
-| Zone centrale | Éditeur du jeu sélectionné : médias + métadonnées |
+| En-tête | Logo / À propos, nom du système, compteur, Gamelist…, Outils, Recharger, Supprimer, ⏻ Quitter |
+| Liste | Recherche, filtres médias manquants, jeux par nom |
+| Centre | Médias + métadonnées du jeu sélectionné |
+
+Clic sur une image → **agrandissement** (lightbox). Échap ou clic pour fermer.
 
 ## Médias (glisser-déposer)
 
-Pour chaque champ (**image**, **vidéo**, **marquee**, **manuel**, **boxback**) :
+Champs éditables à l’écran :
 
-- glisse un fichier local, **ou**
-- glisse une URL image/vidéo depuis le navigateur
+| Zone | Balise XML | Dossier |
+|------|------------|---------|
+| Image | `<image>` | `images/` |
+| Vidéo | `<video>` | `videos/` |
+| Marquee | `<marquee>` | `images/` |
+| Manuel | `<manual>` | `manuals/` |
+| Boxback | `<boxback>` | `images/` |
+| Support | `<cartridge>` | `images/` |
+| Boxart | `<boxart>` | `images/` |
+| Fanart | `<fanart>` | `images/` |
+| Mix | `<mix>` | `images/` |
+| Maps | `<map>` | `images/` |
 
-Les fichiers sont copiés sous `images/`, `videos/` ou `manuals/` avec un nom basé sur la ROM.
+Glisse un fichier local ou une URL.  
+Le **thumbnail** RetroBat (miniature menu) est téléchargé automatiquement au scrape SS s’il existe, sans zone supplémentaire.
 
 ## Métadonnées
 
-- **Nom** : champ + bouton Enregistrer
-- **Description** : zone de texte
-- **Genre** : liste principale + sous-genre
-- **Note** (0–1), date de sortie, développeur, éditeur, famille, joueurs, langue (code + drapeau)
+- Nom, description, genre (liste + sous-genre)
+- Note (0–1), date, développeur, éditeur, famille, joueurs
+- Langue (code + drapeau), **région**
+- **Système arcade** (`<arcadesystemname>`, ex. CPS1, Neo-Geo)
+- Cases RetroBat : **Favori**, **Caché**, **Jeu enfant**
 
-Raccourci **Ctrl+S** pour enregistrer les métadonnées courantes.
+**Ctrl+S** enregistre nom + description + métadonnées.
 
-## Filtres « médias manquants »
+## Filtres
 
-Pastilles sous la recherche : Tous / sans image / sans vidéo / etc.  
-Le chiffre indique combien de jeux matchent le filtre.
+Pastilles sous la recherche (sans image, sans vidéo, sans support, etc.) avec le nombre de jeux.
 
 ## Outils (⚙)
 
-- **Langue** de l’interface (13 langues) → Appliquer
-- Identifiants **ScreenScraper** (boost membre optionnel)
-- Sauvegarde manuelle **`.bak`**
+- Langue de l’interface → **Appliquer**
+- Compte membre **ScreenScraper** (boost)
+- Types d’images ScreenScraper (screenshot / titre, box 2D / 3D, mix v1 / v2)
+- Sauvegarde manuelle `.bak`
 - Purge de toutes les balises `<region>`
+- Remplir `arcadesystemname` depuis un dump MAME `mame.xml` (optionnel)
 
-## Raccourcis clavier
+## Raccourcis
 
 | Touche | Action |
 |--------|--------|
-| ↑ / ↓ | Naviguer dans la liste |
-| Page Up / Down | Sauter dans la liste |
-| Home / End | Premier / dernier jeu |
-| Ctrl+F | Focus recherche |
-| Ctrl+S | Enregistrer métadonnées |
+| ↑ / ↓ | Liste |
+| Page Up / Down | Sauter |
+| Home / End | Premier / dernier |
+| Ctrl+F | Recherche |
+| Ctrl+S | Enregistrer |
+| Échap | Fermer lightbox / dialogue |
 
 ## Quitter
 
-Bouton **⏻ Quitter** (rouge) : arrête le serveur local. Tu peux ensuite fermer l’onglet du navigateur.
+**⏻ Quitter** arrête le serveur. Fermer la fenêtre application arrête aussi le serveur.
 
-**Gamelist Media Editor** · v1.2.0
+**Gamelist Media Editor** · v1.3.0

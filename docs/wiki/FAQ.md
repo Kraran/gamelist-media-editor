@@ -1,36 +1,42 @@
 # FAQ
 
-Version documentée : **1.2.0**
+Version documentée : **1.3.0**
 
 ### Faut-il Python ?
 
-Non si tu utilises **`GamelistMediaEditor.exe`** (release 1.2.0).  
-Oui seulement pour lancer depuis les sources (`pip install -r requirements.txt`).
+Non avec **`GamelistMediaEditor.exe`**.  
+Oui seulement depuis les sources (`pip install -r requirements.txt`, dont Pillow).
 
 ### Dois-je indiquer le gamelist au démarrage ?
 
-Non. L’app démarre vide : ouvre un fichier via **📂 Gamelist…**.  
-Tu peux aussi glisser un `gamelist.xml` sur l’exe, ou passer le chemin en argument.
+Non. **📂 Gamelist…**, ou glisse le XML sur l’exe.
 
-### Est-ce que ça vérifie les ROM avec Batocera / RetroBat ?
+### Est-ce que ça vérifie les ROM Batocera / RetroBat ?
 
-Non. L’outil édite le **`gamelist.xml` et les médias** ; il ne valide pas la compatibilité des ROM avec un core d’émulateur.
+Non. L’outil édite le XML et les médias, il ne teste pas les cores.
 
 ### Puis-je ajouter des vidéos ?
 
-Oui : glisser-déposer un fichier vidéo (ou une URL) dans la zone **Vidéo**, ou via le scrape ScreenScraper / Arcade DB.
+Oui : glisser-déposer, scrape ScreenScraper / Arcade DB, ou bande-annonce **Steam**.
+
+### Qu’est-ce que le « Support » ?
+
+La balise RetroBat `<cartridge>` (PCB arcade côté Arcade DB, `support-2D` côté ScreenScraper).
+
+### Pourquoi un boxback n’est pas téléchargé ?
+
+ScreenScraper envoie parfois une image **entièrement verte** à la place du dos de boîte. L’app l’ignore volontairement.
 
 ### Où sont les identifiants ScreenScraper ?
 
-Les clés **développeur** (application) sont intégrées.  
-Ton login **membre** (boost) se configure dans **Outils** et est stocké localement dans `screenscraper_config.json` à côté de l’exe.
-
-### L’app est-elle multilingue ?
-
-Oui, **13 langues**. **Outils → Langue → Appliquer**.
+Clés développeur **intégrées**. Login membre (boost) + types d’images : **Outils**, fichier `screenscraper_config.json` à côté de l’exe.
 
 ### Les données partent-elles sur Internet ?
 
-Seulement si tu lances un **scrape** (ScreenScraper ou Arcade Database). Sinon, tout reste sur ta machine (`127.0.0.1`).
+Seulement pendant un scrape (SS, Arcade DB ou Steam). Sinon tout reste en local.
 
-**Gamelist Media Editor** · v1.2.0
+### Pourquoi Edge / Chrome et pas Firefox en fenêtre appli ?
+
+Le mode `--app=` (sans barre d’adresse) est une option Chromium. Firefox s’ouvre en navigateur normal.
+
+**Gamelist Media Editor** · v1.3.0
