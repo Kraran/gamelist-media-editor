@@ -1,5 +1,7 @@
 # Gamelist Media Editor
 
+[![Tests](https://github.com/Kraran/gamelist-media-editor/actions/workflows/tests.yml/badge.svg)](https://github.com/Kraran/gamelist-media-editor/actions/workflows/tests.yml)
+
 Local web app to edit the media and metadata of EmulationStation **RetroBat** (and Batocera / Recalbox) `gamelist.xml` files, with drag-and-drop and built-in scrapers.
 
 **Version 1.3.0** · [Documentation (Wiki)](https://github.com/Kraran/gamelist-media-editor/wiki) · [Releases](https://github.com/Kraran/gamelist-media-editor/releases) · [Changelog](CHANGELOG.md)
@@ -100,6 +102,7 @@ python -m pytest -q
 
 - `app.py`: Flask server (XML, media, scrapers, API); `static/app.js`, `templates/index.html`, `static/style.css`: UI; `static/locales/*.json`: translations
 - Version: `APP_VERSION` and `APP_RELEASE_DATE` in `app.py` are the only places to change (header, About dialog, User-Agent, console)
+- GitHub Actions runs the tests on Windows and Linux (Python 3.9 and 3.13) for every push and pull request
 - Windows executable: `BUILD_EXE.bat` (PyInstaller, output in `dist/`)
 - Changes are listed in [CHANGELOG.md](CHANGELOG.md); past release notes are in [docs/release-notes](docs/release-notes/)
 

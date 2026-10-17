@@ -6,7 +6,8 @@ All notable changes to Gamelist Media Editor are documented in this file.
 
 ### Added
 - ScreenScraper system ids for all RetroBat folders (138 → 271 entries: CPS1/2/3, Cave, ST-V, Teknoparrot, MSX2+, FM Towns, ports…), built from RetroBat's `es_systems.cfg` and EmulationStation's ScreenScraper tables
-- Tests (`tests/`, `pytest.ini`, pytest via `requirements-dev.txt`)
+- Tests (`tests/`, `pytest.ini`, pytest via `requirements-dev.txt`): ScreenScraper map, game identity, security, version, translations (13 languages, same keys and placeholders)
+- GitHub Actions CI: tests on Windows and Linux, Python 3.9 and 3.13, plus `app.js` syntax check
 
 ### Changed
 - README rewritten for the current version: removed the obsolete Setup installer (v1.1.3) and the duplicated "Option B", added Steam, Pillow, safety notes and a Development section
