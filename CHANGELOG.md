@@ -4,6 +4,9 @@ All notable changes to Gamelist Media Editor are documented in this file.
 
 ## [Unreleased]
 
+### Security
+- Reject cross-site requests (CSRF) and non-local `Host` headers (DNS rebinding): a web page open in the browser could previously trigger delete / purge / upload / shutdown on the local server
+
 ### Removed
 - Repository cleanup: `PUBLISH_v1.1.3.bat` (one-off publish script), `generate_icons.py` with `icon_data/` and `icons_*.json` (base64 copies of icons already in `static/`), unused root `icon.png`
 
