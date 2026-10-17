@@ -100,10 +100,24 @@ python -m pip install -r requirements.txt -r requirements-dev.txt
 python -m pytest -q
 ```
 
-- `app.py`: Flask server (XML, media, scrapers, API); `static/app.js`, `templates/index.html`, `static/style.css`: UI; `static/locales/*.json`: translations
-- Version: `APP_VERSION` and `APP_RELEASE_DATE` in `app.py` are the only places to change (header, About dialog, User-Agent, console)
-- GitHub Actions runs the tests on Windows and Linux (Python 3.9 and 3.13) for every push and pull request
-- Windows executable: `BUILD_EXE.bat` (PyInstaller, output in `dist/`)
+Code layout (`app.py` is only the entry point; the overview is in `gme/__init__.py`):
+
+| Path | Role |
+|---|---|
+| `gme/main.py`, `gme/server.py` | start-up, Flask app, request guards, blueprints |
+| `gme/editor.py` | editor routes: list, open gamelist, media, metadata, tools |
+| `gme/scrapers/ss.py`, `adb.py`, `steam.py` | ScreenScraper, Arcade Database, Steam (client, parsing, routes) |
+| `gme/scrapers/common.py` | throttling, name matching, ROM hashes |
+| `gme/xml_store.py` | the open `gamelist.xml`: path, cache, writes, game lookup |
+| `gme/media.py`, `gme/systems.py`, `gme/arcade.py` | media files, ScreenScraper system ids, arcade hardware names |
+| `gme/security.py`, `gme/i18n.py`, `gme/window.py` | local-only guards, server messages, app window |
+| `templates/`, `static/` | UI (`app.js`, `style.css`, `locales/*.json`) |
+
+- `xml_store.XML_PATH` / `xml_store.BASE_DIR` change when another gamelist is opened: read them through the module, never import the names
+- Version: `APP_VERSION` and `APP_RELEASE_DATE` in `gme/version.py` are the only places to change (header, About dialog, User-Agent, console)
+- `python app.py --no-browser [gamelist.xml]` starts the server without opening a window
+- GitHub Actions runs the tests on Windows and Linux (Python 3.9 and 3.13), and builds the Windows `.exe`, starts it and queries it, for every push and pull request (the `.exe` is downloadable from the run for 14 days)
+- Windows executable locally: `BUILD_EXE.bat` (PyInstaller, output in `dist/`)
 - Changes are listed in [CHANGELOG.md](CHANGELOG.md); past release notes are in [docs/release-notes](docs/release-notes/)
 
 ---

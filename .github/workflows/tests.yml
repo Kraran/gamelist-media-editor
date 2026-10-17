@@ -47,3 +47,62 @@ jobs:
       - uses: actions/checkout@v4
       - name: Check static/app.js
         run: node --check static/app.js
+
+  windows-exe:
+    name: Windows .exe (build + smoke test)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Build with PyInstaller
+        run: |
+          python -m pip install -r requirements.txt pyinstaller
+          python -m PyInstaller --noconfirm GamelistMediaEditor.spec
+
+      - name: Run the .exe and query it
+        shell: pwsh
+        run: |
+          $dir = Join-Path $env:RUNNER_TEMP "roms\snes"
+          New-Item -ItemType Directory -Force $dir | Out-Null
+          $xml = Join-Path $dir "gamelist.xml"
+          Set-Content -Path $xml -Encoding utf8 -Value '<?xml version="1.0"?><gameList><game><path>./a.zip</path><name>Alpha</name></game></gameList>'
+          $exe = Start-Process -FilePath "dist\GamelistMediaEditor.exe" `
+            -ArgumentList "--no-browser", "`"$xml`"" -PassThru `
+            -RedirectStandardOutput exe-out.log -RedirectStandardError exe-err.log
+          $base = "http://127.0.0.1:5050"
+          $up = $false
+          for ($i = 0; $i -lt 60 -and -not $up; $i++) {
+            try { Invoke-WebRequest "$base/" -UseBasicParsing | Out-Null; $up = $true }
+            catch { Start-Sleep -Milliseconds 500 }
+          }
+          try {
+            if (-not $up) { throw "server did not start" }
+            $s = Invoke-RestMethod "$base/api/session"
+            if (-not $s.frozen -or -not $s.loaded -or $s.system.folder -ne "snes" -or $s.system.id -ne 4) {
+              throw "unexpected session: $($s | ConvertTo-Json -Compress)"
+            }
+            $html = (Invoke-WebRequest "$base/" -UseBasicParsing).Content
+            if ($html -notmatch "brand-version"">v$($s.version)<") { throw "header version missing" }
+            foreach ($u in "/static/app.js", "/static/locales/fr.json", "/favicon.ico") {
+              Invoke-WebRequest "$base$u" -UseBasicParsing | Out-Null
+            }
+            $games = Invoke-RestMethod "$base/api/games"
+            if ($games.games.Count -ne 1) { throw "expected 1 game" }
+            Write-Host "OK: frozen exe serves UI, assets and API (v$($s.version), system $($s.system.folder)=$($s.system.id))"
+          } finally {
+            try { Invoke-RestMethod -Method Post "$base/api/shutdown" -Headers @{ Origin = $base } | Out-Null } catch {}
+            if (-not $exe.WaitForExit(10000)) { Stop-Process -Id $exe.Id -Force }
+            Get-Content exe-out.log, exe-err.log -ErrorAction SilentlyContinue
+          }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GamelistMediaEditor-exe
+          path: dist/GamelistMediaEditor.exe
+          retention-days: 14

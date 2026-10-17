@@ -1,23 +1,23 @@
-"""Regression tests for the ScreenScraper system map (app.SS_SYSTEM_MAP)."""
+"""Regression tests for the ScreenScraper system map (gme.systems.SS_SYSTEM_MAP)."""
 import ast
 from pathlib import Path
 
 import pytest
 
-import app
+from gme import systems, xml_store
 
-APP_PY = Path(__file__).resolve().parents[1] / "app.py"
+SYSTEMS_PY = Path(__file__).resolve().parents[1] / "gme" / "systems.py"
 
 
 def _ss_map_literal_keys():
     """Keys as written in the source: a dict literal silently drops duplicates."""
-    tree = ast.parse(APP_PY.read_text(encoding="utf-8"))
+    tree = ast.parse(SYSTEMS_PY.read_text(encoding="utf-8"))
     for node in ast.walk(tree):
         if isinstance(node, ast.Assign) and any(
             isinstance(t, ast.Name) and t.id == "SS_SYSTEM_MAP" for t in node.targets
         ):
             return [k.value for k in node.value.keys]
-    raise AssertionError("SS_SYSTEM_MAP not found in app.py")
+    raise AssertionError("SS_SYSTEM_MAP not found in gme/systems.py")
 
 
 def test_no_duplicate_keys():
@@ -27,7 +27,7 @@ def test_no_duplicate_keys():
 
 
 def test_ids_are_positive_ints():
-    bad = {k: v for k, v in app.SS_SYSTEM_MAP.items() if not isinstance(v, int) or v <= 0}
+    bad = {k: v for k, v in systems.SS_SYSTEM_MAP.items() if not isinstance(v, int) or v <= 0}
     assert not bad
 
 
@@ -55,11 +55,11 @@ def test_ids_are_positive_ints():
     ("megadrive", 1),
 ])
 def test_known_system_ids(folder, expected):
-    assert app.SS_SYSTEM_MAP[folder] == expected
+    assert systems.SS_SYSTEM_MAP[folder] == expected
 
 
 def test_detect_system_id_from_gamelist_folder(tmp_path, monkeypatch):
     folder = tmp_path / "Naomi"
     folder.mkdir()
-    monkeypatch.setattr(app, "BASE_DIR", str(folder))
-    assert app.detect_system_id() == (56, "naomi")
+    monkeypatch.setattr(xml_store, "BASE_DIR", str(folder))
+    assert systems.detect_system_id() == (56, "naomi")
