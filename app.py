@@ -27,6 +27,7 @@ import subprocess
 from urllib.parse import urlparse, unquote
 
 from flask import Flask, render_template, request, jsonify, send_from_directory
+from flask import g as flask_g
 from lxml import etree
 import requests
 import logging
@@ -310,6 +311,54 @@ def get_game_elem(index):
     if not (0 <= index < len(games)):
         raise IndexError("invalid_index")
     return tree, games[index]
+
+
+# --- Game identity guard ------------------------------------------------------
+# Routes address a game by its position in gamelist.xml (<int:index>). If the
+# XML changes between the moment the UI loaded the list and the action (edit
+# outside the app, another tab, a scrape modal left open…), that position can
+# point at ANOTHER game — fatal for /api/delete-game. The UI therefore sends
+# the game's <path> as ?path=…; before the view runs we check it against the
+# game at that index and, if it moved, re-point the request at the game that
+# owns this path. No unique match → 409 so the UI reloads its list.
+# Requests without ?path= (scripts, older UI) keep the plain index behaviour.
+
+def find_game_index_by_path(path):
+    """XML indexes of the games whose <path> equals ``path``."""
+    games = load_xml().getroot().findall("game")
+    return [i for i, game in enumerate(games) if (game.findtext("path", "") or "") == path]
+
+
+@app.before_request
+def _check_game_identity():
+    view_args = request.view_args or {}
+    if "index" not in view_args or request.method != "POST":
+        return None
+    expected = request.args.get("path")
+    if not expected or not has_gamelist():
+        return None
+    index = view_args["index"]
+    games = load_xml().getroot().findall("game")
+    if 0 <= index < len(games) and (games[index].findtext("path", "") or "") == expected:
+        return None
+    matches = find_game_index_by_path(expected)
+    if len(matches) != 1:
+        log.warning("Stale game reference: index %s, path %r (%d match)",
+                    index, expected, len(matches))
+        return api_err(st("server.stale_game"), 409, code="stale_game",
+                       path=expected, matches=len(matches))
+    log.info("Game %r moved in gamelist.xml: index %s -> %s", expected, index, matches[0])
+    view_args["index"] = matches[0]
+    flask_g.game_reindexed = matches[0]
+    return None
+
+
+@app.after_request
+def _flag_reindexed(response):
+    new_index = flask_g.get("game_reindexed")
+    if new_index is not None:
+        response.headers["X-Game-Reindexed"] = str(new_index)
+    return response
 
 
 def resolve_under_base(rel_path):

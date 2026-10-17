@@ -5,6 +5,7 @@ All notable changes to Gamelist Media Editor are documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- Per-game actions (edit, upload, clear, scrape/apply, **delete**) could hit **another game** when `gamelist.xml` changed after the list was loaded (games are addressed by XML position). The UI now sends the game `<path>`; the server re-targets the request if the game moved, or answers 409 and the UI reloads the list. Selection is kept by path on reload
 - ScreenScraper system map: 14 wrong ids pointed at other systems and degraded matching (hash and search fell back to "no system"): Naomi 142→56 (was Neo-Geo), Atomiswave 148→53 (Irem), Model 2 149→54 (Seta), Model 3 150→55 (Midway), VIC-20 118→73, PET 120→240, Plus/4 119→99, PC-88 121→221, PC-98 122→208, Pico-8 211→234, WASM-4 0→262, Naomi 2 →75, C128 →66 (as RetroBat); duplicate keys removed; `trsdos` removed (100 is Super A'Can)
 
 ### Added

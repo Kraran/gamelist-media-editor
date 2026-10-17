@@ -354,7 +354,8 @@
     "no_steam_url": "no Steam URL",
     "url_not_http": "URL is not http(s)",
     "rating_range_value": "rating out of range: {value}",
-    "rating_invalid_value": "invalid rating: {value}"
+    "rating_invalid_value": "invalid rating: {value}",
+    "stale_game": "Dette spil er ændret i gamelist.xml (redigeret uden for appen). Listen er genindlæst: tjek valget og prøv igen."
   },
   "open_gl": {
     "title": "📂 Åbn en gamelist.xml",
