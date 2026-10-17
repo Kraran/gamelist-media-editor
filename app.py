@@ -906,7 +906,8 @@ def index_mame_listxml(path):
 # on the SS API. End users may add their member login for a quota boost.
 SS_API = "https://api.screenscraper.fr/api2"
 SS_SOFTNAME = "GamelistMediaEditor"
-APP_VERSION = "1.3.0"
+APP_VERSION = "1.3.0"          # single source: UI header, About, User-Agent, console
+APP_RELEASE_DATE = "2026-09-01"
 APP_UA = f"{SS_SOFTNAME}/{APP_VERSION}"
 SS_CONFIG_NAME = "screenscraper_config.json"
 
@@ -1645,7 +1646,8 @@ def parse_ss_game(jeu, prefer_region="fr", media_pref=None):
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return render_template("index.html", app_version=APP_VERSION,
+                           app_release_date=APP_RELEASE_DATE)
 
 
 @app.route("/favicon.ico")

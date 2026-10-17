@@ -12,12 +12,12 @@
   <meta name="theme-color" content="#6c5ce7" />
   <link rel="stylesheet" href="/static/style.css" />
 </head>
-<body>
+<body data-app-version="{{ app_version }}" data-app-date="{{ app_release_date }}">
   <header>
     <h1 class="app-brand">
       <button type="button" class="brand-btn" id="btn-about" title="À propos" data-i18n-title="about.open_title">
         <img class="app-logo" src="/static/favicon.svg" width="28" height="28" alt="" aria-hidden="true" />
-        <span><span>Gamelist</span> Media Editor <small class="brand-ver" id="brand-version">v1.2.0</small></span>
+        <span><span>Gamelist</span> Media Editor <small class="brand-ver" id="brand-version">v{{ app_version }}</small></span>
       </button>
     </h1>
     <span class="badge" id="game-count" data-i18n="header.game_count" data-i18n-params='{"n":0}'>0 jeux</span>
@@ -282,7 +282,7 @@
               <img class="app-about-icon" src="/static/icon-256.png" alt="Gamelist Media Editor" width="56" height="56" />
               <div>
                 <h2>Gamelist Media Editor</h2>
-                <div class="ver" id="about-version-label">v1.3.0</div>
+                <div class="ver" id="about-version-label">v{{ app_version }}</div>
               </div>
             </div>
             <p class="about-desc" data-i18n="about.desc">
@@ -292,9 +292,9 @@
             </p>
             <dl class="about-grid">
               <dt data-i18n="about.version">Version</dt>
-              <dd id="about-version">1.3.0</dd>
+              <dd id="about-version">{{ app_version }}</dd>
               <dt data-i18n="about.date">Date</dt>
-              <dd id="about-date">2026-09-01</dd>
+              <dd id="about-date">{{ app_release_date }}</dd>
               <dt data-i18n="about.author">Auteur</dt>
               <dd>Franck Fornasari (<a href="https://github.com/Kraran" target="_blank" rel="noopener">Kraran</a>)</dd>
               <dt data-i18n="about.license">Licence</dt>
