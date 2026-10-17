@@ -4,6 +4,12 @@ All notable changes to Gamelist Media Editor are documented in this file.
 
 ## [Unreleased]
 
+### Removed
+- Repository cleanup: `PUBLISH_v1.1.3.bat` (one-off publish script), `generate_icons.py` with `icon_data/` and `icons_*.json` (base64 copies of icons already in `static/`), unused root `icon.png`
+
+### Changed
+- Release notes moved from the repository root to `docs/release-notes/`
+
 ## [1.3.0] - 2026-09-01
 
 ### Added
