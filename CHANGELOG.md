@@ -4,6 +4,13 @@ All notable changes to Gamelist Media Editor are documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+- ScreenScraper system map: 14 wrong ids pointed at other systems and degraded matching (hash and search fell back to "no system"): Naomi 142→56 (was Neo-Geo), Atomiswave 148→53 (Irem), Model 2 149→54 (Seta), Model 3 150→55 (Midway), VIC-20 118→73, PET 120→240, Plus/4 119→99, PC-88 121→221, PC-98 122→208, Pico-8 211→234, WASM-4 0→262, Naomi 2 →75, C128 →66 (as RetroBat); duplicate keys removed; `trsdos` removed (100 is Super A'Can)
+
+### Added
+- ScreenScraper system ids for all RetroBat folders (138 → 271 entries: CPS1/2/3, Cave, ST-V, Teknoparrot, MSX2+, FM Towns, ports…), built from RetroBat's `es_systems.cfg` and EmulationStation's ScreenScraper tables
+- First tests (`tests/`, pytest via `requirements-dev.txt`)
+
 ### Security
 - Reject cross-site requests (CSRF) and non-local `Host` headers (DNS rebinding): a web page open in the browser could previously trigger delete / purge / upload / shutdown on the local server
 
