@@ -863,3 +863,7 @@ body.ss-busy button, body.ss-busy .btn { cursor: wait; }
   filter: none;
 }
 
+
+/* Save button of a part with unsaved changes */
+.btn.has-changes { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px #fdcb6e; }
+.btn.has-changes::before { content: "● "; color: #fdcb6e; }

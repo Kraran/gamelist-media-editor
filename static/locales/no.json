@@ -117,7 +117,8 @@
     "applying_download": "Nedlasting / bruk…",
     "opening_gamelist": "Åpner gamelist…",
     "no_gamelist": "Ingen gamelist lastet",
-    "filling_arcade": "Reading mame.xml…"
+    "filling_arcade": "Reading mame.xml…",
+    "unsaved": "Ulagrede endringer: {fields}"
   },
   "toast": {
     "no_file_url": "Ingen fil eller URL oppdaget",
@@ -136,7 +137,8 @@
     "no_fields": "Ingen felt valgt",
     "list_reloaded": "Liste lastet på nytt",
     "gamelist_opened": "Gamelist åpnet: {name} ({n} spill)",
-    "arcade_sys_ok": "{n} filled · {skip} already set · {miss} not found"
+    "arcade_sys_ok": "{n} filled · {skip} already set · {miss} not found",
+    "nothing_to_save": "Ingenting å lagre"
   },
   "errors": {
     "offline": "Ingen nettverkstilkobling.",
@@ -167,7 +169,11 @@
     "delete_ok": "Slett",
     "this_game": "dette spillet",
     "arcade_sys_title": "Fill arcadesystemname?",
-    "arcade_sys_body": "Existing values are kept. A .bak backup is recommended."
+    "arcade_sys_body": "Existing values are kept. A .bak backup is recommended.",
+    "unsaved_title": "Ulagrede endringer",
+    "unsaved_body": "«{name}» har ulagrede endringer: {fields}. Lagre dem før du fortsetter?",
+    "save": "Lagre",
+    "discard": "Ikke lagre"
   },
   "tools": {
     "title": "⚙ Verktøy",

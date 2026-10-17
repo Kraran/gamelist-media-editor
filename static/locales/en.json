@@ -117,7 +117,8 @@
     "applying_download": "Download / apply…",
     "opening_gamelist": "Opening gamelist…",
     "no_gamelist": "No gamelist loaded",
-    "filling_arcade": "Reading mame.xml…"
+    "filling_arcade": "Reading mame.xml…",
+    "unsaved": "Unsaved changes: {fields}"
   },
   "toast": {
     "no_file_url": "No file or URL detected",
@@ -136,7 +137,8 @@
     "no_fields": "No field selected",
     "list_reloaded": "List reloaded",
     "gamelist_opened": "Gamelist opened: {name} ({n} games)",
-    "arcade_sys_ok": "{n} filled · {skip} already set · {miss} not found"
+    "arcade_sys_ok": "{n} filled · {skip} already set · {miss} not found",
+    "nothing_to_save": "Nothing to save"
   },
   "errors": {
     "offline": "No network connection.",
@@ -167,7 +169,11 @@
     "delete_ok": "Delete",
     "this_game": "this game",
     "arcade_sys_title": "Fill arcadesystemname?",
-    "arcade_sys_body": "Existing values are kept. A .bak backup is recommended."
+    "arcade_sys_body": "Existing values are kept. A .bak backup is recommended.",
+    "unsaved_title": "Unsaved changes",
+    "unsaved_body": "“{name}” has unsaved changes: {fields}. Save them before continuing?",
+    "save": "Save",
+    "discard": "Don't save"
   },
   "tools": {
     "title": "⚙ Tools",

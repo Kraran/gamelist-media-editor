@@ -117,7 +117,8 @@
     "applying_download": "Download / Anwenden…",
     "opening_gamelist": "Gamelist wird geöffnet…",
     "no_gamelist": "Keine Gamelist geladen",
-    "filling_arcade": "Reading mame.xml…"
+    "filling_arcade": "Reading mame.xml…",
+    "unsaved": "Ungespeicherte Änderungen: {fields}"
   },
   "toast": {
     "no_file_url": "Keine Datei oder URL erkannt",
@@ -136,7 +137,8 @@
     "no_fields": "Kein Feld ausgewählt",
     "list_reloaded": "Liste neu geladen",
     "gamelist_opened": "Gamelist geöffnet: {name} ({n} Spiele)",
-    "arcade_sys_ok": "{n} filled · {skip} already set · {miss} not found"
+    "arcade_sys_ok": "{n} filled · {skip} already set · {miss} not found",
+    "nothing_to_save": "Nichts zu speichern"
   },
   "errors": {
     "offline": "Keine Netzwerkverbindung.",
@@ -167,7 +169,11 @@
     "delete_ok": "Löschen",
     "this_game": "dieses Spiel",
     "arcade_sys_title": "Fill arcadesystemname?",
-    "arcade_sys_body": "Existing values are kept. A .bak backup is recommended."
+    "arcade_sys_body": "Existing values are kept. A .bak backup is recommended.",
+    "unsaved_title": "Ungespeicherte Änderungen",
+    "unsaved_body": "„{name}“ hat ungespeicherte Änderungen: {fields}. Vor dem Fortfahren speichern?",
+    "save": "Speichern",
+    "discard": "Nicht speichern"
   },
   "tools": {
     "title": "⚙ Werkzeuge",
