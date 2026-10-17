@@ -1,7 +1,7 @@
 """Per-game routes: the ?path= guard against stale XML indexes."""
 import os
 
-import app
+from gme import xml_store
 from conftest import LOCAL, names
 
 
@@ -55,7 +55,7 @@ def test_vanished_game_returns_409(gamelist, client):
 def test_ambiguous_duplicate_path_returns_409(gamelist, client):
     text = gamelist.read_text(encoding="utf-8").replace("./charlie.zip", "./bravo.zip")
     gamelist.write_text(text, encoding="utf-8")
-    app._xml_cache.update(mtime=None, tree=None)
+    xml_store._xml_cache.update(mtime=None, tree=None)
     r = rename(client, 0, "./bravo.zip", "X")   # index 0 is Alpha, 2 games own the path
     assert r.status_code == 409
 

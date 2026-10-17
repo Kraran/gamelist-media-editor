@@ -5,11 +5,14 @@ All notable changes to Gamelist Media Editor are documented in this file.
 ## [Unreleased]
 
 ### Added
+- `--no-browser` command-line option: start the server without opening a window
+- CI builds the Windows `.exe`, starts it and checks the UI, assets and API; the `.exe` is attached to each run
 - ScreenScraper system ids for all RetroBat folders (138 → 271 entries: CPS1/2/3, Cave, ST-V, Teknoparrot, MSX2+, FM Towns, ports…), built from RetroBat's `es_systems.cfg` and EmulationStation's ScreenScraper tables
 - Tests (`tests/`, `pytest.ini`, pytest via `requirements-dev.txt`): ScreenScraper map, game identity, security, version, translations (13 languages, same keys and placeholders)
 - GitHub Actions CI: tests on Windows and Linux, Python 3.9 and 3.13, plus `app.js` syntax check
 
 ### Changed
+- `app.py` (3,850 lines) split into the `gme/` package: `editor`, `scrapers/ss|adb|steam|common`, `xml_store`, `media`, `systems`, `arcade`, `security`, `i18n`, `window`, `server`, `main`… Code moved verbatim (152 of 161 definitions identical by AST comparison, the 9 others are the intended edits), Flask blueprints per area, no behaviour change; `app.py` stays the entry point (`python app.py`, `Lancer.bat`, PyInstaller)
 - README rewritten for the current version: removed the obsolete Setup installer (v1.1.3) and the duplicated "Option B", added Steam, Pillow, safety notes and a Development section
 - Release notes moved from the repository root to `docs/release-notes/`
 
