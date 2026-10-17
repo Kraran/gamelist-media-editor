@@ -117,7 +117,8 @@
     "applying_download": "İndirme / uygulama…",
     "opening_gamelist": "Gamelist açılıyor…",
     "no_gamelist": "Gamelist yüklenmedi",
-    "filling_arcade": "Reading mame.xml…"
+    "filling_arcade": "Reading mame.xml…",
+    "unsaved": "Kaydedilmemiş değişiklikler: {fields}"
   },
   "toast": {
     "no_file_url": "Dosya veya URL algılanmadı",
@@ -136,7 +137,8 @@
     "no_fields": "Alan seçilmedi",
     "list_reloaded": "Liste yenilendi",
     "gamelist_opened": "Gamelist açıldı: {name} ({n} oyun)",
-    "arcade_sys_ok": "{n} filled · {skip} already set · {miss} not found"
+    "arcade_sys_ok": "{n} filled · {skip} already set · {miss} not found",
+    "nothing_to_save": "Kaydedilecek değişiklik yok"
   },
   "errors": {
     "offline": "Ağ bağlantısı yok.",
@@ -167,7 +169,11 @@
     "delete_ok": "Sil",
     "this_game": "bu oyun",
     "arcade_sys_title": "Fill arcadesystemname?",
-    "arcade_sys_body": "Existing values are kept. A .bak backup is recommended."
+    "arcade_sys_body": "Existing values are kept. A .bak backup is recommended.",
+    "unsaved_title": "Kaydedilmemiş değişiklikler",
+    "unsaved_body": "“{name}” için kaydedilmemiş değişiklikler var: {fields}. Devam etmeden önce kaydedilsin mi?",
+    "save": "Kaydet",
+    "discard": "Kaydetme"
   },
   "tools": {
     "title": "⚙ Araçlar",

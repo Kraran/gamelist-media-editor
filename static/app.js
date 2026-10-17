@@ -367,8 +367,23 @@ if (!main) return "";
 return sub ? `${main} / ${sub}` : main;
 }
 function setGenreUI(genreStr) {
-const { main, sub } = parseGenre(genreStr);
-document.getElementById("meta-genre-main").value = main;
+const mainSel = document.getElementById("meta-genre-main");
+mainSel.querySelectorAll("option[data-custom]").forEach(o => o.remove());
+const raw = String(genreStr || "").trim();
+const { main, sub } = parseGenre(raw);
+// Only use the lists when they reproduce the stored value; otherwise keep the
+// value as-is (e.g. "Platform" from ScreenScraper EN): saving must never drop it.
+const rebuilt = main ? (sub ? `${main} / ${sub}` : main) : "";
+const norm = v => v.toUpperCase().replace(/\s*\/\s*/g, " / ");
+if (raw && norm(rebuilt) !== norm(raw)) {
+  const opt = new Option(raw, raw);
+  opt.dataset.custom = "1";
+  mainSel.add(opt, 1);
+  mainSel.value = raw;
+  fillSubGenres("");
+  return;
+}
+mainSel.value = main;
 fillSubGenres(main, sub);
 }
 function hasMedia(g, key) {
@@ -497,6 +512,8 @@ async function loadGames() {
   const keepIndex = currentIndex;
   const keepGame = games.find(g => g.index === currentIndex);
   const keepPath = keepGame ? keepGame.path : "";
+  const pendingKeys = keepPath ? changedFields() : [];
+  const pendingValues = pendingKeys.length ? readEditor() : null;
   try {
     const data = await apiFetch("/api/games");
     // Back-compat: array or { games, system }
@@ -537,6 +554,11 @@ async function loadGames() {
         currentListIndex = listIdx;
         renderList();
         selectGame(listIdx);
+        if (pendingValues) {
+          // Re-apply what the user was typing; the snapshot stays the fresh disk state
+          pendingKeys.forEach(k => EDITOR_FIELDS[k].set(pendingValues[k]));
+          updateUnsavedUi();
+        }
       } else {
         currentIndex = null;
         currentListIndex = null;
@@ -579,7 +601,7 @@ function renderList(filter) {
       `<div class="name">${escapeHtml(g.name)}</div>` +
       `<div class="path">${escapeHtml(g.path)}</div>` +
       `<div class="media-dots">${dots}</div>`;
-    div.addEventListener("click", () => selectGame(i));
+    div.addEventListener("click", () => requestSelectGame(i));
     frag.appendChild(div);
   });
 
@@ -617,7 +639,7 @@ function navigateGame(delta) {
     pos = delta > 0 ? -1 : visible.length;
   }
   const nextPos = Math.max(0, Math.min(visible.length - 1, pos + delta));
-  selectGame(visible[nextPos]);
+  requestSelectGame(visible[nextPos]);
 }
 
 function isTypingTarget(el) {
@@ -629,6 +651,122 @@ function isTypingTarget(el) {
     return !["button", "checkbox", "radio", "submit", "reset", "file"].includes(type);
   }
   return el.isContentEditable;
+}
+
+/* --- Unsaved changes ------------------------------------------------------
+ * The editor keeps a snapshot of the values shown when a game is selected.
+ * Saving sends only the fields that differ from it (an untouched field can
+ * never be rewritten), and leaving the game with changes asks first.
+ */
+const EDITOR_FIELDS = (() => {
+  const val = id => ({
+    get: () => document.getElementById(id).value,
+    set: v => { document.getElementById(id).value = v; },
+  });
+  const flag = id => ({
+    get: () => (document.getElementById(id).checked ? "true" : ""),
+    set: v => { document.getElementById(id).checked = v === "true"; },
+  });
+  return {
+    name: { ...val("game-name-input"), label: "scrape.field_name" },
+    desc: { ...val("desc-textarea"), label: "scrape.field_desc" },
+    genre: { get: () => buildGenreValue(), set: v => setGenreUI(v), label: "scrape.field_genre" },
+    rating: { ...val("meta-rating"), label: "scrape.field_rating" },
+    releasedate: { ...val("meta-releasedate"), label: "scrape.field_releasedate" },
+    developer: { ...val("meta-developer"), label: "scrape.field_developer" },
+    publisher: { ...val("meta-publisher"), label: "scrape.field_publisher" },
+    family: { ...val("meta-family"), label: "scrape.field_family" },
+    players: { ...val("meta-players"), label: "scrape.field_players" },
+    lang: { ...val("meta-lang"), label: "scrape.field_lang" },
+    region: { ...val("meta-region"), label: "editor.region" },
+    arcadesystemname: { ...val("meta-arcadesystemname"), label: "editor.arcadesystemname" },
+    favorite: { ...flag("meta-favorite"), label: "editor.favorite" },
+    hidden: { ...flag("meta-hidden"), label: "editor.hidden" },
+    kidgame: { ...flag("meta-kidgame"), label: "editor.kidgame" },
+  };
+})();
+const META_KEYS = Object.keys(EDITOR_FIELDS).filter(k => k !== "name" && k !== "desc");
+
+let editorSnapshot = null;   // values as loaded / last saved, for the current game
+
+function readEditor() {
+  const out = {};
+  for (const [k, f] of Object.entries(EDITOR_FIELDS)) out[k] = f.get();
+  return out;
+}
+
+function snapshotEditor() {
+  editorSnapshot = currentIndex === null ? null : readEditor();
+  updateUnsavedUi();
+}
+
+/** Keys whose value differs from the snapshot (optionally among `keys`). */
+function changedFields(keys) {
+  if (!editorSnapshot || currentIndex === null) return [];
+  const now = readEditor();
+  return (keys || Object.keys(now)).filter(k => now[k] !== editorSnapshot[k]);
+}
+
+function markSaved(keys) {
+  if (!editorSnapshot) return;
+  const now = readEditor();
+  keys.forEach(k => { editorSnapshot[k] = now[k]; });
+  updateUnsavedUi();
+}
+
+function fieldLabels(keys) {
+  return keys.map(k => t(EDITOR_FIELDS[k].label)).join(", ");
+}
+
+function updateUnsavedUi() {
+  const changed = changedFields();
+  const has = k => changed.includes(k);
+  document.getElementById("btn-save-name")?.classList.toggle("has-changes", has("name"));
+  document.getElementById("btn-save-desc")?.classList.toggle("has-changes", has("desc"));
+  document.getElementById("btn-save-meta")?.classList.toggle("has-changes", META_KEYS.some(has));
+  if (changed.length) setStatus("● " + t("status.unsaved", { fields: fieldLabels(changed) }));
+}
+
+/** Save every changed part; false as soon as one save fails. */
+async function saveAllChanges() {
+  if (!(await saveName())) return false;
+  if (!(await saveDesc())) return false;
+  return saveMeta();
+}
+
+/**
+ * Before leaving the current game (another game, reload, other gamelist,
+ * scrape, quit): if something is unsaved, ask Save / Don't save / Cancel.
+ * Resolves true when it is OK to go on.
+ */
+async function confirmLeaveEditor() {
+  const changed = changedFields();
+  if (!changed.length) return true;
+  const g = games.find(x => x.index === currentIndex);
+  const choice = await askConfirm({
+    title: t("confirm.unsaved_title"),
+    bodyHtml: escapeHtml(t("confirm.unsaved_body", {
+      name: g ? g.name : t("confirm.this_game"),
+      fields: fieldLabels(changed),
+    })),
+    showBackup: false,
+    okLabel: t("confirm.save"),
+    okClass: "btn-accent",
+    extraLabel: t("confirm.discard"),
+  });
+  if (choice.extra) {
+    snapshotEditor();          // drop the changes
+    return true;
+  }
+  if (!choice.confirmed) return false;
+  return saveAllChanges();
+}
+
+/** User-initiated selection (click, keys): asks before losing changes. */
+async function requestSelectGame(listIndex) {
+  if (listIndex === currentListIndex && currentIndex !== null) return;
+  if (!(await confirmLeaveEditor())) return;
+  selectGame(listIndex);
 }
 
 function selectGame(listIndex) {
@@ -669,6 +807,7 @@ document.querySelectorAll(".game-item").forEach(el => {
 });
 renderZones(g);
 scrollActiveIntoView();
+snapshotEditor();
 }
 function updateLangFlag(code) {
   const key = (code || "").toLowerCase().trim();
@@ -807,6 +946,7 @@ async function clearField(field) {
 }
 async function saveName() {
   if (currentIndex === null) return true;
+  if (!changedFields(["name"]).length) return true;
   const newName = document.getElementById("game-name-input").value.trim();
   if (!newName) { toast(t("toast.name_empty"), "error"); return false; }
   setStatus(t("status.saving_name"));
@@ -817,6 +957,7 @@ async function saveName() {
     });
     const g = games.find(x => x.index === currentIndex);
     if (g) g.name = newName;
+    markSaved(["name"]);
     games.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
     currentListIndex = games.findIndex(x => x.index === currentIndex);
     renderList(document.getElementById("search").value);
@@ -831,6 +972,7 @@ async function saveName() {
 
 async function saveDesc() {
   if (currentIndex === null) return true;
+  if (!changedFields(["desc"]).length) return true;
   const newDesc = document.getElementById("desc-textarea").value;
   setStatus(t("status.saving_desc"));
   try {
@@ -840,6 +982,7 @@ async function saveDesc() {
     });
     const g = games.find(x => x.index === currentIndex);
     if (g) g.desc = newDesc;
+    markSaved(["desc"]);
     toast(t("toast.desc_saved"));
     setStatus(t("status.saved"));
     return true;
@@ -851,21 +994,12 @@ async function saveDesc() {
 
 async function saveMeta() {
   if (currentIndex === null) return true;
-  const payload = {
-    rating: document.getElementById("meta-rating").value,
-    releasedate: document.getElementById("meta-releasedate").value,
-    developer: document.getElementById("meta-developer").value,
-    publisher: document.getElementById("meta-publisher").value,
-    family: document.getElementById("meta-family").value,
-    players: document.getElementById("meta-players").value,
-    lang: document.getElementById("meta-lang").value,
-    region: document.getElementById("meta-region").value,
-    arcadesystemname: document.getElementById("meta-arcadesystemname").value,
-    favorite: document.getElementById("meta-favorite").checked ? "true" : "",
-    hidden: document.getElementById("meta-hidden").checked ? "true" : "",
-    kidgame: document.getElementById("meta-kidgame").checked ? "true" : "",
-    genre: buildGenreValue(),
-  };
+  // Only what the user changed: untouched fields are never rewritten
+  const keys = changedFields(META_KEYS);
+  if (!keys.length) return true;
+  const now = readEditor();
+  const payload = {};
+  keys.forEach(k => { payload[k] = now[k]; });
   setStatus(t("status.saving_meta"));
   try {
     const data = await apiFetch(gameUrl(`/api/meta/${currentIndex}`), {
@@ -874,6 +1008,7 @@ async function saveMeta() {
     });
     const g = games.find(x => x.index === currentIndex);
     if (g && data.updated) Object.assign(g, data.updated);
+    markSaved(keys);
     toast(t("toast.meta_saved"));
     setStatus(t("status.saved"));
     return true;
@@ -883,15 +1018,21 @@ async function saveMeta() {
   }
 }
 
-document.getElementById("btn-save-name").addEventListener("click", saveName);
+document.getElementById("btn-save-name").addEventListener("click", () => saveOrSayNothing(["name"], saveName));
 document.getElementById("game-name-input").addEventListener("keydown", e => {
 if (e.key === "Enter") { e.preventDefault(); saveName(); }
 });
-document.getElementById("btn-save-desc").addEventListener("click", saveDesc);
+document.getElementById("btn-save-desc").addEventListener("click", () => saveOrSayNothing(["desc"], saveDesc));
 document.getElementById("desc-textarea").addEventListener("keydown", e => {
 if ((e.ctrlKey || e.metaKey) && e.key === "s") { e.preventDefault(); saveDesc(); }
 });
-document.getElementById("btn-save-meta").addEventListener("click", saveMeta);
+document.getElementById("btn-save-meta").addEventListener("click", () => saveOrSayNothing(META_KEYS, saveMeta));
+function saveOrSayNothing(keys, save) {
+  if (currentIndex !== null && !changedFields(keys).length) { toast(t("toast.nothing_to_save")); return; }
+  save();
+}
+// Any edit in the form refreshes the unsaved indicators
+["input", "change"].forEach(ev => document.getElementById("editor").addEventListener(ev, () => updateUnsavedUi()));
 document.getElementById("meta-lang").addEventListener("input", e => updateLangFlag(e.target.value));
 document.getElementById("search").addEventListener("input", e => {
   const value = e.target.value;
@@ -956,6 +1097,14 @@ document.addEventListener("keydown", e => {
     }
     return;
   }
+  const openGl = document.getElementById("open-gamelist-modal");
+  if (openGl && openGl.classList.contains("open")) {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      closeGamelistModal();
+    }
+    return;
+  }
   const tools = document.getElementById("tools-panel");
   if (tools && tools.classList.contains("open")) {
     if (e.key === "Escape") {
@@ -980,10 +1129,8 @@ document.addEventListener("keydown", e => {
       } else if (e.target && (e.target.id || "").startsWith("meta-")) {
         await saveMeta();
       } else {
-        // Stop at first failure
-        if (!(await saveName())) return;
-        if (!(await saveDesc())) return;
-        await saveMeta();
+        if (!changedFields().length) { toast(t("toast.nothing_to_save")); return; }
+        await saveAllChanges();
       }
     })();
     return;
@@ -1015,7 +1162,7 @@ document.addEventListener("keydown", e => {
     const visible = getVisibleListIndices();
     if (!visible.length) return;
     e.preventDefault();
-    selectGame(e.key === "Home" ? visible[0] : visible[visible.length - 1]);
+    requestSelectGame(e.key === "Home" ? visible[0] : visible[visible.length - 1]);
     return;
   }
 
@@ -1026,14 +1173,21 @@ document.addEventListener("keydown", e => {
     return;
   }
 });
-function askConfirm({ title, bodyHtml, showBackup = true, okLabel, cancelLabel }) {
+function askConfirm({ title, bodyHtml, showBackup = true, okLabel, cancelLabel, okClass = "btn-danger", extraLabel }) {
   return new Promise(resolve => {
     const overlay = document.getElementById("confirm-modal");
     document.getElementById("confirm-title").textContent = title;
     document.getElementById("confirm-body").innerHTML = bodyHtml;
     const okBtn = document.getElementById("confirm-ok");
     const cancelBtn = document.getElementById("confirm-cancel");
-    if (okBtn) okBtn.textContent = okLabel || t("confirm.ok");
+    if (okBtn) {
+      okBtn.textContent = okLabel || t("confirm.ok");
+      okBtn.classList.remove("btn-danger", "btn-accent");
+      okBtn.classList.add(okClass);
+    }
+    const extraBtn = document.getElementById("confirm-extra");
+    extraBtn.hidden = !extraLabel;
+    extraBtn.textContent = extraLabel || "";
     if (cancelBtn) cancelBtn.textContent = cancelLabel || t("confirm.cancel");
     const bakSpan = document.querySelector('[data-i18n="confirm.backup_label"]');
     if (bakSpan) bakSpan.textContent = t("confirm.backup_label");
@@ -1048,6 +1202,7 @@ function askConfirm({ title, bodyHtml, showBackup = true, okLabel, cancelLabel }
       overlay.classList.remove("open");
       okBtn.removeEventListener("click", onOk);
       cancelBtn.removeEventListener("click", onCancel);
+      extraBtn.removeEventListener("click", onExtra);
       overlay.removeEventListener("click", onOverlay);
       document.removeEventListener("keydown", onKey);
       resolve(result);
@@ -1057,6 +1212,7 @@ function askConfirm({ title, bodyHtml, showBackup = true, okLabel, cancelLabel }
       backup: document.getElementById("confirm-backup").checked,
     });
     const onCancel = () => cleanup({ confirmed: false, backup: false });
+    const onExtra = () => cleanup({ confirmed: false, backup: false, extra: true });
     const onOverlay = (e) => { if (e.target === overlay) onCancel(); };
     const onKey = (e) => {
       if (e.key === "Escape") onCancel();
@@ -1064,6 +1220,7 @@ function askConfirm({ title, bodyHtml, showBackup = true, okLabel, cancelLabel }
     };
     okBtn.addEventListener("click", onOk);
     cancelBtn.addEventListener("click", onCancel);
+    extraBtn.addEventListener("click", onExtra);
     overlay.addEventListener("click", onOverlay);
     document.addEventListener("keydown", onKey);
     okBtn.focus();
@@ -1084,12 +1241,14 @@ function closeToolsPanel() {
 document.getElementById("btn-tools").addEventListener("click", openToolsPanel);
 
 document.getElementById("btn-reload").addEventListener("click", async () => {
+  if (!(await confirmLeaveEditor())) return;
   await loadGames();
   toast(t("toast.list_reloaded"));
 });
 
 
 document.getElementById("btn-quit").addEventListener("click", async () => {
+  if (!(await confirmLeaveEditor())) return;
   const choice = await askConfirm({
     title: t("confirm.quit_title"),
     bodyHtml: t("confirm.quit_body"),
@@ -1413,7 +1572,9 @@ document.getElementById("open-gl-refresh").addEventListener("click", () => {
   browseDirectory(__browsePath || null);
 });
 
-document.getElementById("btn-open-gamelist").addEventListener("click", openGamelistModal);
+document.getElementById("btn-open-gamelist").addEventListener("click", async () => {
+  if (await confirmLeaveEditor()) openGamelistModal();
+});
 
 document.getElementById("btn-empty-open-gamelist")?.addEventListener("click", () => {
   if (typeof openGamelistModal === "function") openGamelistModal();
@@ -1975,9 +2136,19 @@ async function scrapeSteamGame(appid) {
   }
 }
 
-document.getElementById("btn-ss-scrape").addEventListener("click", () => scrapeCurrentGame());
-document.getElementById("btn-steam-scrape").addEventListener("click", () => scrapeSteamGame());
-document.getElementById("btn-adb-scrape").addEventListener("click", () => scrapeAdbGame());
+document.getElementById("btn-ss-scrape").addEventListener("click", async () => {
+  if (await confirmLeaveEditor()) scrapeCurrentGame();
+});
+document.getElementById("btn-steam-scrape").addEventListener("click", async () => {
+  if (await confirmLeaveEditor()) scrapeSteamGame();
+});
+document.getElementById("btn-adb-scrape").addEventListener("click", async () => {
+  if (await confirmLeaveEditor()) scrapeAdbGame();
+});
+// Closing the window / tab with unsaved changes: the browser asks
+window.addEventListener("beforeunload", e => {
+  if (changedFields().length) { e.preventDefault(); e.returnValue = ""; }
+});
 function setSsFieldsChecked(on) {
   document.querySelectorAll("#ss-fields input[data-ss-field]").forEach(cb => {
     if (!cb.disabled) cb.checked = on;

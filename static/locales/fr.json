@@ -117,7 +117,8 @@
     "applying_download": "Téléchargement / application…",
     "opening_gamelist": "Ouverture du gamelist…",
     "no_gamelist": "Aucun gamelist chargé",
-    "filling_arcade": "Lecture mame.xml…"
+    "filling_arcade": "Lecture mame.xml…",
+    "unsaved": "Modifications non enregistrées : {fields}"
   },
   "toast": {
     "no_file_url": "Aucun fichier ou URL détecté",
@@ -136,7 +137,8 @@
     "no_fields": "Aucun champ sélectionné",
     "list_reloaded": "Liste rechargée",
     "gamelist_opened": "Gamelist ouvert : {name} ({n} jeux)",
-    "arcade_sys_ok": "{n} remplis · {skip} déjà renseignés · {miss} introuvables"
+    "arcade_sys_ok": "{n} remplis · {skip} déjà renseignés · {miss} introuvables",
+    "nothing_to_save": "Aucune modification à enregistrer"
   },
   "errors": {
     "offline": "Pas de connexion réseau.",
@@ -167,7 +169,11 @@
     "delete_ok": "Supprimer",
     "this_game": "ce jeu",
     "arcade_sys_title": "Remplir arcadesystemname ?",
-    "arcade_sys_body": "Les jeux qui ont déjà une valeur sont laissés tels quels. Sauvegarde .bak conseillée."
+    "arcade_sys_body": "Les jeux qui ont déjà une valeur sont laissés tels quels. Sauvegarde .bak conseillée.",
+    "unsaved_title": "Modifications non enregistrées",
+    "unsaved_body": "« {name} » a des modifications non enregistrées : {fields}. Les enregistrer avant de continuer ?",
+    "save": "Enregistrer",
+    "discard": "Ne pas enregistrer"
   },
   "tools": {
     "title": "⚙ Outils",

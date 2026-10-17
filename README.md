@@ -97,7 +97,9 @@ Please use the scrapers responsibly: requests are throttled, avoid hammering the
 
 ```bash
 python -m pip install -r requirements.txt -r requirements-dev.txt
-python -m pytest -q
+python -m pytest -q                      # unit and API tests
+python -m playwright install chromium    # once, for the browser tests
+python -m pytest -m e2e -q               # browser tests: the real UI in Chromium
 ```
 
 Code layout (`app.py` is only the entry point; the overview is in `gme/__init__.py`):
@@ -116,7 +118,7 @@ Code layout (`app.py` is only the entry point; the overview is in `gme/__init__.
 - `xml_store.XML_PATH` / `xml_store.BASE_DIR` change when another gamelist is opened: read them through the module, never import the names
 - Version: `APP_VERSION` and `APP_RELEASE_DATE` in `gme/version.py` are the only places to change (header, About dialog, User-Agent, console)
 - `python app.py --no-browser [gamelist.xml]` starts the server without opening a window
-- GitHub Actions runs the tests on Windows and Linux (Python 3.9 and 3.13), and builds the Windows `.exe`, starts it and queries it, for every push and pull request (the `.exe` is downloadable from the run for 14 days)
+- GitHub Actions runs the tests on Windows and Linux (Python 3.9 and 3.13), the browser tests in Chromium, and builds the Windows `.exe`, starts it and queries it, for every push and pull request (the `.exe` is downloadable from the run for 14 days)
 - Windows executable locally: `BUILD_EXE.bat` (PyInstaller, output in `dist/`)
 - Changes are listed in [CHANGELOG.md](CHANGELOG.md); past release notes are in [docs/release-notes](docs/release-notes/)
 

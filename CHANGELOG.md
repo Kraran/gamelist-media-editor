@@ -5,6 +5,8 @@ All notable changes to Gamelist Media Editor are documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Unsaved changes are protected**: switching game, reloading, opening another gamelist, scraping or quitting with unsaved edits asks *Save / Don't save / Cancel*; closing the window asks too. Save buttons with pending changes are highlighted and the status bar lists the changed fields
+- Browser tests (Playwright + Chromium, `python -m pytest -m e2e`), run by the CI
 - `--no-browser` command-line option: start the server without opening a window
 - CI builds the Windows `.exe`, starts it and checks the UI, assets and API; the `.exe` is attached to each run
 - ScreenScraper system ids for all RetroBat folders (138 → 271 entries: CPS1/2/3, Cave, ST-V, Teknoparrot, MSX2+, FM Towns, ports…), built from RetroBat's `es_systems.cfg` and EmulationStation's ScreenScraper tables
@@ -20,6 +22,9 @@ All notable changes to Gamelist Media Editor are documented in this file.
 - Repository cleanup: `PUBLISH_v1.1.3.bat` (one-off publish script), `generate_icons.py` with `icon_data/` and `icons_*.json` (base64 copies of icons already in `static/`), unused root `icon.png`
 
 ### Fixed
+- **Saving metadata erased the genre** when it was not in the built-in French list (e.g. `Platform` from ScreenScraper EN or another scraper). Such a genre is now shown and kept as-is
+- Saving now sends only the fields you changed: an untouched field (genre, `kidgame` = `1`, `lang` = `en,fr`…) is never rewritten
+- Escape now closes the "Open gamelist" dialog
 - Header showed **v1.2.0** instead of 1.3.0: the version is now rendered from `APP_VERSION` / `APP_RELEASE_DATE` in `app.py` (header + About), no hard-coded copy left in the UI
 - Per-game actions (edit, upload, clear, scrape/apply, **delete**) could hit **another game** when `gamelist.xml` changed after the list was loaded (games are addressed by XML position). The UI now sends the game `<path>`; the server re-targets the request if the game moved, or answers 409 and the UI reloads the list. Selection is kept by path on reload
 - ScreenScraper system map: 14 wrong ids pointed at other systems and degraded matching (hash and search fell back to "no system"): Naomi 142→56 (was Neo-Geo), Atomiswave 148→53 (Irem), Model 2 149→54 (Seta), Model 3 150→55 (Midway), VIC-20 118→73, PET 120→240, Plus/4 119→99, PC-88 121→221, PC-98 122→208, Pico-8 211→234, WASM-4 0→262, Naomi 2 →75, C128 →66 (as RetroBat); duplicate keys removed; `trsdos` removed (100 is Super A'Can)

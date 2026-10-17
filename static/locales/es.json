@@ -117,7 +117,8 @@
     "applying_download": "Descarga / aplicación…",
     "opening_gamelist": "Abriendo gamelist…",
     "no_gamelist": "Ningún gamelist cargado",
-    "filling_arcade": "Reading mame.xml…"
+    "filling_arcade": "Reading mame.xml…",
+    "unsaved": "Cambios sin guardar: {fields}"
   },
   "toast": {
     "no_file_url": "No se detectó archivo ni URL",
@@ -136,7 +137,8 @@
     "no_fields": "Ningún campo seleccionado",
     "list_reloaded": "Lista recargada",
     "gamelist_opened": "Gamelist abierto: {name} ({n} juegos)",
-    "arcade_sys_ok": "{n} filled · {skip} already set · {miss} not found"
+    "arcade_sys_ok": "{n} filled · {skip} already set · {miss} not found",
+    "nothing_to_save": "No hay cambios que guardar"
   },
   "errors": {
     "offline": "Sin conexión de red.",
@@ -167,7 +169,11 @@
     "delete_ok": "Eliminar",
     "this_game": "este juego",
     "arcade_sys_title": "Fill arcadesystemname?",
-    "arcade_sys_body": "Existing values are kept. A .bak backup is recommended."
+    "arcade_sys_body": "Existing values are kept. A .bak backup is recommended.",
+    "unsaved_title": "Cambios sin guardar",
+    "unsaved_body": "«{name}» tiene cambios sin guardar: {fields}. ¿Guardarlos antes de continuar?",
+    "save": "Guardar",
+    "discard": "No guardar"
   },
   "tools": {
     "title": "⚙ Herramientas",

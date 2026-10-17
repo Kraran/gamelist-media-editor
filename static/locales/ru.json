@@ -117,7 +117,8 @@
     "applying_download": "Загрузка / применение…",
     "opening_gamelist": "Открытие gamelist…",
     "no_gamelist": "Gamelist не загружен",
-    "filling_arcade": "Reading mame.xml…"
+    "filling_arcade": "Reading mame.xml…",
+    "unsaved": "Несохранённые изменения: {fields}"
   },
   "toast": {
     "no_file_url": "Файл или URL не обнаружены",
@@ -136,7 +137,8 @@
     "no_fields": "Поле не выбрано",
     "list_reloaded": "Список обновлён",
     "gamelist_opened": "Gamelist открыт: {name} ({n} игр)",
-    "arcade_sys_ok": "{n} filled · {skip} already set · {miss} not found"
+    "arcade_sys_ok": "{n} filled · {skip} already set · {miss} not found",
+    "nothing_to_save": "Нечего сохранять"
   },
   "errors": {
     "offline": "Нет сетевого подключения.",
@@ -167,7 +169,11 @@
     "delete_ok": "Удалить",
     "this_game": "этой игры",
     "arcade_sys_title": "Fill arcadesystemname?",
-    "arcade_sys_body": "Existing values are kept. A .bak backup is recommended."
+    "arcade_sys_body": "Existing values are kept. A .bak backup is recommended.",
+    "unsaved_title": "Несохранённые изменения",
+    "unsaved_body": "В «{name}» есть несохранённые изменения: {fields}. Сохранить их перед продолжением?",
+    "save": "Сохранить",
+    "discard": "Не сохранять"
   },
   "tools": {
     "title": "⚙ Инструменты",

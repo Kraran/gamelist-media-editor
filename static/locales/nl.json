@@ -117,7 +117,8 @@
     "applying_download": "Download / toepassen…",
     "opening_gamelist": "Gamelist openen…",
     "no_gamelist": "Geen gamelist geladen",
-    "filling_arcade": "Reading mame.xml…"
+    "filling_arcade": "Reading mame.xml…",
+    "unsaved": "Niet-opgeslagen wijzigingen: {fields}"
   },
   "toast": {
     "no_file_url": "Geen bestand of URL gevonden",
@@ -136,7 +137,8 @@
     "no_fields": "Geen veld geselecteerd",
     "list_reloaded": "Lijst herladen",
     "gamelist_opened": "Gamelist geopend: {name} ({n} spellen)",
-    "arcade_sys_ok": "{n} filled · {skip} already set · {miss} not found"
+    "arcade_sys_ok": "{n} filled · {skip} already set · {miss} not found",
+    "nothing_to_save": "Niets om op te slaan"
   },
   "errors": {
     "offline": "Geen netwerkverbinding.",
@@ -167,7 +169,11 @@
     "delete_ok": "Verwijderen",
     "this_game": "dit spel",
     "arcade_sys_title": "Fill arcadesystemname?",
-    "arcade_sys_body": "Existing values are kept. A .bak backup is recommended."
+    "arcade_sys_body": "Existing values are kept. A .bak backup is recommended.",
+    "unsaved_title": "Niet-opgeslagen wijzigingen",
+    "unsaved_body": "‘{name}’ heeft niet-opgeslagen wijzigingen: {fields}. Opslaan voordat je verdergaat?",
+    "save": "Opslaan",
+    "discard": "Niet opslaan"
   },
   "tools": {
     "title": "⚙ Tools",

@@ -117,7 +117,8 @@
     "applying_download": "Nedladdning / tillämpning…",
     "opening_gamelist": "Öppnar gamelist…",
     "no_gamelist": "Ingen gamelist laddad",
-    "filling_arcade": "Reading mame.xml…"
+    "filling_arcade": "Reading mame.xml…",
+    "unsaved": "Osparade ändringar: {fields}"
   },
   "toast": {
     "no_file_url": "Ingen fil eller URL upptäcktes",
@@ -136,7 +137,8 @@
     "no_fields": "Inget fält valt",
     "list_reloaded": "Lista omladdad",
     "gamelist_opened": "Gamelist öppnad: {name} ({n} spel)",
-    "arcade_sys_ok": "{n} filled · {skip} already set · {miss} not found"
+    "arcade_sys_ok": "{n} filled · {skip} already set · {miss} not found",
+    "nothing_to_save": "Inget att spara"
   },
   "errors": {
     "offline": "Ingen nätverksanslutning.",
@@ -167,7 +169,11 @@
     "delete_ok": "Ta bort",
     "this_game": "detta spel",
     "arcade_sys_title": "Fill arcadesystemname?",
-    "arcade_sys_body": "Existing values are kept. A .bak backup is recommended."
+    "arcade_sys_body": "Existing values are kept. A .bak backup is recommended.",
+    "unsaved_title": "Osparade ändringar",
+    "unsaved_body": "”{name}” har osparade ändringar: {fields}. Spara dem innan du fortsätter?",
+    "save": "Spara",
+    "discard": "Spara inte"
   },
   "tools": {
     "title": "⚙ Verktyg",

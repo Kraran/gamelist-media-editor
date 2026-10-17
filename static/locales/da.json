@@ -117,7 +117,8 @@
     "applying_download": "Download / anvendelse…",
     "opening_gamelist": "Åbner gamelist…",
     "no_gamelist": "Ingen gamelist indlæst",
-    "filling_arcade": "Reading mame.xml…"
+    "filling_arcade": "Reading mame.xml…",
+    "unsaved": "Ikke-gemte ændringer: {fields}"
   },
   "toast": {
     "no_file_url": "Ingen fil eller URL fundet",
@@ -136,7 +137,8 @@
     "no_fields": "Intet felt valgt",
     "list_reloaded": "Liste genindlæst",
     "gamelist_opened": "Gamelist åbnet: {name} ({n} spil)",
-    "arcade_sys_ok": "{n} filled · {skip} already set · {miss} not found"
+    "arcade_sys_ok": "{n} filled · {skip} already set · {miss} not found",
+    "nothing_to_save": "Intet at gemme"
   },
   "errors": {
     "offline": "Ingen netværksforbindelse.",
@@ -167,7 +169,11 @@
     "delete_ok": "Slet",
     "this_game": "dette spil",
     "arcade_sys_title": "Fill arcadesystemname?",
-    "arcade_sys_body": "Existing values are kept. A .bak backup is recommended."
+    "arcade_sys_body": "Existing values are kept. A .bak backup is recommended.",
+    "unsaved_title": "Ikke-gemte ændringer",
+    "unsaved_body": "»{name}« har ikke-gemte ændringer: {fields}. Gem dem, før du fortsætter?",
+    "save": "Gem",
+    "discard": "Gem ikke"
   },
   "tools": {
     "title": "⚙ Værktøjer",

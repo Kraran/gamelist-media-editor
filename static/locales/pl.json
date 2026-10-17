@@ -117,7 +117,8 @@
     "applying_download": "Pobieranie / stosowanie…",
     "opening_gamelist": "Otwieranie gamelist…",
     "no_gamelist": "Brak załadowanej gamelist",
-    "filling_arcade": "Reading mame.xml…"
+    "filling_arcade": "Reading mame.xml…",
+    "unsaved": "Niezapisane zmiany: {fields}"
   },
   "toast": {
     "no_file_url": "Nie wykryto pliku ani URL",
@@ -136,7 +137,8 @@
     "no_fields": "Nie wybrano pola",
     "list_reloaded": "Lista odświeżona",
     "gamelist_opened": "Otwarto gamelist: {name} ({n} gier)",
-    "arcade_sys_ok": "{n} filled · {skip} already set · {miss} not found"
+    "arcade_sys_ok": "{n} filled · {skip} already set · {miss} not found",
+    "nothing_to_save": "Brak zmian do zapisania"
   },
   "errors": {
     "offline": "Brak połączenia sieciowego.",
@@ -167,7 +169,11 @@
     "delete_ok": "Usuń",
     "this_game": "tej gry",
     "arcade_sys_title": "Fill arcadesystemname?",
-    "arcade_sys_body": "Existing values are kept. A .bak backup is recommended."
+    "arcade_sys_body": "Existing values are kept. A .bak backup is recommended.",
+    "unsaved_title": "Niezapisane zmiany",
+    "unsaved_body": "„{name}” ma niezapisane zmiany: {fields}. Zapisać je przed kontynuowaniem?",
+    "save": "Zapisz",
+    "discard": "Nie zapisuj"
   },
   "tools": {
     "title": "⚙ Narzędzia",
