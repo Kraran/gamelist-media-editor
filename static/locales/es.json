@@ -354,7 +354,8 @@
     "no_steam_url": "no Steam URL",
     "url_not_http": "URL is not http(s)",
     "rating_range_value": "rating out of range: {value}",
-    "rating_invalid_value": "invalid rating: {value}"
+    "rating_invalid_value": "invalid rating: {value}",
+    "stale_game": "Este juego ha cambiado en gamelist.xml (editado fuera de la aplicación). Se ha recargado la lista: comprueba la selección y vuelve a intentarlo."
   },
   "open_gl": {
     "title": "📂 Abrir un gamelist.xml",

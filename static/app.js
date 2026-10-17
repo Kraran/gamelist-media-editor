@@ -210,6 +210,28 @@ function setStatus(txt) {
  * Fetch JSON from our API with consistent error handling.
  * Throws Error with a French, user-readable message.
  */
+/**
+ * Per-game API URL: appends ?path=<game path> so the server can check that
+ * the XML index still designates this game (gamelist.xml may have changed
+ * since the list was loaded) and re-target it if the game moved.
+ */
+function gameUrl(url) {
+  const g = games.find(x => x.index === currentIndex);
+  if (!g || !g.path) return url;
+  return url + (url.includes("?") ? "&" : "?") + "path=" + encodeURIComponent(g.path);
+}
+
+let _gameListReloadQueued = false;
+/** Reload the list once, after the current handler finished (selection kept by path). */
+function queueGameListReload() {
+  if (_gameListReloadQueued) return;
+  _gameListReloadQueued = true;
+  setTimeout(() => {
+    _gameListReloadQueued = false;
+    loadGames();
+  }, 0);
+}
+
 /** Fetch JSON API; attaches X-Locale so server messages match the UI language. */
 async function apiFetch(url, options = {}) {
   options = { ...options };
@@ -255,8 +277,12 @@ async function apiFetch(url, options = {}) {
     err.status = res.status;
     err.data = data;
     err.code = data && data.code;
+    if (err.code === "stale_game") queueGameListReload();
     throw err;
   }
+  // The server re-targeted the request because the game moved in gamelist.xml:
+  // our XML indexes are stale, refresh them.
+  if (res.headers.get("X-Game-Reindexed") !== null) queueGameListReload();
 
   if (data && data.error && data.ok === false) {
     const err = new Error(data.error);
@@ -469,6 +495,8 @@ function setNoGamelistUi(loaded) {
 async function loadGames() {
   setStatus(t("status.loading"));
   const keepIndex = currentIndex;
+  const keepGame = games.find(g => g.index === currentIndex);
+  const keepPath = keepGame ? keepGame.path : "";
   try {
     const data = await apiFetch("/api/games");
     // Back-compat: array or { games, system }
@@ -501,7 +529,10 @@ async function loadGames() {
       if (empty && currentIndex === null) empty.hidden = false;
     }
     if (keepIndex !== null) {
-      const listIdx = games.findIndex(g => g.index === keepIndex);
+      // Same game = same <path> (its XML index may have changed on disk)
+      const listIdx = keepPath
+        ? games.findIndex(g => g.path === keepPath)
+        : games.findIndex(g => g.index === keepIndex);
       if (listIdx >= 0) {
         currentListIndex = listIdx;
         renderList();
@@ -745,7 +776,7 @@ async function uploadMedia(field, { file, url }) {
   if (file) form.append("file", file);
   if (url) form.append("url", url);
   try {
-    const data = await apiFetch(`/api/upload/${currentIndex}/${field}`, { method: "POST", body: form });
+    const data = await apiFetch(gameUrl(`/api/upload/${currentIndex}/${field}`), { method: "POST", body: form });
     const g = games.find(x => x.index === currentIndex);
     if (g) { g[field] = data.path; renderZones(g); }
     renderList(document.getElementById("search").value);
@@ -765,7 +796,7 @@ async function clearField(field) {
   });
   if (!choice.confirmed) return;
   try {
-    const data = await apiFetch(`/api/clear/${currentIndex}/${field}`, { method: "POST" });
+    const data = await apiFetch(gameUrl(`/api/clear/${currentIndex}/${field}`), { method: "POST" });
     const g = games.find(x => x.index === currentIndex);
     if (g) { g[field] = ""; renderZones(g); }
     renderList(document.getElementById("search").value);
@@ -780,7 +811,7 @@ async function saveName() {
   if (!newName) { toast(t("toast.name_empty"), "error"); return false; }
   setStatus(t("status.saving_name"));
   try {
-    const data = await apiFetch(`/api/name/${currentIndex}`, {
+    const data = await apiFetch(gameUrl(`/api/name/${currentIndex}`), {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: newName }),
     });
@@ -803,7 +834,7 @@ async function saveDesc() {
   const newDesc = document.getElementById("desc-textarea").value;
   setStatus(t("status.saving_desc"));
   try {
-    const data = await apiFetch(`/api/desc/${currentIndex}`, {
+    const data = await apiFetch(gameUrl(`/api/desc/${currentIndex}`), {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ desc: newDesc }),
     });
@@ -837,7 +868,7 @@ async function saveMeta() {
   };
   setStatus(t("status.saving_meta"));
   try {
-    const data = await apiFetch(`/api/meta/${currentIndex}`, {
+    const data = await apiFetch(gameUrl(`/api/meta/${currentIndex}`), {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
@@ -1162,7 +1193,7 @@ document.getElementById("btn-delete-game").addEventListener("click", async () =>
 
   setStatus(t("status.deleting_game"));
   try {
-    const data = await apiFetch(`/api/delete-game/${currentIndex}`, {
+    const data = await apiFetch(gameUrl(`/api/delete-game/${currentIndex}`), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ backup: choice.backup }),
@@ -1696,7 +1727,7 @@ async function scrapeCurrentGame(gameid) {
     else opts.body = JSON.stringify({});
     let data;
     try {
-      data = await apiFetch(`/api/ss/scrape/${currentIndex}`, opts);
+      data = await apiFetch(gameUrl(`/api/ss/scrape/${currentIndex}`), opts);
     } catch (e) {
       // Enrich with technical fields if the server sent them
       const d = e.data || {};
@@ -1815,7 +1846,7 @@ async function applySsSelection() {
       : scrapeSource === "steam"
         ? `/api/steam/apply/${currentIndex}`
         : `/api/ss/apply/${currentIndex}`;
-    const data = await apiFetch(applyUrl, {
+    const data = await apiFetch(gameUrl(applyUrl), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ fields, proposed: ssLastProposed }),
@@ -1856,7 +1887,7 @@ async function scrapeAdbGame(romset) {
     };
     let data;
     try {
-      data = await apiFetch(`/api/adb/scrape/${currentIndex}`, opts);
+      data = await apiFetch(gameUrl(`/api/adb/scrape/${currentIndex}`), opts);
     } catch (e) {
       throw new Error(e.message);
     }
@@ -1907,7 +1938,7 @@ async function scrapeSteamGame(appid) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(appid ? { appid } : {}),
     };
-    const data = await apiFetch(`/api/steam/scrape/${currentIndex}`, opts);
+    const data = await apiFetch(gameUrl(`/api/steam/scrape/${currentIndex}`), opts);
     if (data.need_choice && data.candidates && data.candidates.length) {
       showSsCandidates(data);
       setStatus(t("scrape.steam_status_choice"));
