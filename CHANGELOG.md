@@ -4,22 +4,24 @@ All notable changes to Gamelist Media Editor are documented in this file.
 
 ## [Unreleased]
 
-### Fixed
-- Per-game actions (edit, upload, clear, scrape/apply, **delete**) could hit **another game** when `gamelist.xml` changed after the list was loaded (games are addressed by XML position). The UI now sends the game `<path>`; the server re-targets the request if the game moved, or answers 409 and the UI reloads the list. Selection is kept by path on reload
-- ScreenScraper system map: 14 wrong ids pointed at other systems and degraded matching (hash and search fell back to "no system"): Naomi 142→56 (was Neo-Geo), Atomiswave 148→53 (Irem), Model 2 149→54 (Seta), Model 3 150→55 (Midway), VIC-20 118→73, PET 120→240, Plus/4 119→99, PC-88 121→221, PC-98 122→208, Pico-8 211→234, WASM-4 0→262, Naomi 2 →75, C128 →66 (as RetroBat); duplicate keys removed; `trsdos` removed (100 is Super A'Can)
-
 ### Added
 - ScreenScraper system ids for all RetroBat folders (138 → 271 entries: CPS1/2/3, Cave, ST-V, Teknoparrot, MSX2+, FM Towns, ports…), built from RetroBat's `es_systems.cfg` and EmulationStation's ScreenScraper tables
-- First tests (`tests/`, pytest via `requirements-dev.txt`)
+- Tests (`tests/`, `pytest.ini`, pytest via `requirements-dev.txt`)
 
-### Security
-- Reject cross-site requests (CSRF) and non-local `Host` headers (DNS rebinding): a web page open in the browser could previously trigger delete / purge / upload / shutdown on the local server
+### Changed
+- README rewritten for the current version: removed the obsolete Setup installer (v1.1.3) and the duplicated "Option B", added Steam, Pillow, safety notes and a Development section
+- Release notes moved from the repository root to `docs/release-notes/`
 
 ### Removed
 - Repository cleanup: `PUBLISH_v1.1.3.bat` (one-off publish script), `generate_icons.py` with `icon_data/` and `icons_*.json` (base64 copies of icons already in `static/`), unused root `icon.png`
 
-### Changed
-- Release notes moved from the repository root to `docs/release-notes/`
+### Fixed
+- Header showed **v1.2.0** instead of 1.3.0: the version is now rendered from `APP_VERSION` / `APP_RELEASE_DATE` in `app.py` (header + About), no hard-coded copy left in the UI
+- Per-game actions (edit, upload, clear, scrape/apply, **delete**) could hit **another game** when `gamelist.xml` changed after the list was loaded (games are addressed by XML position). The UI now sends the game `<path>`; the server re-targets the request if the game moved, or answers 409 and the UI reloads the list. Selection is kept by path on reload
+- ScreenScraper system map: 14 wrong ids pointed at other systems and degraded matching (hash and search fell back to "no system"): Naomi 142→56 (was Neo-Geo), Atomiswave 148→53 (Irem), Model 2 149→54 (Seta), Model 3 150→55 (Midway), VIC-20 118→73, PET 120→240, Plus/4 119→99, PC-88 121→221, PC-98 122→208, Pico-8 211→234, WASM-4 0→262, Naomi 2 →75, C128 →66 (as RetroBat); duplicate keys removed; `trsdos` removed (100 is Super A'Can)
+
+### Security
+- Reject cross-site requests (CSRF) and non-local `Host` headers (DNS rebinding): a web page open in the browser could previously trigger delete / purge / upload / shutdown on the local server
 
 ## [1.3.0] - 2026-09-01
 

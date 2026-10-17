@@ -1448,10 +1448,11 @@ document.getElementById("open-gl-path").addEventListener("drop", (e) => {
 
 
 /* --- About dialog (RomSet Verifier style) --- */
+// Version / date come from app.py (APP_VERSION, APP_RELEASE_DATE) via <body data-*>
 const APP_ABOUT = {
-  version: "1.3.0",
-  versionLabel: "v1.3.0",
-  date: "2026-09-01",
+  version: document.body.dataset.appVersion || "",
+  versionLabel: "v" + (document.body.dataset.appVersion || ""),
+  date: document.body.dataset.appDate || "",
   author: "Franck Fornasari",
   repo: "https://github.com/Kraran/gamelist-media-editor",
   authorUrl: "https://github.com/Kraran",
