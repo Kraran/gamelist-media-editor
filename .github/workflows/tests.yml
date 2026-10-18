@@ -60,7 +60,14 @@ jobs:
           python -m playwright install --with-deps chromium
 
       - name: Run browser tests
-        run: python -m pytest -m e2e -q
+        shell: bash
+        run: |
+          set -o pipefail
+          python -m pytest -m e2e -q -rf -p no:logging 2>&1 | tee e2e.log || {
+            # Logs are not always reachable: surface failures as annotations
+            grep -E "^(FAILED|ERROR)|^E  " e2e.log | head -40 | sed 's/^/::error::/'
+            exit 1
+          }
 
   frontend:
     name: app.js syntax
@@ -111,7 +118,8 @@ jobs:
             }
             $html = (Invoke-WebRequest "$base/" -UseBasicParsing).Content
             if ($html -notmatch "brand-version"">v$($s.version)<") { throw "header version missing" }
-            foreach ($u in "/static/app.js", "/static/locales/fr.json", "/favicon.ico") {
+            if ($html -notmatch 'id="i-device-floppy"') { throw "icon sprite missing from the page" }
+            foreach ($u in "/static/app.js", "/static/locales/fr.json", "/favicon.ico", "/static/fonts/fonts.css", "/static/fonts/ibm-plex-sans-latin-wght-normal.woff2", "/static/fonts/saira-condensed-latin-700-normal.woff2") {
               Invoke-WebRequest "$base$u" -UseBasicParsing | Out-Null
             }
             $games = Invoke-RestMethod "$base/api/games"

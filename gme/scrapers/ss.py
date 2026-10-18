@@ -9,6 +9,7 @@ from flask import Blueprint, jsonify, request
 from lxml import etree
 
 from gme import xml_store
+from gme.fsutil import atomic_write
 from gme.http import api_err
 from gme.i18n import st
 from gme.media import MAX_DOWNLOAD_BYTES, download_pad2key, download_remote_media, pad2key_dest, safe_delete_file
@@ -143,8 +144,7 @@ def save_ss_config(data):
     cfg.pop("devid", None)
     cfg.pop("devpassword", None)
     path = ss_config_path()
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(cfg, f, indent=2, ensure_ascii=False)
+    atomic_write(path, json.dumps(cfg, indent=2, ensure_ascii=False).encode("utf-8"))
     return cfg
 
 

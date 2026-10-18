@@ -11,6 +11,7 @@ import threading
 
 from lxml import etree
 
+from gme.fsutil import atomic_write
 from gme.http import api_err
 from gme.i18n import st
 from gme.paths import APP_DIR
@@ -108,9 +109,9 @@ def load_xml():
 
 
 def save_xml(tree):
-    """Write XML to disk and refresh cache (serialized)."""
+    """Write XML to disk (atomically: never empty or half-written) and refresh cache."""
     with _xml_io_lock:
-        tree.write(XML_PATH, pretty_print=True, xml_declaration=True, encoding="UTF-8")
+        atomic_write(XML_PATH, etree.tostring(tree, pretty_print=True, xml_declaration=True, encoding="UTF-8"))
         try:
             _xml_cache["mtime"] = os.path.getmtime(XML_PATH)
             _xml_cache["tree"] = tree

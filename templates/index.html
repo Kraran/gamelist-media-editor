@@ -1,5 +1,8 @@
+{%- macro icon(name, cls="") -%}
+<svg class="icon {{ cls }}" aria-hidden="true" focusable="false"><use href="#i-{{ name }}"></use></svg>
+{%- endmacro -%}
 <!DOCTYPE html>
-<html lang="fr" id="html-root">
+<html lang="fr" id="html-root" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -9,192 +12,223 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16.png" />
   <link rel="apple-touch-icon" sizes="256x256" href="/static/app-icon.png" />
-  <meta name="theme-color" content="#6c5ce7" />
+  <meta name="theme-color" content="#13141c" />
+  <link rel="preload" href="/static/fonts/ibm-plex-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="/static/fonts/saira-condensed-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="/static/fonts/fonts.css" />
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body data-app-version="{{ app_version }}" data-app-date="{{ app_release_date }}">
-  <header>
+  {% include "_icons.svg" %}
+
+  <header class="app-bar">
     <h1 class="app-brand">
       <button type="button" class="brand-btn" id="btn-about" title="À propos" data-i18n-title="about.open_title">
-        <img class="app-logo" src="/static/favicon.svg" width="28" height="28" alt="" aria-hidden="true" />
-        <span><span>Gamelist</span> Media Editor <small class="brand-ver" id="brand-version">v{{ app_version }}</small></span>
+        <img class="app-logo" src="/static/favicon.svg" width="26" height="26" alt="" aria-hidden="true" />
+        <span class="brand-name">Gamelist Media Editor</span>
+        <small class="brand-ver" id="brand-version">v{{ app_version }}</small>
       </button>
     </h1>
-    <span class="badge" id="game-count" data-i18n="header.game_count" data-i18n-params='{"n":0}'>0 jeux</span>
-    <div class="header-spacer"></div>
-    <span class="system-badge" id="system-name" data-i18n-title="header.system_title" title="Système (dossier du gamelist.xml)">—</span>
-    <div class="header-spacer"></div>
-    <button class="btn btn-danger" id="btn-delete-game" data-i18n="header.delete_game" data-i18n-title="header.delete_game_title" title="Supprime le jeu sélectionné (ROM + médias + entrée XML)" disabled>
-      🗑 Supprimer ce jeu
-    </button>
-    <button class="btn" id="btn-open-gamelist" data-i18n="header.open_gamelist" data-i18n-title="header.open_gamelist_title" title="Ouvrir un autre gamelist.xml">
-      📂 Gamelist…
-    </button>
-    <button class="btn" id="btn-reload" data-i18n="header.reload" data-i18n-title="header.reload_title" title="Recharger le gamelist.xml depuis le disque">
-      ↻ Recharger
-    </button>
-    <button class="btn" id="btn-tools" data-i18n="header.tools" data-i18n-title="header.tools_title" title="Outils et actions globales">
-      ⚙ Outils
-    </button>
-    <button type="button" class="btn btn-quit" id="btn-quit" data-i18n="header.quit" data-i18n-title="header.quit_title" title="Fermer l'application et arrêter le serveur">
-      ⏻ Quitter
-    </button>
+
+    <div class="app-context">
+      <span class="ctx-system" data-i18n-title="header.system_title" title="Système (dossier du gamelist.xml)">
+        {{ icon("device-gamepad-2") }}<span class="system-badge" id="system-name">—</span>
+      </span>
+      <span class="ctx-count" id="game-count" data-i18n="header.game_count" data-i18n-params='{"n":0}'>0 jeux</span>
+    </div>
+
+    <div class="app-actions">
+      <button type="button" class="btn btn-ghost" id="btn-open-gamelist" data-i18n-title="header.open_gamelist_title" title="Ouvrir un autre gamelist.xml">
+        {{ icon("folder-open") }}<span class="btn-label" data-i18n="header.open_gamelist">Gamelist…</span>
+      </button>
+      <button type="button" class="btn btn-ghost" id="btn-reload" data-i18n-title="header.reload_title" title="Recharger le gamelist.xml depuis le disque">
+        {{ icon("refresh") }}<span class="btn-label" data-i18n="header.reload">Recharger</span>
+      </button>
+      <button type="button" class="btn btn-ghost" id="btn-tools" data-i18n-title="header.tools_title" title="Outils et actions globales">
+        {{ icon("adjustments-horizontal") }}<span class="btn-label" data-i18n="header.tools">Outils</span>
+      </button>
+      <span class="bar-divider" aria-hidden="true"></span>
+      <button type="button" class="btn btn-quit" id="btn-quit" data-i18n-title="header.quit_title" title="Fermer l'application et arrêter le serveur">
+        {{ icon("power") }}<span class="btn-label" data-i18n="header.quit">Quitter</span>
+      </button>
+    </div>
   </header>
 
   <div class="main">
     <aside class="sidebar">
-      <div class="search-box">
+      <label class="search-box">
+        {{ icon("search") }}
         <input type="search" id="search" placeholder="Rechercher un jeu…" data-i18n-placeholder="sidebar.search_placeholder" autocomplete="off" aria-label="Rechercher un jeu" data-i18n-aria="sidebar.search_aria" />
-      </div>
+      </label>
       <div class="media-filters" id="media-filters" role="group" aria-label="Filtres médias manquants" data-i18n-aria="sidebar.filters_aria" title="Filtrer les jeux selon les médias manquants" data-i18n-title="sidebar.filters_title">
         <button type="button" class="filter-chip active" data-filter="all" aria-pressed="true"><span data-i18n="sidebar.filter_all">Tous</span><span class="filter-count">0</span></button>
+        <button type="button" class="filter-chip" data-filter="any" aria-pressed="false"><span data-i18n="sidebar.filter_any">Un média manquant</span><span class="filter-count">0</span></button>
         <button type="button" class="filter-chip" data-filter="image" aria-pressed="false"><span data-i18n="sidebar.filter_image">Sans image</span><span class="filter-count">0</span></button>
         <button type="button" class="filter-chip" data-filter="video" aria-pressed="false"><span data-i18n="sidebar.filter_video">Sans vidéo</span><span class="filter-count">0</span></button>
         <button type="button" class="filter-chip" data-filter="marquee" aria-pressed="false"><span data-i18n="sidebar.filter_marquee">Sans marquee</span><span class="filter-count">0</span></button>
-        <button type="button" class="filter-chip" data-filter="manual" aria-pressed="false"><span data-i18n="sidebar.filter_manual">Sans manuel</span><span class="filter-count">0</span></button>
         <button type="button" class="filter-chip" data-filter="boxart" aria-pressed="false"><span data-i18n="sidebar.filter_boxart">Sans boxart</span><span class="filter-count">0</span></button>
+        <button type="button" class="filter-chip" data-filter="manual" aria-pressed="false"><span data-i18n="sidebar.filter_manual">Sans manuel</span><span class="filter-count">0</span></button>
         <button type="button" class="filter-chip" data-filter="boxback" aria-pressed="false"><span data-i18n="sidebar.filter_boxback">Sans boxback</span><span class="filter-count">0</span></button>
         <button type="button" class="filter-chip" data-filter="cartridge" aria-pressed="false"><span data-i18n="sidebar.filter_cartridge">Sans support</span><span class="filter-count">0</span></button>
         <button type="button" class="filter-chip" data-filter="fanart" aria-pressed="false"><span data-i18n="sidebar.filter_fanart">Sans fanart</span><span class="filter-count">0</span></button>
         <button type="button" class="filter-chip" data-filter="mix" aria-pressed="false"><span data-i18n="sidebar.filter_mix">Sans mix</span><span class="filter-count">0</span></button>
         <button type="button" class="filter-chip" data-filter="map" aria-pressed="false"><span data-i18n="sidebar.filter_map">Sans map</span><span class="filter-count">0</span></button>
-        <button type="button" class="filter-chip" data-filter="any" aria-pressed="false"><span data-i18n="sidebar.filter_any">≥1 manquant</span><span class="filter-count">0</span></button>
       </div>
       <div class="game-list" id="game-list" role="listbox" aria-label="Liste des jeux"></div>
     </aside>
 
     <section class="content" id="content">
       <div class="empty-state" id="empty-state">
-        <div id="empty-state-open">
-          <p class="empty-state-icon" aria-hidden="true">📂</p>
+        <div class="empty-block" id="empty-state-open">
+          {{ icon("folder-open", "empty-icon") }}
           <p data-i18n-html="sidebar.empty_no_gamelist">Aucun <code>gamelist.xml</code> chargé.<br>Ouvre un fichier pour commencer.</p>
-          <p style="margin-top:16px">
-            <button type="button" class="btn btn-accent" id="btn-empty-open-gamelist" data-i18n="header.open_gamelist">📂 Gamelist…</button>
-          </p>
+          <button type="button" class="btn btn-accent" id="btn-empty-open-gamelist">
+            {{ icon("folder-open") }}<span data-i18n="header.open_gamelist">Gamelist…</span>
+          </button>
         </div>
-        <div id="empty-state-select" hidden>
-          <p class="empty-state-icon" aria-hidden="true">🎮</p>
+        <div class="empty-block" id="empty-state-select" hidden>
+          {{ icon("device-gamepad-2", "empty-icon") }}
           <p data-i18n-html="sidebar.empty_select">Sélectionne un jeu dans la liste<br>puis glisse-dépose tes médias</p>
         </div>
       </div>
 
       <div id="editor" class="editor" hidden>
-        <div class="game-header">
-          <div class="name-row">
-            <input type="text" id="game-name-input" class="name-input" spellcheck="false" />
-            <button class="btn btn-accent" id="btn-save-name" data-i18n="editor.save_name">Enregistrer</button>
+        <div class="stage">
+          <div class="game-header">
+            <div class="title-row">
+              <input type="text" id="game-name-input" class="game-title" spellcheck="false" data-i18n-aria="scrape.field_name" aria-label="Nom" />
+              <button type="button" class="btn btn-save" id="btn-save-name">
+                {{ icon("device-floppy") }}<span data-i18n="editor.save_name">Enregistrer</span>
+              </button>
+            </div>
+            <p class="game-path" id="game-path">—</p>
+            <div class="game-header-actions">
+              <div class="scrape-group" role="group">
+                <button type="button" class="btn" id="btn-ss-scrape" data-i18n-title="editor.ss_scrape_title" title="Récupérer médias et métadonnées depuis ScreenScraper">
+                  {{ icon("cloud-download") }}<span data-i18n="editor.ss_scrape">ScreenScraper</span>
+                </button>
+                <button type="button" class="btn" id="btn-adb-scrape" data-i18n-title="editor.adb_scrape_title" title="Arcade Database (MAME/FBNeo) — à utiliser sur les systèmes arcade">
+                  {{ icon("coin") }}<span data-i18n="editor.adb_scrape">Arcade DB</span>
+                </button>
+                <button type="button" class="btn" id="btn-steam-scrape" data-i18n-title="editor.steam_scrape_title" title="Télécharger la bande-annonce Steam">
+                  {{ icon("brand-steam") }}<span data-i18n="editor.steam_scrape">Steam</span>
+                </button>
+              </div>
+              <button type="button" class="btn btn-ghost btn-ghost-danger" id="btn-delete-game" data-i18n-title="header.delete_game_title" title="Supprime le jeu sélectionné (ROM + médias + entrée XML)" disabled>
+                {{ icon("trash") }}<span data-i18n="header.delete_game">Supprimer ce jeu</span>
+              </button>
+            </div>
           </div>
-          <div class="meta" id="game-path">—</div>
-          <div class="game-header-actions">
-            <button type="button" class="btn btn-accent" id="btn-ss-scrape" data-i18n-title="editor.ss_scrape_title" title="Récupérer médias et métadonnées depuis ScreenScraper">
-              <span data-i18n="editor.ss_scrape">📡 ScreenScraper</span>
-            </button>
-            <button type="button" class="btn btn-accent" id="btn-adb-scrape" data-i18n-title="editor.adb_scrape_title" title="Arcade Database (MAME/FBNeo) — à utiliser sur les systèmes arcade">
-              <span data-i18n="editor.adb_scrape">🕹️ Arcade DB</span>
-            </button>
-            <button type="button" class="btn btn-accent" id="btn-steam-scrape" data-i18n-title="editor.steam_scrape_title" title="Télécharger la bande-annonce Steam (max ≤ 50 Mo, sinon 480p)">
-              <span data-i18n="editor.steam_scrape">🎮 Steam</span>
-            </button>
-          </div>
+
+          <div class="media-grid" id="media-grid"></div>
         </div>
 
-        <div class="desc-editor" id="desc-editor">
-          <div class="desc-header">
-            <span class="zone-title"><span class="icon">📝</span> <span data-i18n="editor.desc_title">Description</span></span>
-            <button class="btn btn-accent" id="btn-save-desc" data-i18n="editor.save_name">Enregistrer</button>
-          </div>
-          <textarea id="desc-textarea" placeholder="Description du jeu…" data-i18n-placeholder="editor.desc_placeholder" spellcheck="true"></textarea>
-        </div>
+        <aside class="inspector">
+          <section class="insp-block" id="desc-editor">
+            <div class="insp-head">
+              <h2 class="insp-title">{{ icon("align-left") }}<span data-i18n="editor.desc_title">Description</span></h2>
+              <button type="button" class="btn btn-save btn-sm" id="btn-save-desc">
+                {{ icon("device-floppy") }}<span data-i18n="editor.save_name">Enregistrer</span>
+              </button>
+            </div>
+            <textarea id="desc-textarea" placeholder="Description du jeu…" data-i18n-placeholder="editor.desc_placeholder" data-i18n-aria="editor.desc_title" spellcheck="true"></textarea>
+          </section>
 
-        <div class="media-grid" id="media-grid"></div>
-
-        <div class="meta-section" id="meta-section">
-          <div class="meta-header">
-            <span class="zone-title"><span class="icon">⚙️</span> <span data-i18n="editor.meta_title">Métadonnées</span></span>
-            <button class="btn btn-accent" id="btn-save-meta" data-i18n="editor.save_meta">Enregistrer les métadonnées</button>
-          </div>
-          <div class="meta-grid">
-            <div class="meta-field meta-genre-main">
-              <label>Genre principal</label>
-              <select id="meta-genre-main"><option value="">— Choisir —</option></select>
+          <section class="insp-block" id="meta-section">
+            <div class="insp-head">
+              <h2 class="insp-title">{{ icon("list-details") }}<span data-i18n="editor.meta_title">Métadonnées</span></h2>
             </div>
-            <div class="meta-field meta-genre-sub">
-              <label>Sous-genre</label>
-              <select id="meta-genre-sub" disabled><option value="">— Aucun —</option></select>
-            </div>
-            <div class="meta-field">
-              <label>Rating <span class="hint">(0 → 1)</span></label>
-              <input type="number" id="meta-rating" min="0" max="1" step="0.05" placeholder="0.7" />
-            </div>
-            <div class="meta-field">
-              <label>Releasedate</label>
-              <input type="text" id="meta-releasedate" placeholder="19900101T000000" />
-            </div>
-            <div class="meta-field">
-              <label>Developer</label>
-              <input type="text" id="meta-developer" placeholder="Ocean" />
-            </div>
-            <div class="meta-field">
-              <label>Publisher</label>
-              <input type="text" id="meta-publisher" placeholder="Ocean" />
-            </div>
-            <div class="meta-field">
-              <label>Family</label>
-              <input type="text" id="meta-family" placeholder="Barbarian (Palace)" />
-            </div>
-            <div class="meta-field">
-              <label>Players</label>
-              <input type="text" id="meta-players" placeholder="1-2" />
-            </div>
-            <div class="meta-field meta-lang">
-              <label>Lang</label>
-              <div class="lang-row">
-                <input type="text" id="meta-lang" placeholder="fr" maxlength="4" />
-                <span class="lang-flag" id="lang-flag" title="">
-                  <img id="lang-flag-img" class="lang-flag-img" src="" alt="" hidden />
-                  <span id="lang-flag-fallback">🌐</span>
-                </span>
+            <div class="meta-grid">
+              <div class="meta-field meta-genre-main">
+                <label for="meta-genre-main" data-i18n="editor.genre">Genre</label>
+                <select id="meta-genre-main"><option value="">— Choisir —</option></select>
+              </div>
+              <div class="meta-field meta-genre-sub">
+                <label for="meta-genre-sub" data-i18n="editor.genre_sub">Sous-genre</label>
+                <select id="meta-genre-sub" disabled><option value="">— Aucun —</option></select>
+              </div>
+              <div class="meta-field">
+                <label for="meta-rating" data-i18n="editor.rating">Note (0–1)</label>
+                <input type="number" id="meta-rating" min="0" max="1" step="0.05" placeholder="0.7" />
+              </div>
+              <div class="meta-field">
+                <label for="meta-releasedate" data-i18n="editor.releasedate">Date de sortie</label>
+                <input type="text" id="meta-releasedate" placeholder="19900101T000000" />
+              </div>
+              <div class="meta-field">
+                <label for="meta-developer" data-i18n="editor.developer">Développeur</label>
+                <input type="text" id="meta-developer" />
+              </div>
+              <div class="meta-field">
+                <label for="meta-publisher" data-i18n="editor.publisher">Éditeur</label>
+                <input type="text" id="meta-publisher" />
+              </div>
+              <div class="meta-field">
+                <label for="meta-family" data-i18n="editor.family">Famille</label>
+                <input type="text" id="meta-family" />
+              </div>
+              <div class="meta-field">
+                <label for="meta-players" data-i18n="editor.players">Joueurs</label>
+                <input type="text" id="meta-players" placeholder="1-2" />
+              </div>
+              <div class="meta-field meta-lang">
+                <label for="meta-lang" data-i18n="editor.lang">Langue</label>
+                <div class="lang-row">
+                  <input type="text" id="meta-lang" placeholder="fr" maxlength="4" />
+                  <span class="lang-flag" id="lang-flag" title="">
+                    <img id="lang-flag-img" class="lang-flag-img" src="" alt="" hidden />
+                    <span id="lang-flag-fallback"></span>
+                  </span>
+                </div>
+              </div>
+              <div class="meta-field">
+                <label for="meta-region" data-i18n="editor.region">Région</label>
+                <input type="text" id="meta-region" placeholder="eu" maxlength="6" />
+              </div>
+              <div class="meta-field meta-wide">
+                <label for="meta-arcadesystemname" data-i18n="editor.arcadesystemname">Système arcade</label>
+                <input type="text" id="meta-arcadesystemname" />
+              </div>
+              <div class="meta-flags meta-wide">
+                <label class="flag-toggle"><input type="checkbox" id="meta-favorite" />{{ icon("heart") }}<span data-i18n="editor.favorite">Favori</span></label>
+                <label class="flag-toggle"><input type="checkbox" id="meta-hidden" />{{ icon("eye-off") }}<span data-i18n="editor.hidden">Caché</span></label>
+                <label class="flag-toggle"><input type="checkbox" id="meta-kidgame" />{{ icon("mood-kid") }}<span data-i18n="editor.kidgame">Jeu enfant</span></label>
               </div>
             </div>
-            <div class="meta-field">
-              <label data-i18n="editor.region">Région</label>
-              <input type="text" id="meta-region" placeholder="us" maxlength="6" />
-            </div>
-            <div class="meta-field">
-              <label data-i18n="editor.arcadesystemname">Système arcade</label>
-              <input type="text" id="meta-arcadesystemname" placeholder="Capcom Play System II" />
-            </div>
-            <div class="meta-field meta-flags">
-              <label class="meta-check"><input type="checkbox" id="meta-favorite" /> <span data-i18n="editor.favorite">Favori</span></label>
-              <label class="meta-check"><input type="checkbox" id="meta-hidden" /> <span data-i18n="editor.hidden">Caché</span></label>
-              <label class="meta-check"><input type="checkbox" id="meta-kidgame" /> <span data-i18n="editor.kidgame">Jeu enfant</span></label>
-            </div>
+          </section>
+
+          <div class="insp-foot">
+            <button type="button" class="btn btn-save btn-block" id="btn-save-meta">
+              {{ icon("device-floppy") }}<span data-i18n="editor.save_meta">Enregistrer les métadonnées</span>
+            </button>
           </div>
-        </div>
+        </aside>
       </div>
     </section>
   </div>
 
-  <div class="status-bar">
-    <span id="status" data-i18n="status.ready_short">Prêt</span>
-    <span>↑↓ naviguer · Ctrl+S enregistrer · Ctrl+F rechercher · ↻ recharger</span>
-  </div>
-  <div class="toast" id="toast"></div>
+  <footer class="status-bar">
+    <span class="status-text" id="status" data-i18n="status.ready_short">Prêt</span>
+    <span class="kbd-hints">
+      <span><kbd>↑</kbd><kbd>↓</kbd> <span data-i18n="status.kbd_navigate">naviguer</span></span>
+      <span><kbd>Ctrl</kbd><kbd>S</kbd> <span data-i18n="status.kbd_save">enregistrer</span></span>
+      <span><kbd>Ctrl</kbd><kbd>F</kbd> <span data-i18n="status.kbd_search">rechercher</span></span>
+    </span>
+  </footer>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <div class="modal-overlay lightbox-overlay" id="media-lightbox" role="dialog" aria-modal="true" aria-label="Aperçu">
-    <button type="button" class="lightbox-close" id="lightbox-close" title="Fermer" data-i18n-title="zone.lightbox_close">✕</button>
+    <button type="button" class="btn btn-icon lightbox-close" id="lightbox-close" title="Fermer" data-i18n-title="zone.lightbox_close">{{ icon("x") }}</button>
     <img id="lightbox-img" alt="" />
   </div>
 
   <div class="modal-overlay" id="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
-    <div class="modal">
-      <h3 id="confirm-title">Confirmer</h3>
-      <div id="confirm-body"></div>
+    <div class="modal modal-sm">
+      <h3 class="modal-title" id="confirm-title">Confirmer</h3>
+      <div class="modal-body" id="confirm-body"></div>
       <label class="modal-backup">
-        <input type="checkbox" id="confirm-backup" checked /> <span data-i18n="confirm.backup_label"> </span><span>
-          Créer une sauvegarde <code>gamelist.xml.bak</code> avant de continuer
-          <small>Copie du XML actuel à côté du fichier (écrase l’ancien .bak s’il existe)</small>
-        </span>
+        <input type="checkbox" id="confirm-backup" checked />
+        <span data-i18n="confirm.backup_label">Créer une sauvegarde gamelist.xml.bak avant de continuer</span>
       </label>
       <div class="modal-actions">
         <button type="button" class="btn" id="confirm-cancel" data-i18n="confirm.cancel">Annuler</button>
@@ -204,17 +238,16 @@
     </div>
   </div>
 
-  
   <div class="modal-overlay" id="ss-modal" role="dialog" aria-modal="true" aria-labelledby="ss-modal-title">
     <div class="modal ss-modal">
       <div class="tools-header">
-        <h3 id="ss-modal-title" data-i18n="ss_modal.title">📡 Scraper — appliquer les champs</h3>
-        <button type="button" class="btn" id="ss-modal-close" title="Fermer">✕</button>
+        <h3 class="modal-title" id="ss-modal-title" data-i18n="ss_modal.title">Scraper — appliquer les champs</h3>
+        <button type="button" class="btn btn-icon" id="ss-modal-close" title="Fermer" data-i18n-title="tools.close">{{ icon("x") }}</button>
       </div>
       <p class="tools-intro" id="ss-modal-info" data-i18n="ss_modal.info">Choisis les champs à importer pour ce jeu.</p>
       <div class="ss-select-bar" id="ss-select-bar">
-        <button type="button" class="btn" id="ss-select-all" data-i18n="scrape.select_all">Tout sélectionner</button>
-        <button type="button" class="btn" id="ss-select-none" data-i18n="scrape.deselect_all">Tout désélectionner</button>
+        <button type="button" class="btn btn-sm" id="ss-select-all" data-i18n="scrape.select_all">Tout sélectionner</button>
+        <button type="button" class="btn btn-sm" id="ss-select-none" data-i18n="scrape.deselect_all">Tout désélectionner</button>
       </div>
       <div class="ss-candidates" id="ss-candidates" hidden></div>
       <div class="ss-fields" id="ss-fields"></div>
@@ -225,12 +258,11 @@
     </div>
   </div>
 
-
   <div class="modal-overlay" id="open-gamelist-modal" role="dialog" aria-modal="true" aria-labelledby="open-gl-title">
     <div class="modal tools-modal open-gl-modal">
       <div class="tools-header">
-        <h3 id="open-gl-title" data-i18n="open_gl.title">📂 Ouvrir un gamelist.xml</h3>
-        <button type="button" class="btn" id="open-gl-close" title="Fermer" data-i18n-title="tools.close">✕</button>
+        <h3 class="modal-title" id="open-gl-title">{{ icon("folder-open") }}<span data-i18n="open_gl.title">Ouvrir un gamelist.xml</span></h3>
+        <button type="button" class="btn btn-icon" id="open-gl-close" title="Fermer" data-i18n-title="tools.close">{{ icon("x") }}</button>
       </div>
       <p class="tools-intro" data-i18n-html="open_gl.intro">Navigue jusqu’au dossier du système, sélectionne un <code>gamelist.xml</code>, ou colle le chemin complet. Les dossiers images / videos / manuals doivent être au même niveau.</p>
       <div class="open-gl-current">
@@ -240,9 +272,9 @@
 
       <div class="open-gl-browser" id="open-gl-browser">
         <div class="open-gl-browser-bar">
-          <button type="button" class="btn open-gl-nav" id="open-gl-up" data-i18n-title="open_gl.up_title" title="Dossier parent">⬆</button>
+          <button type="button" class="btn btn-icon open-gl-nav" id="open-gl-up" data-i18n-title="open_gl.up_title" title="Dossier parent">{{ icon("arrow-up") }}</button>
           <code id="open-gl-browse-path" class="open-gl-browse-path">—</code>
-          <button type="button" class="btn open-gl-nav" id="open-gl-refresh" data-i18n-title="open_gl.refresh_title" title="Actualiser">↻</button>
+          <button type="button" class="btn btn-icon open-gl-nav" id="open-gl-refresh" data-i18n-title="open_gl.refresh_title" title="Actualiser">{{ icon("refresh") }}</button>
         </div>
         <div id="open-gl-drives" class="open-gl-drives" hidden></div>
         <div id="open-gl-listing" class="open-gl-listing" role="list"></div>
@@ -265,12 +297,11 @@
     </div>
   </div>
 
-
   <div class="modal-overlay" id="about-modal" role="dialog" aria-modal="true" aria-labelledby="about-title">
-    <div class="modal about-modal" style="max-width:720px;width:96vw;padding:0;overflow:hidden">
+    <div class="modal about-modal">
       <div class="tools-header about-modal-header">
-        <h3 id="about-title" data-i18n="about.title">À propos</h3>
-        <button type="button" class="btn" id="about-close" title="Fermer" data-i18n-title="tools.close">✕</button>
+        <h3 class="modal-title" id="about-title" data-i18n="about.title">À propos</h3>
+        <button type="button" class="btn btn-icon" id="about-close" title="Fermer" data-i18n-title="tools.close">{{ icon("x") }}</button>
       </div>
       <div class="about-body">
         <div class="about-layout">
@@ -303,7 +334,7 @@
               <dt data-i18n="about.repo">Dépôt</dt>
               <dd><a href="https://github.com/Kraran/gamelist-media-editor" target="_blank" rel="noopener">github.com/Kraran/gamelist-media-editor</a></dd>
               <dt data-i18n="about.stack">Techno</dt>
-              <dd>Python · Flask · lxml · HTML/JS</dd>
+              <dd>Python, Flask, lxml, HTML/JS</dd>
             </dl>
             <div class="about-note" data-i18n="about.note">
               Logiciel fourni « tel quel ». Aucune ROM n’est distribuée. Les scrapers accèdent
@@ -324,15 +355,15 @@
   <div class="modal-overlay" id="tools-panel" role="dialog" aria-modal="true" aria-labelledby="tools-title">
     <div class="modal tools-modal">
       <div class="tools-header">
-        <h3 id="tools-title" data-i18n="tools.title">⚙ Outils</h3>
-        <button type="button" class="btn" id="tools-close" title="Fermer" data-i18n-title="tools.close">✕</button>
+        <h3 class="modal-title" id="tools-title">{{ icon("adjustments-horizontal") }}<span data-i18n="tools.title">Outils</span></h3>
+        <button type="button" class="btn btn-icon" id="tools-close" title="Fermer" data-i18n-title="tools.close">{{ icon("x") }}</button>
       </div>
       <p class="tools-intro" data-i18n-html="tools.intro">Actions globales sur le fichier <code>gamelist.xml</code> (pas liées à un jeu précis).</p>
 
       <div class="tools-list">
-        <div class="tool-card">
-          <div class="tool-card-info" style="flex:1;width:100%">
-            <div class="tool-card-title" data-i18n="tools.lang_title">🌐 Langue de l’interface</div>
+        <div class="tool-card tool-card-form">
+          <div class="tool-card-info">
+            <div class="tool-card-title">{{ icon("language") }}<span data-i18n="tools.lang_title">Langue de l’interface</span></div>
             <div class="tool-card-desc" data-i18n="tools.lang_desc">Change la langue de l’interface. Le choix est mémorisé sur ce navigateur.</div>
             <div class="ss-form">
               <div class="ss-form-row">
@@ -354,15 +385,15 @@
                 </select>
               </div>
               <div class="ss-form-actions">
-                <button type="button" class="btn btn-accent" id="btn-lang-apply" data-i18n="tools.lang_apply">Appliquer la langue</button>
+                <button type="button" class="btn" id="btn-lang-apply" data-i18n="tools.lang_apply">Appliquer la langue</button>
               </div>
             </div>
           </div>
         </div>
 
-        <div class="tool-card tool-card-ss">
-          <div class="tool-card-info" style="flex:1;width:100%">
-            <div class="tool-card-title" data-i18n="tools.ss_title">📡 ScreenScraper</div>
+        <div class="tool-card tool-card-form tool-card-ss">
+          <div class="tool-card-info">
+            <div class="tool-card-title">{{ icon("cloud-download") }}<span data-i18n="tools.ss_title">ScreenScraper</span></div>
             <div class="tool-card-desc" data-i18n-html="tools.ss_desc">
               Le scrape fonctionne <strong>immédiatement</strong> (identifiants logiciel intégrés).
               Optionnel : ton compte <strong>membre</strong> pour le <strong>boost</strong> de quotas.
@@ -421,46 +452,45 @@
 
         <div class="tool-card">
           <div class="tool-card-info">
-            <div class="tool-card-title" data-i18n="tools.arcade_sys_title">Remplir les systèmes arcade</div>
+            <div class="tool-card-title">{{ icon("cpu") }}<span data-i18n="tools.arcade_sys_title">Remplir les systèmes arcade</span></div>
             <div class="tool-card-desc" data-i18n-html="tools.arcade_sys_desc">
               Lit un dump MAME <code>mame.xml</code> (<code>mame.exe -listxml</code>)
               et écrit <code>&lt;arcadesystemname&gt;</code> (CPS2, Neo-Geo…).
             </div>
           </div>
-          <button type="button" class="btn btn-accent" id="btn-fill-arcade" data-i18n="tools.arcade_sys_btn">Remplir depuis MAME</button>
+          <button type="button" class="btn" id="btn-fill-arcade" data-i18n="tools.arcade_sys_btn">Remplir depuis MAME</button>
         </div>
 
         <div class="tool-card">
           <div class="tool-card-info">
-            <div class="tool-card-title" data-i18n="tools.backup_title">Sauvegarder le gamelist.xml</div>
+            <div class="tool-card-title">{{ icon("device-floppy") }}<span data-i18n="tools.backup_title">Sauvegarder le gamelist.xml</span></div>
             <div class="tool-card-desc" data-i18n-html="tools.backup_desc">
               Crée une copie <code>gamelist.xml.bak</code> à côté du fichier courant.
               Écrase l’ancien <code>.bak</code> s’il existe.
             </div>
           </div>
-          <button type="button" class="btn btn-accent" id="btn-manual-backup" data-i18n="tools.backup_btn">Sauvegarder (.bak)</button>
+          <button type="button" class="btn" id="btn-manual-backup" data-i18n="tools.backup_btn">Sauvegarder (.bak)</button>
         </div>
 
         <div class="tool-card tool-card-danger">
           <div class="tool-card-info">
-            <div class="tool-card-title" data-i18n="tools.purge_title">Supprimer toutes les balises &lt;region&gt;</div>
+            <div class="tool-card-title">{{ icon("eraser") }}<span data-i18n="tools.purge_title">Supprimer toutes les balises &lt;region&gt;</span></div>
             <div class="tool-card-desc" data-i18n-html="tools.purge_desc">
               Retire toutes les lignes <code>&lt;region&gt;…&lt;/region&gt;</code> de
               <strong>tous</strong> les jeux. Confirmation demandée (sauvegarde .bak optionnelle).
             </div>
           </div>
-          <button type="button" class="btn btn-danger" id="btn-purge-regions" data-i18n="tools.purge_btn">Supprimer les &lt;region&gt;</button>
+          <button type="button" class="btn btn-ghost-danger" id="btn-purge-regions" data-i18n="tools.purge_btn">Supprimer les &lt;region&gt;</button>
         </div>
       </div>
 
       <div class="tools-footer">
-        <span class="tools-hint" data-i18n="tools.hints">Raccourcis : ↑↓ naviguer · Ctrl+S enregistrer · Ctrl+F rechercher</span>
+        <span class="tools-hint" data-i18n="tools.hints">Raccourcis : ↑↓ naviguer, Ctrl+S enregistrer, Ctrl+F rechercher</span>
         <button type="button" class="btn" id="tools-close-2" data-i18n="tools.close">Fermer</button>
       </div>
     </div>
   </div>
 
-  <script src="/static/app.js"></script>
   <div id="ss-loading" class="ss-loading" hidden aria-live="polite" aria-busy="true">
     <div class="ss-loading-box">
       <div class="ss-spinner" aria-hidden="true"></div>
@@ -469,5 +499,6 @@
     </div>
   </div>
 
+  <script src="/static/app.js"></script>
 </body>
 </html>
