@@ -2,6 +2,7 @@
 
 Run with:  python -m pytest -m e2e
 Needs:     pip install -r requirements-dev.txt && python -m playwright install chromium
+Slow machine simulation (flakiness hunt): GME_CPU_THROTTLE=6 python -m pytest -m e2e
 """
 import os
 import threading
@@ -59,11 +60,17 @@ def page(browser, server, gamelist):
     ctx = browser.new_context(viewport={"width": 1440, "height": 900})
     ctx.route("https://flagcdn.com/**", lambda r: r.abort())  # no network in tests
     pg = ctx.new_page()
+    if os.environ.get("GME_CPU_THROTTLE"):
+        cdp = ctx.new_cdp_session(pg)
+        cdp.send("Emulation.setCPUThrottlingRate", {"rate": float(os.environ["GME_CPU_THROTTLE"])})
     errors = []
     pg.on("pageerror", lambda e: errors.append(str(e)))
     pg.goto(server + "/")
     pg.wait_for_selector("#game-list >> text=Charlie")
     pg.wait_for_function("document.getElementById('meta-genre-main').options.length > 1")  # genres.json loaded
+    # Embedded fonts swap in after load and change line heights: wait for them so a
+    # click never lands on a row that is still moving.
+    pg.evaluate("document.fonts.ready.then(() => document.fonts.status)")
     pg.evaluate("localStorage.setItem('gme_locale', 'fr')")
     yield pg
     ctx.close()
