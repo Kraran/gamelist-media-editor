@@ -28,6 +28,7 @@ All notable changes to Gamelist Media Editor are documented in this file.
 - Repository cleanup: `PUBLISH_v1.1.3.bat` (one-off publish script), `generate_icons.py` with `icon_data/` and `icons_*.json` (base64 copies of icons already in `static/`), unused root `icon.png`
 
 ### Fixed
+- **`gamelist.xml` could be seen empty, or lost, during a save**: the file was truncated then rewritten, so a program reading it at that moment (EmulationStation, another editor) got an empty file, and a crash or power cut mid-write destroyed it. Saves now write a temporary file next to it and swap it in atomically; `screenscraper_config.json` too. On Windows, if another program holds the file open, the save retries briefly then writes in place as before
 - Metadata labels were hard-coded in English or French ("Releasedate", "Developer", "Genre principal"…): they now follow the interface language
 - The backup checkbox of confirmation dialogs showed its French text twice
 - **Saving metadata erased the genre** when it was not in the built-in French list (e.g. `Platform` from ScreenScraper EN or another scraper). Such a genre is now shown and kept as-is
