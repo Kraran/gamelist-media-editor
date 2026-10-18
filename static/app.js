@@ -6,17 +6,22 @@
  * State: `games` (sorted list from XML), `currentIndex` (XML index), `currentListIndex` (filtered list).
  * No gamelist at start: setNoGamelistUi(false) + openGamelistModal() from boot().
  */
+/** SVG icon from the embedded sprite (templates/_icons.svg, Tabler Icons). */
+function icon(name, cls = "") {
+  return `<svg class="icon${cls ? " " + cls : ""}" aria-hidden="true" focusable="false"><use href="#i-${name}"></use></svg>`;
+}
+
 const FIELD_DEFS = [
-{ key: "image",     icon: "🖼️" },
-{ key: "video",     icon: "🎬" },
-{ key: "marquee",   icon: "🏷️" },
-{ key: "manual",    icon: "📖" },
-{ key: "boxart",    icon: "🗃️" },
-{ key: "boxback",   icon: "📦" },
-{ key: "cartridge", icon: "💾" },
-{ key: "fanart",    icon: "🌄" },
-{ key: "mix",       icon: "🎨" },
-{ key: "map",       icon: "🗺️" },
+{ key: "image",     icon: "photo" },
+{ key: "video",     icon: "movie" },
+{ key: "marquee",   icon: "tag" },
+{ key: "manual",    icon: "book" },
+{ key: "boxart",    icon: "box" },
+{ key: "boxback",   icon: "flip-horizontal" },
+{ key: "cartridge", icon: "device-sd-card" },
+{ key: "fanart",    icon: "wallpaper" },
+{ key: "mix",       icon: "layout-collage" },
+{ key: "map",       icon: "map" },
 ];
 function getFields() {
   return FIELD_DEFS.map(f => ({
@@ -172,7 +177,7 @@ function wireLanguageControls() {
   }
 }
 
-const SPECIAL_FLAGS = { wr: "🌍", world: "🌍", multi: "🌐", unk: "🏳️", xx: "🏳️" };
+const SPECIAL_FLAGS = { wr: "world", world: "world", multi: "language", unk: "", xx: "" };
 const LANG_TO_FLAGCDN = { en: "gb", jp: "jp", ja: "jp", ko: "kr", zh: "cn", cn: "cn", us: "us", br: "br", eu: "eu" };
 let GENRES = {};
 /**
@@ -194,7 +199,8 @@ let _toastTimer = null;
 function toast(msg, type = "success") {
   const el = document.getElementById("toast");
   if (!el) return;
-  el.textContent = String(msg || "");
+  const ico = { error: "alert-circle", warning: "alert-triangle", info: "info-circle" }[type] || "circle-check";
+  el.innerHTML = icon(ico) + `<span>${escapeHtml(String(msg || ""))}</span>`;
   el.className = "toast " + type + " show";
   if (_toastTimer) clearTimeout(_toastTimer);
   const ms = type === "error" ? 6500 : type === "warning" ? 4500 : 3200;
@@ -815,17 +821,11 @@ function updateLangFlag(code) {
   const fallback = document.getElementById("lang-flag-fallback");
   const container = document.getElementById("lang-flag");
   container.title = key ? key.toUpperCase() : "";
-  if (SPECIAL_FLAGS[key]) {
+  if (!key || key in SPECIAL_FLAGS) {
     img.hidden = true;
     img.removeAttribute("src");
     fallback.hidden = false;
-    fallback.textContent = SPECIAL_FLAGS[key];
-    return;
-  }
-  if (!key) {
-    img.hidden = true;
-    fallback.hidden = false;
-    fallback.textContent = "🌐";
+    fallback.innerHTML = SPECIAL_FLAGS[key] ? icon(SPECIAL_FLAGS[key]) : "";
     return;
   }
   const flagCode = LANG_TO_FLAGCDN[key] || key;
@@ -833,7 +833,7 @@ function updateLangFlag(code) {
   img.onerror = () => {
     img.hidden = true;
     fallback.hidden = false;
-    fallback.textContent = "🏳️";
+    fallback.textContent = "";
   };
   img.src = `https://flagcdn.com/24x18/${flagCode}.png`;
   img.alt = key.toUpperCase();
@@ -852,20 +852,20 @@ const url = mediaUrl(g[f.key]);
 if (f.key === "video") {
 previewHtml = `<video class="preview-video" src="${url}" controls muted></video>`;
 } else if (f.key === "manual") {
-previewHtml = `<div class="placeholder"><div class="big">📄</div><div>${t("zone.manual_pdf")}</div><a class="manual-link" href="${url}" target="_blank" rel="noopener">${t("zone.open")}</a></div>`;
+previewHtml = `<div class="placeholder"><div class="big">${icon("file-text")}</div><div>${t("zone.manual_pdf")}</div><a class="manual-link" href="${url}" target="_blank" rel="noopener">${t("zone.open")}</a></div>`;
 } else {
-previewHtml = `<img class="zoomable" src="${url}" alt="${f.label}" title="${t("zone.zoom_title")}" onerror="this.parentElement.innerHTML='<div class=\'placeholder\'><div class=\'big\'>⚠️</div>${t("zone.preview_unavailable")}</div>'" />`;
+previewHtml = `<img class="zoomable" src="${url}" alt="${escapeHtml(f.label)}" title="${t("zone.zoom_title")}" />`;
 }
 } else {
-previewHtml = `<div class="placeholder"><div class="big">${f.icon}</div><div>${t("zone.drop")}</div></div>`;
+previewHtml = `<div class="placeholder"><div class="big">${icon(f.icon)}</div><div>${t("zone.drop")}</div></div>`;
 }
 zone.innerHTML = `
 <div class="zone-header">
-<div class="zone-title"><span class="icon">${f.icon}</span> ${f.label}</div>
-<div class="zone-actions">${has ? `<button class="btn btn-danger" data-action="clear" title="${t("zone.clear_title")}">✕</button>` : ""}</div>
+<div class="zone-title">${icon(f.icon)}<span>${escapeHtml(f.label)}</span></div>
+<div class="zone-actions">${has ? `<button type="button" class="btn btn-icon" data-action="clear" title="${t("zone.clear_title")}" aria-label="${t("zone.clear_title")}">${icon("trash")}</button>` : ""}</div>
 </div>
 <div class="preview-area">${previewHtml}</div>
-${has ? `<div class="path-display">${escapeHtml(g[f.key])}</div>` : ""}
+${has ? `<div class="path-display" title="${escapeHtml(g[f.key])}">${escapeHtml(g[f.key])}</div>` : ""}
 `;
 zone.addEventListener("dragover", e => { e.preventDefault(); e.stopPropagation(); e.currentTarget.classList.add("drag-over"); });
 zone.addEventListener("dragleave", e => { e.preventDefault(); e.currentTarget.classList.remove("drag-over"); });
@@ -874,6 +874,10 @@ const clearBtn = zone.querySelector('[data-action="clear"]');
 if (clearBtn) clearBtn.addEventListener("click", e => { e.stopPropagation(); clearField(f.key); });
 const zoomImg = zone.querySelector("img.zoomable");
 if (zoomImg) {
+  zoomImg.addEventListener("error", () => {
+    zoomImg.parentElement.innerHTML =
+      `<div class="placeholder"><div class="big">${icon("alert-triangle")}</div><div>${t("zone.preview_unavailable")}</div></div>`;
+  });
   zoomImg.addEventListener("click", e => {
     e.preventDefault();
     e.stopPropagation();
@@ -932,6 +936,7 @@ async function clearField(field) {
     title: t("confirm.clear_field_title", { field }),
     bodyHtml: t("confirm.clear_field_body"),
     showBackup: false,
+    okLabel: t("zone.clear_title"),
   });
   if (!choice.confirmed) return;
   try {
@@ -1253,6 +1258,7 @@ document.getElementById("btn-quit").addEventListener("click", async () => {
     title: t("confirm.quit_title"),
     bodyHtml: t("confirm.quit_body"),
     showBackup: false,
+    okLabel: t("confirm.quit_ok"),
   });
   if (!choice.confirmed) return;
 
@@ -1263,9 +1269,11 @@ document.getElementById("btn-quit").addEventListener("click", async () => {
     // Server may die before the response — expected
   }
 
+  const sprite = document.querySelector(".icon-sprite");
   document.body.innerHTML =
+    (sprite ? sprite.outerHTML : "") +
     '<div class="shutdown-screen">' +
-    '<div class="shutdown-emoji">👋</div>' +
+    '<div class="shutdown-emoji">' + icon("power") + '</div>' +
     '<div class="shutdown-title">' + t("status.shutdown_title") + '</div>' +
     '<div class="shutdown-msg">' + t("status.shutdown_msg") + "</div></div>";
 
@@ -1298,6 +1306,8 @@ document.getElementById("btn-fill-arcade")?.addEventListener("click", async () =
   const choice = await askConfirm({
     title: t("confirm.arcade_sys_title"),
     bodyHtml: t("confirm.arcade_sys_body"),
+    okLabel: t("tools.arcade_sys_btn"),
+    okClass: "btn-accent",
   });
   if (!choice.confirmed) return;
   setStatus(t("status.filling_arcade"));
@@ -1323,6 +1333,7 @@ document.getElementById("btn-purge-regions").addEventListener("click", async () 
   const choice = await askConfirm({
     title: t("confirm.purge_title"),
     bodyHtml: t("confirm.purge_body"),
+    okLabel: t("confirm.purge_ok"),
   });
   if (!choice.confirmed) return;
 
@@ -1347,6 +1358,7 @@ document.getElementById("btn-delete-game").addEventListener("click", async () =>
   const choice = await askConfirm({
     title: t("confirm.delete_title", { name }),
     bodyHtml: t("confirm.delete_body"),
+    okLabel: t("confirm.delete_ok"),
   });
   if (!choice.confirmed) return;
 
@@ -1462,15 +1474,15 @@ async function browseDirectory(path) {
     for (const d of dirs) {
       parts.push(
         `<button type="button" class="open-gl-item open-gl-dir" role="listitem" data-path="${escapeHtml(d.path)}">` +
-          `<span class="open-gl-item-icon">📁</span><span>${escapeHtml(d.name)}</span></button>`
+          `<span class="open-gl-item-icon">${icon("folder")}</span><span>${escapeHtml(d.name)}</span></button>`
       );
     }
     for (const f of files) {
       const cls = f.is_gamelist ? "open-gl-item open-gl-file is-gamelist" : "open-gl-item open-gl-file";
-      const icon = f.is_gamelist ? "🎮" : "📄";
+      const fileIcon = icon(f.is_gamelist ? "device-gamepad-2" : "file");
       parts.push(
         `<button type="button" class="${cls}" role="listitem" data-path="${escapeHtml(f.path)}">` +
-          `<span class="open-gl-item-icon">${icon}</span><span>${escapeHtml(f.name)}</span></button>`
+          `<span class="open-gl-item-icon">${fileIcon}</span><span>${escapeHtml(f.name)}</span></button>`
       );
     }
     listing.innerHTML = parts.join("");
@@ -1779,7 +1791,7 @@ async function testSsConfig() {
     st.className = "ss-status ok";
     toast(msg);
   } catch (e) {
-    st.textContent = "✗ " + e.message;
+    st.textContent = e.message;
     st.className = "ss-status err";
     toast("ScreenScraper : " + e.message, "error");
   } finally {

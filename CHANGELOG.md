@@ -5,6 +5,10 @@ All notable changes to Gamelist Media Editor are documented in this file.
 ## [Unreleased]
 
 ### Added
+- **New interface foundation** (dark theme): three areas (game list, media, description and metadata side panel), design tokens in `static/style.css` ready for a light theme, embedded SVG icons (Tabler) instead of emoji, embedded fonts (IBM Plex Sans with Cyrillic, Saira Condensed for titles) so the UI works offline
+- Save buttons stay quiet and turn violet only when that part has unsaved changes; confirmation buttons name the action ("Delete", "Quit"…)
+- Keyboard shortcuts shown in the status bar, translated
+- Screenshot in the README; guard tests for icons, fonts and emoji
 - **Unsaved changes are protected**: switching game, reloading, opening another gamelist, scraping or quitting with unsaved edits asks *Save / Don't save / Cancel*; closing the window asks too. Save buttons with pending changes are highlighted and the status bar lists the changed fields
 - Browser tests (Playwright + Chromium, `python -m pytest -m e2e`), run by the CI
 - `--no-browser` command-line option: start the server without opening a window
@@ -14,6 +18,8 @@ All notable changes to Gamelist Media Editor are documented in this file.
 - GitHub Actions CI: tests on Windows and Linux, Python 3.9 and 3.13, plus `app.js` syntax check
 
 ### Changed
+- "Delete this game" moved from the app bar to the game header; the window adapts below 1280 px (icon-only bar buttons) and 1100 px (metadata under the media)
+- Text, field outlines and focus rings meet WCAG AA contrast
 - `app.py` (3,850 lines) split into the `gme/` package: `editor`, `scrapers/ss|adb|steam|common`, `xml_store`, `media`, `systems`, `arcade`, `security`, `i18n`, `window`, `server`, `main`… Code moved verbatim (152 of 161 definitions identical by AST comparison, the 9 others are the intended edits), Flask blueprints per area, no behaviour change; `app.py` stays the entry point (`python app.py`, `Lancer.bat`, PyInstaller)
 - README rewritten for the current version: removed the obsolete Setup installer (v1.1.3) and the duplicated "Option B", added Steam, Pillow, safety notes and a Development section
 - Release notes moved from the repository root to `docs/release-notes/`
@@ -22,6 +28,8 @@ All notable changes to Gamelist Media Editor are documented in this file.
 - Repository cleanup: `PUBLISH_v1.1.3.bat` (one-off publish script), `generate_icons.py` with `icon_data/` and `icons_*.json` (base64 copies of icons already in `static/`), unused root `icon.png`
 
 ### Fixed
+- Metadata labels were hard-coded in English or French ("Releasedate", "Developer", "Genre principal"…): they now follow the interface language
+- The backup checkbox of confirmation dialogs showed its French text twice
 - **Saving metadata erased the genre** when it was not in the built-in French list (e.g. `Platform` from ScreenScraper EN or another scraper). Such a genre is now shown and kept as-is
 - Saving now sends only the fields you changed: an untouched field (genre, `kidgame` = `1`, `lang` = `en,fr`…) is never rewritten
 - Escape now closes the "Open gamelist" dialog

@@ -6,6 +6,8 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
 
 **Version 1.3.0** · [Documentation (Wiki)](https://github.com/Kraran/gamelist-media-editor/wiki) · [Releases](https://github.com/Kraran/gamelist-media-editor/releases) · [Changelog](CHANGELOG.md)
 
+![The editor: game list, media of the selected game, description and metadata](docs/screenshots/editor.png)
+
 ---
 
 ## Features
@@ -120,6 +122,13 @@ Code layout (`app.py` is only the entry point; the overview is in `gme/__init__.
 - `python app.py --no-browser [gamelist.xml]` starts the server without opening a window
 - GitHub Actions runs the tests on Windows and Linux (Python 3.9 and 3.13), the browser tests in Chromium, and builds the Windows `.exe`, starts it and queries it, for every push and pull request (the `.exe` is downloadable from the run for 14 days)
 - Windows executable locally: `BUILD_EXE.bat` (PyInstaller, output in `dist/`)
+
+Interface:
+
+- Layout: game list (left), media of the selected game (center), description and metadata (right); below 1100 px wide the metadata moves under the media
+- Design tokens (colors, type, spacing) are CSS variables at the top of `static/style.css`; dark is the default theme, a light theme only needs a `[data-theme="light"]` block redefining the color tokens
+- Icons come from `templates/_icons.svg` (Tabler Icons, MIT): use `icon("name")` in `app.js` or `{{ icon("name") }}` in the template; to add one, copy its `<symbol>` from the Tabler outline set
+- Fonts are embedded in `static/fonts/` (IBM Plex Sans for the interface, Saira Condensed for titles; SIL OFL): the app works offline. Third-party licenses: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
 - Changes are listed in [CHANGELOG.md](CHANGELOG.md); past release notes are in [docs/release-notes](docs/release-notes/)
 
 ---
