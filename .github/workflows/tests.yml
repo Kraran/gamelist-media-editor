@@ -60,7 +60,14 @@ jobs:
           python -m playwright install --with-deps chromium
 
       - name: Run browser tests
-        run: python -m pytest -m e2e -q
+        shell: bash
+        run: |
+          set -o pipefail
+          python -m pytest -m e2e -q -rf -p no:logging 2>&1 | tee e2e.log || {
+            # Logs are not always reachable: surface failures as annotations
+            grep -E "^(FAILED|ERROR)|^E  " e2e.log | head -40 | sed 's/^/::error::/'
+            exit 1
+          }
 
   frontend:
     name: app.js syntax
