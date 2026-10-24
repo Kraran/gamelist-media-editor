@@ -4,6 +4,9 @@ All notable changes to Gamelist Media Editor are documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+- **Recent gamelists** (Open gamelist dialog): clicking a recent file only copied its path into the field, and long paths were cut at the end, so several recent files looked identical. A click now opens the file; each entry shows its system folder first and its path cut at the start; the file already open is not listed; a recent file that no longer exists is removed when you try to open it, and any entry can be removed (×)
+
 ## [1.4.0] - 2026-10-24
 
 New interface (dark theme), one Scrape button with a comparison before applying, much faster with large gamelists, safety fixes. Release notes: [docs/release-notes/RELEASE_NOTES_v1.4.0.md](docs/release-notes/RELEASE_NOTES_v1.4.0.md).

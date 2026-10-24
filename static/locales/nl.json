@@ -399,7 +399,8 @@
     "refresh_title": "Vernieuwen",
     "loading": "Laden…",
     "empty_folder": "Geen mappen of .xml-bestanden hier.",
-    "browse_error": "Kan deze map niet weergeven."
+    "browse_error": "Kan deze map niet weergeven.",
+    "recent_forget": "Uit de lijst verwijderen"
   },
   "about": {
     "open_title": "Over",

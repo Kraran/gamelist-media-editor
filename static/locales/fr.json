@@ -399,7 +399,8 @@
     "refresh_title": "Actualiser",
     "loading": "Chargement…",
     "empty_folder": "Aucun dossier ni fichier .xml ici.",
-    "browse_error": "Impossible de lister ce dossier."
+    "browse_error": "Impossible de lister ce dossier.",
+    "recent_forget": "Retirer de la liste"
   },
   "about": {
     "open_title": "À propos",

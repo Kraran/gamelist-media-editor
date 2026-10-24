@@ -399,7 +399,8 @@
     "refresh_title": "Uppdatera",
     "loading": "Laddar…",
     "empty_folder": "Inga mappar eller .xml-filer här.",
-    "browse_error": "Kunde inte lista den här mappen."
+    "browse_error": "Kunde inte lista den här mappen.",
+    "recent_forget": "Ta bort från listan"
   },
   "about": {
     "open_title": "Om",

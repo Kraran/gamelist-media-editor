@@ -399,7 +399,8 @@
     "refresh_title": "Actualizar",
     "loading": "Cargando…",
     "empty_folder": "No hay carpetas ni archivos .xml aquí.",
-    "browse_error": "No se pudo listar esta carpeta."
+    "browse_error": "No se pudo listar esta carpeta.",
+    "recent_forget": "Quitar de la lista"
   },
   "about": {
     "open_title": "Acerca de",

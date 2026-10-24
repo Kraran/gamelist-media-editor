@@ -399,7 +399,8 @@
     "refresh_title": "Refresh",
     "loading": "Loading…",
     "empty_folder": "No folders or .xml files here.",
-    "browse_error": "Could not list this folder."
+    "browse_error": "Could not list this folder.",
+    "recent_forget": "Remove from the list"
   },
   "about": {
     "open_title": "About",

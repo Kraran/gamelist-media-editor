@@ -1860,6 +1860,12 @@ document.getElementById("btn-delete-game").addEventListener("click", async () =>
 const RECENT_GL_KEY = "gme_recent_gamelists";
 const RECENT_GL_MAX = 8;
 
+/* Recent files: one click opens. The system folder (parent of gamelist.xml)
+ * comes first, because long paths only differ at their end. */
+function recentKey(path) {
+  // Windows paths: same file whatever the case or the slashes
+  return /^[a-zA-Z]:[\\/]|\\/.test(path) ? path.replace(/\//g, "\\").toLowerCase() : path;
+}
 function getRecentGamelists() {
   try {
     const raw = localStorage.getItem(RECENT_GL_KEY);
@@ -1869,34 +1875,52 @@ function getRecentGamelists() {
     return [];
   }
 }
-
+function saveRecentGamelists(list) {
+  try { localStorage.setItem(RECENT_GL_KEY, JSON.stringify(list.slice(0, RECENT_GL_MAX))); } catch (_) {}
+}
 function pushRecentGamelist(path) {
   if (!path) return;
-  const list = getRecentGamelists().filter((p) => p !== path);
-  list.unshift(path);
-  localStorage.setItem(RECENT_GL_KEY, JSON.stringify(list.slice(0, RECENT_GL_MAX)));
+  const key = recentKey(path);
+  saveRecentGamelists([path, ...getRecentGamelists().filter((p) => recentKey(p) !== key)]);
+}
+function forgetRecentGamelist(path) {
+  const key = recentKey(path);
+  saveRecentGamelists(getRecentGamelists().filter((p) => recentKey(p) !== key));
 }
 
 function renderRecentGamelists() {
   const box = document.getElementById("open-gl-recent");
   if (!box) return;
-  const list = getRecentGamelists();
+  const current = window.__gmeXmlPath ? recentKey(window.__gmeXmlPath) : null;
+  const list = getRecentGamelists().filter((p) => recentKey(p) !== current);
   if (!list.length) {
     box.innerHTML = `<div class="open-gl-recent-empty">${escapeHtml(t("open_gl.recent_empty"))}</div>`;
     return;
   }
-  box.innerHTML = list
-    .map(
-      (p) =>
-        `<button type="button" class="open-gl-recent-item" role="listitem" data-path="${escapeHtml(p)}">${escapeHtml(p)}</button>`
-    )
-    .join("");
-  box.querySelectorAll(".open-gl-recent-item").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      document.getElementById("open-gl-path").value = btn.getAttribute("data-path") || "";
-    });
-  });
+  box.innerHTML = list.map((p) => {
+    const parts = p.split(/[\\/]/).filter(Boolean);
+    const folder = parts.length > 1 ? parts[parts.length - 2] : p;
+    return `<div class="open-gl-recent-row" role="listitem">` +
+      `<button type="button" class="open-gl-recent-item" data-path="${escapeHtml(p)}" title="${escapeHtml(p)}">` +
+      `${icon("device-gamepad-2")}<span class="open-gl-recent-name">${escapeHtml(folder)}</span>` +
+      `<span class="open-gl-recent-path">\u200e${escapeHtml(p)}\u200e</span></button>` +
+      `<button type="button" class="btn btn-icon btn-sm open-gl-recent-forget" data-path="${escapeHtml(p)}"` +
+      ` title="${escapeHtml(t("open_gl.recent_forget"))}" aria-label="${escapeHtml(t("open_gl.recent_forget"))}">${icon("x")}</button>` +
+      `</div>`;
+  }).join("");
 }
+document.getElementById("open-gl-recent").addEventListener("click", (e) => {
+  const forget = e.target.closest(".open-gl-recent-forget");
+  if (forget) {
+    forgetRecentGamelist(forget.dataset.path);
+    renderRecentGamelists();
+    return;
+  }
+  const item = e.target.closest(".open-gl-recent-item");
+  if (!item) return;
+  document.getElementById("open-gl-path").value = item.dataset.path || "";
+  applyOpenGamelist();
+});
 
 let __browsePath = null;
 let __browseParent = null;
@@ -2043,6 +2067,11 @@ async function applyOpenGamelist() {
     toast(t("toast.gamelist_opened", { name: label, n: data.count != null ? data.count : games.length }));
     setStatus(t("status.ready", { n: games.length }));
   } catch (e) {
+    // A recent file that was moved or deleted: drop it from the list
+    if (e && e.code === "open_not_found") {
+      forgetRecentGamelist(path);
+      renderRecentGamelists();
+    }
     handleError(e);
   }
 }
