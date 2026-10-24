@@ -87,11 +87,8 @@
       <div id="editor" class="editor" hidden>
         <div class="stage">
           <div class="game-header">
-            <div class="title-row">
+            <div class="title-row" id="title-row">
               <input type="text" id="game-name-input" class="game-title" spellcheck="false" data-i18n-aria="scrape.field_name" aria-label="Nom" />
-              <button type="button" class="btn btn-save" id="btn-save-name">
-                {{ icon("device-floppy") }}<span data-i18n="editor.save_name">Enregistrer</span>
-              </button>
             </div>
             <p class="game-path" id="game-path">—</p>
             <div class="game-header-actions">
@@ -113,15 +110,18 @@
           </div>
 
           <div class="media-grid" id="media-grid"></div>
+          <section class="media-missing" id="media-missing" hidden>
+            <h2 class="media-missing-title" data-i18n="editor.missing_title">Médias manquants</h2>
+            <div class="missing-chips" id="missing-chips"></div>
+            <p class="media-missing-hint" data-i18n="editor.missing_hint">Glisse un fichier ou une image du web sur un emplacement, ou clique dessus pour choisir un fichier.</p>
+          </section>
+          <input type="file" id="media-file-input" hidden />
         </div>
 
         <aside class="inspector">
           <section class="insp-block" id="desc-editor">
             <div class="insp-head">
               <h2 class="insp-title">{{ icon("align-left") }}<span data-i18n="editor.desc_title">Description</span></h2>
-              <button type="button" class="btn btn-save btn-sm" id="btn-save-desc">
-                {{ icon("device-floppy") }}<span data-i18n="editor.save_name">Enregistrer</span>
-              </button>
             </div>
             <textarea id="desc-textarea" placeholder="Description du jeu…" data-i18n-placeholder="editor.desc_placeholder" data-i18n-aria="editor.desc_title" spellcheck="true"></textarea>
           </section>
@@ -140,46 +140,51 @@
                 <select id="meta-genre-sub" disabled><option value="">— Aucun —</option></select>
               </div>
               <div class="meta-field">
-                <label for="meta-rating" data-i18n="editor.rating">Note (0–1)</label>
-                <input type="number" id="meta-rating" min="0" max="1" step="0.05" placeholder="0.7" />
+                <label id="rating-label" data-i18n="scrape.field_rating">Note</label>
+                <div class="rating-row">
+                  <div class="stars" id="rating-stars" role="slider" tabindex="0" aria-labelledby="rating-label"
+                       aria-valuemin="0" aria-valuemax="5" aria-valuenow="0">
+                    <span class="stars-base">{{ icon("star") }}{{ icon("star") }}{{ icon("star") }}{{ icon("star") }}{{ icon("star") }}</span>
+                    <span class="stars-fill" id="rating-fill">{{ icon("star") }}{{ icon("star") }}{{ icon("star") }}{{ icon("star") }}{{ icon("star") }}</span>
+                  </div>
+                  <span class="rating-value" id="rating-value"></span>
+                  <button type="button" class="btn btn-icon btn-sm rating-clear" id="rating-clear" data-i18n-title="editor.rating_clear" title="Effacer la note">{{ icon("x") }}</button>
+                </div>
+                <input type="hidden" id="meta-rating" />
               </div>
               <div class="meta-field">
-                <label for="meta-releasedate" data-i18n="editor.releasedate">Date de sortie</label>
-                <input type="text" id="meta-releasedate" placeholder="19900101T000000" />
+                <label for="meta-releasedate-input" data-i18n="editor.releasedate">Date de sortie</label>
+                <input type="date" id="meta-releasedate-input" min="1950-01-01" max="2100-12-31" />
+                <input type="hidden" id="meta-releasedate" />
+                <small class="field-hint" id="releasedate-raw" hidden></small>
               </div>
               <div class="meta-field">
                 <label for="meta-developer" data-i18n="editor.developer">Développeur</label>
-                <input type="text" id="meta-developer" />
+                <input type="text" id="meta-developer" list="dl-developer" autocomplete="off" />
               </div>
               <div class="meta-field">
                 <label for="meta-publisher" data-i18n="editor.publisher">Éditeur</label>
-                <input type="text" id="meta-publisher" />
+                <input type="text" id="meta-publisher" list="dl-publisher" autocomplete="off" />
               </div>
               <div class="meta-field">
                 <label for="meta-family" data-i18n="editor.family">Famille</label>
-                <input type="text" id="meta-family" />
+                <input type="text" id="meta-family" list="dl-family" autocomplete="off" />
               </div>
               <div class="meta-field">
                 <label for="meta-players" data-i18n="editor.players">Joueurs</label>
-                <input type="text" id="meta-players" placeholder="1-2" />
+                <input type="text" id="meta-players" list="dl-players" autocomplete="off" />
               </div>
-              <div class="meta-field meta-lang">
+              <div class="meta-field">
                 <label for="meta-lang" data-i18n="editor.lang">Langue</label>
-                <div class="lang-row">
-                  <input type="text" id="meta-lang" placeholder="fr" maxlength="4" />
-                  <span class="lang-flag" id="lang-flag" title="">
-                    <img id="lang-flag-img" class="lang-flag-img" src="" alt="" hidden />
-                    <span id="lang-flag-fallback"></span>
-                  </span>
-                </div>
+                <select id="meta-lang"></select>
               </div>
               <div class="meta-field">
                 <label for="meta-region" data-i18n="editor.region">Région</label>
-                <input type="text" id="meta-region" placeholder="eu" maxlength="6" />
+                <select id="meta-region"></select>
               </div>
               <div class="meta-field meta-wide">
                 <label for="meta-arcadesystemname" data-i18n="editor.arcadesystemname">Système arcade</label>
-                <input type="text" id="meta-arcadesystemname" />
+                <input type="text" id="meta-arcadesystemname" list="dl-arcadesystemname" autocomplete="off" />
               </div>
               <div class="meta-flags meta-wide">
                 <label class="flag-toggle"><input type="checkbox" id="meta-favorite" />{{ icon("heart") }}<span data-i18n="editor.favorite">Favori</span></label>
@@ -187,14 +192,24 @@
                 <label class="flag-toggle"><input type="checkbox" id="meta-kidgame" />{{ icon("mood-kid") }}<span data-i18n="editor.kidgame">Jeu enfant</span></label>
               </div>
             </div>
+            <datalist id="dl-developer"></datalist>
+            <datalist id="dl-publisher"></datalist>
+            <datalist id="dl-family"></datalist>
+            <datalist id="dl-players"></datalist>
+            <datalist id="dl-arcadesystemname"></datalist>
           </section>
-
-          <div class="insp-foot">
-            <button type="button" class="btn btn-save btn-block" id="btn-save-meta">
-              {{ icon("device-floppy") }}<span data-i18n="editor.save_meta">Enregistrer les métadonnées</span>
-            </button>
-          </div>
         </aside>
+
+        <div class="save-bar" id="save-bar" hidden role="region" aria-live="polite" data-i18n-aria="editor.save">
+          <span class="save-bar-dot" aria-hidden="true"></span>
+          <span class="save-bar-text" id="save-bar-text"></span>
+          <button type="button" class="btn btn-ghost" id="btn-revert">
+            {{ icon("arrow-back-up") }}<span data-i18n="editor.revert">Annuler les modifications</span>
+          </button>
+          <button type="button" class="btn btn-accent" id="btn-save">
+            {{ icon("device-floppy") }}<span data-i18n="editor.save">Enregistrer</span><kbd>Ctrl</kbd><kbd>S</kbd>
+          </button>
+        </div>
       </div>
     </section>
   </div>

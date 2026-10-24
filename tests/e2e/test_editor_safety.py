@@ -30,7 +30,7 @@ def test_unknown_genre_is_shown_and_kept(page, gamelist):
     select(page, "Alpha")
     assert page.input_value("#meta-genre-main") == "Platform"
     page.fill("#meta-players", "1-4")
-    page.click("#btn-save-meta")
+    page.click("#btn-save")
     assert wait_until(lambda: game(gamelist, "Alpha").get("players") == "1-4")
     alpha = game(gamelist, "Alpha")
     assert alpha["genre"] == "Platform"          # was erased before the fix
@@ -43,7 +43,7 @@ def test_known_genre_with_sub_genre_round_trips(page, gamelist):
     assert page.input_value("#meta-genre-main") == "ACTION"
     assert page.input_value("#meta-genre-sub") == "LABYRINTHE"
     page.fill("#meta-developer", "Studio B")
-    page.click("#btn-save-meta")
+    page.click("#btn-save")
     assert wait_until(lambda: game(gamelist, "Bravo").get("developer") == "Studio B")
     assert game(gamelist, "Bravo")["genre"] == "ACTION / LABYRINTHE"
 
@@ -51,15 +51,17 @@ def test_known_genre_with_sub_genre_round_trips(page, gamelist):
 def test_changing_the_genre_still_works(page, gamelist):
     select(page, "Alpha")
     page.select_option("#meta-genre-main", "COMBAT")
-    page.click("#btn-save-meta")
+    page.click("#btn-save")
     assert wait_until(lambda: game(gamelist, "Alpha").get("genre") == "COMBAT")
 
 
 def test_save_with_nothing_changed_writes_nothing(page, gamelist):
     select(page, "Alpha")
     before = gamelist.read_bytes()
-    page.click("#btn-save-meta")
-    page.wait_for_selector("#toast.show, #toast.visible, #toast:not(:empty)")
+    assert page.is_hidden("#save-bar")
+    page.click("#game-path")
+    page.keyboard.press("Control+s")
+    page.wait_for_selector("#toast.show")
     assert gamelist.read_bytes() == before
 
 
@@ -109,12 +111,20 @@ def test_ctrl_s_saves_every_changed_part(page, gamelist):
     assert wait_until(lambda: (game(gamelist, "Charlie II") or {}).get("desc") == "Charlie desc")
 
 
-def test_save_button_shows_pending_changes(page):
+def test_save_bar_lists_the_changes_and_can_revert(page):
     select(page, "Alpha")
-    assert "has-changes" not in page.get_attribute("#btn-save-desc", "class")
+    assert page.is_hidden("#save-bar")
     page.fill("#desc-textarea", "x")
-    assert "has-changes" in page.get_attribute("#btn-save-desc", "class")
-    assert "has-changes" not in page.get_attribute("#btn-save-meta", "class")
+    page.fill("#meta-players", "4")
+    page.wait_for_selector("#save-bar:not([hidden])")
+    text = page.inner_text("#save-bar-text")
+    assert text.startswith("2 ") and "Description" in text and "Joueurs" in text
+    assert "is-changed" in page.get_attribute("#desc-editor", "class")
+    assert "is-changed" in page.eval_on_selector("#meta-players", "e => e.closest('.meta-field').className")
+    page.click("#btn-revert")
+    assert page.is_hidden("#save-bar")
+    assert page.input_value("#desc-textarea") == "Alpha desc"
+    assert page.input_value("#meta-players") == "1"
 
 
 def test_reload_asks_when_changes_are_pending(page):

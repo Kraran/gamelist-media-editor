@@ -99,6 +99,7 @@ function applyI18n() {
     }
   } catch (_) {}
   try { updateFilterCounts(); } catch (_) {}
+  try { initCodeSelects(); renderRating(); renderReleaseDate(); updateUnsavedUi(); } catch (_) {}
   try {
     if (typeof games !== "undefined" && games.length) {
       const badge = document.getElementById("game-count");
@@ -177,8 +178,6 @@ function wireLanguageControls() {
   }
 }
 
-const SPECIAL_FLAGS = { wr: "world", world: "world", multi: "language", unk: "", xx: "" };
-const LANG_TO_FLAGCDN = { en: "gb", jp: "jp", ja: "jp", ko: "kr", zh: "cn", cn: "cn", us: "us", br: "br", eu: "eu" };
 let GENRES = {};
 /**
  * UI logic — Gamelist Media Editor
@@ -623,6 +622,7 @@ function listEls() {
 
 /** Recompute which games are shown (search, filter, data change) and redraw. */
 function renderList(filter) {
+  if (games !== _suggestGames) { _suggestGames = games; invalidateSuggestions(); }
   const q = (filter !== undefined ? filter : document.getElementById("search").value).toLowerCase().trim();
   viewIndices = getFilteredGames(q);
   const { spacer, empty } = listEls();
@@ -729,6 +729,153 @@ function isTypingTarget(el) {
   return el.isContentEditable;
 }
 
+/* --- Metadata widgets -----------------------------------------------------
+ * Language and region: named lists in the interface language (the browser
+ * knows every name: Intl.DisplayNames), the stored code stays as it is.
+ * A value outside the list (e.g. "en,fr") is kept as its own option.
+ */
+const LANG_CODES = ["en", "fr", "de", "es", "it", "pt", "nl", "sv", "no", "da", "fi", "pl",
+  "cs", "hu", "el", "tr", "ru", "ja", "ko", "zh", "ar"];
+const REGION_CODES = ["wor", "eu", "us", "jp", "fr", "de", "es", "it", "uk", "nl", "se", "dk",
+  "no", "fi", "pt", "br", "au", "ca", "kr", "cn", "tw", "asi", "ru", "pl"];
+// ScreenScraper / EmulationStation region codes that are not ISO country codes
+const REGION_ZONES = { wor: "editor.region_world", eu: "editor.region_europe", asi: "editor.region_asia" };
+const REGION_TO_ISO = { uk: "GB" };
+
+function displayName(type, code) {
+  try {
+    return new Intl.DisplayNames([currentLocale || "fr", "en"], { type }).of(code) || code;
+  } catch (_) {
+    return code;
+  }
+}
+function langLabel(value) {
+  return value.split(/\s*,\s*/).filter(Boolean)
+    .map(c => (c.length >= 2 && c.length <= 3 ? displayName("language", c) : c)).join(", ");
+}
+function regionLabel(value) {
+  return value.split(/\s*,\s*/).filter(Boolean).map(c => {
+    const code = c.toLowerCase();
+    if (REGION_ZONES[code]) return t(REGION_ZONES[code]);
+    const iso = REGION_TO_ISO[code] || c.toUpperCase();
+    return /^[A-Z]{2}$/.test(iso) ? displayName("region", iso) : c;
+  }).join(", ");
+}
+
+/** Fill a code <select>: "none" first, then the known codes sorted by name. */
+function fillCodeSelect(sel, codes, labelFor, pinned) {
+  const current = sel.value;
+  const items = codes.map(c => ({ c, label: labelFor(c) }));
+  const head = items.filter(x => pinned.includes(x.c)).sort((a, b) => pinned.indexOf(a.c) - pinned.indexOf(b.c));
+  const rest = items.filter(x => !pinned.includes(x.c))
+    .sort((a, b) => a.label.localeCompare(b.label, currentLocale || "fr"));
+  sel.innerHTML = `<option value="" aria-label="${escapeHtml(t("editor.none"))}">—</option>` +
+    [...head, ...rest].map(x => `<option value="${x.c}">${escapeHtml(x.label)}</option>`).join("");
+  if (current) setSelectValue(sel, current, labelFor);
+}
+function initCodeSelects() {
+  fillCodeSelect(document.getElementById("meta-lang"), LANG_CODES, langLabel, ["en", "fr"]);
+  fillCodeSelect(document.getElementById("meta-region"), REGION_CODES, regionLabel, ["wor", "eu", "us", "jp"]);
+}
+
+/** Select `value`, adding it as an option when it is not in the list. */
+function setSelectValue(sel, value, labelFor) {
+  sel.querySelectorAll("option[data-custom]").forEach(o => o.remove());
+  value = value || "";
+  if (value && ![...sel.options].some(o => o.value === value)) {
+    const opt = new Option(labelFor ? labelFor(value) : value, value);
+    opt.dataset.custom = "1";
+    sel.add(opt, 1);
+  }
+  sel.value = value;
+}
+
+/* Rating: stored 0–1 ("0.85"), shown as 5 stars; set in half stars. */
+function renderRating() {
+  const raw = document.getElementById("meta-rating").value;
+  const v = raw === "" ? null : Math.max(0, Math.min(1, parseFloat(raw) || 0));
+  const stars = v === null ? 0 : v * 5;
+  const el = document.getElementById("rating-stars");
+  document.getElementById("rating-fill").style.width = (stars / 5 * 100) + "%";
+  el.setAttribute("aria-valuenow", String(Math.round(stars * 10) / 10));
+  el.setAttribute("aria-valuetext", v === null ? t("editor.none") : t("editor.rating_value", { n: fmtStars(stars) }));
+  document.getElementById("rating-value").textContent = v === null ? "" : fmtStars(stars);
+  document.getElementById("rating-clear").hidden = v === null;
+}
+function fmtStars(n) {
+  return (Math.round(n * 10) / 10).toLocaleString(currentLocale || "fr");
+}
+function setRatingStars(stars) {
+  const input = document.getElementById("meta-rating");
+  input.value = stars === null ? "" : String(Math.round(stars * 2) / 2 / 5);
+  renderRating();
+  updateUnsavedUi();
+}
+(() => {
+  const el = document.getElementById("rating-stars");
+  const starsAt = e => {
+    const r = el.getBoundingClientRect();
+    return Math.max(0.5, Math.ceil(((e.clientX - r.left) / r.width) * 10) / 2);
+  };
+  el.addEventListener("click", e => setRatingStars(starsAt(e)));
+  el.addEventListener("keydown", e => {
+    const raw = document.getElementById("meta-rating").value;
+    const cur = raw === "" ? 0 : Math.round(parseFloat(raw) * 10) / 2;
+    const step = { ArrowRight: 0.5, ArrowUp: 0.5, ArrowLeft: -0.5, ArrowDown: -0.5 }[e.key];
+    if (step !== undefined) {
+      e.preventDefault();
+      e.stopPropagation();          // arrows here change the rating, not the game
+      setRatingStars(Math.max(0, Math.min(5, cur + step)));
+    } else if (e.key === "Home" || e.key === "End") {
+      e.preventDefault();
+      e.stopPropagation();
+      setRatingStars(e.key === "Home" ? 0 : 5);
+    } else if (e.key === "Delete" || e.key === "Backspace") {
+      e.preventDefault();
+      setRatingStars(null);
+    }
+  });
+  document.getElementById("rating-clear").addEventListener("click", () => setRatingStars(null));
+})();
+
+/* Release date: stored "YYYYMMDDTHHMMSS", edited with the browser's date picker.
+ * A stored value the picker cannot show is kept untouched and displayed as text. */
+function renderReleaseDate() {
+  const raw = document.getElementById("meta-releasedate").value;
+  const input = document.getElementById("meta-releasedate-input");
+  const hint = document.getElementById("releasedate-raw");
+  const m = /^(\d{4})(\d{2})(\d{2})T\d{6}$/.exec(raw);
+  input.value = m ? `${m[1]}-${m[2]}-${m[3]}` : "";
+  hint.hidden = !raw || !!m;
+  hint.textContent = raw && !m ? t("editor.date_raw", { raw }) : "";
+}
+document.getElementById("meta-releasedate-input").addEventListener("change", e => {
+  const v = e.target.value;                       // "1997-09-15" or ""
+  document.getElementById("meta-releasedate").value = v ? v.replace(/-/g, "") + "T000000" : "";
+  renderReleaseDate();
+  updateUnsavedUi();
+});
+
+/* Suggestions: values already used in this gamelist, most frequent first. */
+const SUGGEST_FIELDS = ["developer", "publisher", "family", "players", "arcadesystemname"];
+const _suggestBuilt = new Set();
+let _suggestGames = null;
+function buildSuggestions(field) {
+  if (_suggestBuilt.has(field)) return;
+  const counts = new Map();
+  for (const g of games) {
+    const v = g[field];
+    if (v) counts.set(v, (counts.get(v) || 0) + 1);
+  }
+  const top = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 300);
+  document.getElementById("dl-" + field).innerHTML = top.map(([v]) => `<option value="${escapeHtml(v)}"></option>`).join("");
+  _suggestBuilt.add(field);
+}
+function invalidateSuggestions(fields) {
+  (fields || SUGGEST_FIELDS).forEach(f => _suggestBuilt.delete(f));
+}
+SUGGEST_FIELDS.forEach(f => document.getElementById("meta-" + f).addEventListener("focus", () => buildSuggestions(f)));
+
 /* --- Unsaved changes ------------------------------------------------------
  * The editor keeps a snapshot of the values shown when a game is selected.
  * Saving sends only the fields that differ from it (an untouched field can
@@ -736,25 +883,33 @@ function isTypingTarget(el) {
  */
 const EDITOR_FIELDS = (() => {
   const val = id => ({
+    id,
     get: () => document.getElementById(id).value,
     set: v => { document.getElementById(id).value = v; },
   });
+  // <select> whose stored value may be outside the list (kept as its own option)
+  const choice = (id, labelFor) => ({
+    id,
+    get: () => document.getElementById(id).value,
+    set: v => setSelectValue(document.getElementById(id), v, labelFor),
+  });
   const flag = id => ({
+    id,
     get: () => (document.getElementById(id).checked ? "true" : ""),
     set: v => { document.getElementById(id).checked = v === "true"; },
   });
   return {
     name: { ...val("game-name-input"), label: "scrape.field_name" },
     desc: { ...val("desc-textarea"), label: "scrape.field_desc" },
-    genre: { get: () => buildGenreValue(), set: v => setGenreUI(v), label: "scrape.field_genre" },
-    rating: { ...val("meta-rating"), label: "scrape.field_rating" },
-    releasedate: { ...val("meta-releasedate"), label: "scrape.field_releasedate" },
+    genre: { id: "meta-genre-main", get: () => buildGenreValue(), set: v => setGenreUI(v), label: "scrape.field_genre" },
+    rating: { ...val("meta-rating"), set: v => { document.getElementById("meta-rating").value = v; renderRating(); }, label: "scrape.field_rating" },
+    releasedate: { ...val("meta-releasedate"), set: v => { document.getElementById("meta-releasedate").value = v; renderReleaseDate(); }, label: "scrape.field_releasedate" },
     developer: { ...val("meta-developer"), label: "scrape.field_developer" },
     publisher: { ...val("meta-publisher"), label: "scrape.field_publisher" },
     family: { ...val("meta-family"), label: "scrape.field_family" },
     players: { ...val("meta-players"), label: "scrape.field_players" },
-    lang: { ...val("meta-lang"), label: "scrape.field_lang" },
-    region: { ...val("meta-region"), label: "editor.region" },
+    lang: { ...choice("meta-lang", langLabel), label: "scrape.field_lang" },
+    region: { ...choice("meta-region", regionLabel), label: "editor.region" },
     arcadesystemname: { ...val("meta-arcadesystemname"), label: "editor.arcadesystemname" },
     favorite: { ...flag("meta-favorite"), label: "editor.favorite" },
     hidden: { ...flag("meta-hidden"), label: "editor.hidden" },
@@ -794,20 +949,79 @@ function fieldLabels(keys) {
   return keys.map(k => t(EDITOR_FIELDS[k].label)).join(", ");
 }
 
-function updateUnsavedUi() {
-  const changed = changedFields();
-  const has = k => changed.includes(k);
-  document.getElementById("btn-save-name")?.classList.toggle("has-changes", has("name"));
-  document.getElementById("btn-save-desc")?.classList.toggle("has-changes", has("desc"));
-  document.getElementById("btn-save-meta")?.classList.toggle("has-changes", META_KEYS.some(has));
-  if (changed.length) setStatus("● " + t("status.unsaved", { fields: fieldLabels(changed) }));
+/** Element framing a field, marked while the field has an unsaved change. */
+function fieldWrap(key) {
+  const el = document.getElementById(EDITOR_FIELDS[key].id);
+  return el && el.closest(".meta-field, .flag-toggle, .title-row, .insp-block");
 }
 
-/** Save every changed part; false as soon as one save fails. */
+function updateUnsavedUi() {
+  const changed = changedFields();
+  for (const key of Object.keys(EDITOR_FIELDS)) {
+    const wrap = fieldWrap(key);
+    if (wrap) wrap.classList.toggle("is-changed", changed.includes(key));
+  }
+  const bar = document.getElementById("save-bar");
+  if (!bar) return;
+  bar.hidden = !changed.length;
+  if (changed.length) {
+    document.getElementById("save-bar-text").textContent = t(
+      changed.length === 1 ? "editor.unsaved_one" : "editor.unsaved_many",
+      { n: changed.length, fields: fieldLabels(changed) });
+  }
+}
+
+/** Save every changed field of the game in one request (one write of gamelist.xml). */
+let _saving = false;
 async function saveAllChanges() {
-  if (!(await saveName())) return false;
-  if (!(await saveDesc())) return false;
-  return saveMeta();
+  if (currentIndex === null) return true;
+  const keys = changedFields();
+  if (!keys.length) return true;
+  if (_saving) return false;
+  const now = readEditor();
+  if (keys.includes("name") && !now.name.trim()) {
+    toast(t("toast.name_empty"), "error");
+    document.getElementById("game-name-input").focus();
+    return false;
+  }
+  const payload = {};
+  keys.forEach(k => { payload[k] = k === "name" ? now.name.trim() : now[k]; });
+  _saving = true;
+  document.getElementById("btn-save").disabled = true;
+  setStatus(t("editor.saving"));
+  try {
+    const data = await apiFetch(gameUrl(`/api/game/${currentIndex}`), {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const g = games.find(x => x.index === currentIndex);
+    if (g && data.updated) Object.assign(g, data.updated);
+    if (keys.includes("name")) document.getElementById("game-name-input").value = payload.name;
+    markSaved(keys);
+    if (keys.includes("name")) {
+      games.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+      currentListIndex = games.findIndex(x => x.index === currentIndex);
+      renderList(document.getElementById("search").value);
+      scrollActiveIntoView();
+    }
+    invalidateSuggestions(keys);
+    toast(t("editor.saved"));
+    setStatus(t("status.saved"));
+    return true;
+  } catch (e) {
+    handleError(e);
+    return false;
+  } finally {
+    _saving = false;
+    document.getElementById("btn-save").disabled = false;
+  }
+}
+
+/** Put every changed field back to its saved value. */
+function revertChanges() {
+  if (!editorSnapshot) return;
+  for (const k of changedFields()) EDITOR_FIELDS[k].set(editorSnapshot[k]);
+  updateUnsavedUi();
 }
 
 /**
@@ -859,23 +1073,11 @@ const _adbBtn = document.getElementById("btn-adb-scrape");
 if (_adbBtn) _adbBtn.disabled = false;
 const _steamBtn = document.getElementById("btn-steam-scrape");
 if (_steamBtn) _steamBtn.disabled = false;
-document.getElementById("game-name-input").value = g.name;
 document.getElementById("game-path").textContent = g.path;
-document.getElementById("desc-textarea").value = g.desc || "";
-document.getElementById("meta-rating").value = g.rating || "";
-document.getElementById("meta-releasedate").value = g.releasedate || "";
-document.getElementById("meta-developer").value = g.developer || "";
-document.getElementById("meta-publisher").value = g.publisher || "";
-document.getElementById("meta-family").value = g.family || "";
-document.getElementById("meta-players").value = g.players || "";
-document.getElementById("meta-lang").value = g.lang || "";
-document.getElementById("meta-region").value = g.region || "";
-document.getElementById("meta-arcadesystemname").value = g.arcadesystemname || "";
-document.getElementById("meta-favorite").checked = String(g.favorite || "").toLowerCase() === "true";
-document.getElementById("meta-hidden").checked = String(g.hidden || "").toLowerCase() === "true";
-document.getElementById("meta-kidgame").checked = String(g.kidgame || "").toLowerCase() === "true";
-updateLangFlag(g.lang || "");
-setGenreUI(g.genre || "");
+for (const [k, f] of Object.entries(EDITOR_FIELDS)) {
+  const v = g[k] || "";
+  f.set(["favorite", "hidden", "kidgame"].includes(k) ? (v.toLowerCase() === "true" ? "true" : "") : v);
+}
 renderZones(g);
 scrollActiveIntoView();
 snapshotEditor();
@@ -910,99 +1112,153 @@ async function loadGameDetail(g) {
   if (editorSnapshot) editorSnapshot.desc = ta.value;
   updateUnsavedUi();
 }
-function updateLangFlag(code) {
-  const key = (code || "").toLowerCase().trim();
-  const img = document.getElementById("lang-flag-img");
-  const fallback = document.getElementById("lang-flag-fallback");
-  const container = document.getElementById("lang-flag");
-  container.title = key ? key.toUpperCase() : "";
-  if (!key || key in SPECIAL_FLAGS) {
-    img.hidden = true;
-    img.removeAttribute("src");
-    fallback.hidden = false;
-    fallback.innerHTML = SPECIAL_FLAGS[key] ? icon(SPECIAL_FLAGS[key]) : "";
-    return;
+/* --- Media gallery ----------------------------------------------------------
+ * Present media are shown large, each in its own shape (box art upright, logo
+ * wide…) in a masonry of columns; missing media are grouped below as small drop targets. Dropping a
+ * file or a web image on a tile replaces it; clicking a missing one (or the
+ * upload button of a tile) opens a file picker.
+ */
+const MEDIA_SHAPE = {
+  image: "4 / 3", video: "4 / 3", marquee: "3 / 1", manual: "3 / 4", boxart: "3 / 4",
+  boxback: "3 / 4", cartridge: "1 / 1", fanart: "16 / 9", mix: "4 / 3", map: "1 / 1",
+};
+const MEDIA_ACCEPT = { video: "video/*", manual: "application/pdf,.pdf" };
+
+function fieldLabel(key) {
+  const f = getFields().find(x => x.key === key);
+  return f ? f.label : key;
+}
+
+function baseName(path) {
+  return String(path || "").split(/[\\/]/).pop();
+}
+
+function mediaTileHtml(g, f) {
+  const url = mediaUrl(g[f.key]);
+  let media;
+  if (f.key === "video") {
+    media = `<video src="${url}" controls muted preload="metadata"></video>`;
+  } else if (f.key === "manual") {
+    media = `<a class="tile-doc" href="${url}" target="_blank" rel="noopener">${icon("file-text")}<span>${t("zone.open")}</span></a>`;
+  } else {
+    media = `<img src="${url}" alt="${escapeHtml(f.label)}" title="${t("zone.zoom_title")}" loading="lazy" decoding="async" />`;
   }
-  const flagCode = LANG_TO_FLAGCDN[key] || key;
-  img.onload = () => { img.hidden = false; fallback.hidden = true; };
-  img.onerror = () => {
-    img.hidden = true;
-    fallback.hidden = false;
-    fallback.textContent = "";
-  };
-  img.src = `https://flagcdn.com/24x18/${flagCode}.png`;
-  img.alt = key.toUpperCase();
+  return `<figure class="media-tile" data-field="${f.key}" style="--ar: ${MEDIA_SHAPE[f.key] || "4 / 3"}">
+    <figcaption class="tile-head">
+      <span class="tile-title">${icon(f.icon)}<span>${escapeHtml(f.label)}</span></span>
+      <span class="tile-actions">
+        <button type="button" class="btn btn-icon btn-sm" data-action="pick" title="${escapeHtml(t("editor.replace"))}" aria-label="${escapeHtml(t("editor.replace"))}">${icon("upload")}</button>
+        <button type="button" class="btn btn-icon btn-sm tile-delete" data-action="clear" title="${t("zone.clear_title")}" aria-label="${t("zone.clear_title")}">${icon("trash")}</button>
+      </span>
+    </figcaption>
+    <div class="tile-media">${media}</div>
+    <div class="tile-foot"><span class="tile-dims"></span><span class="tile-file" title="${escapeHtml(g[f.key])}">${escapeHtml(baseName(g[f.key]))}</span></div>
+  </figure>`;
 }
+
+function missingChipHtml(f) {
+  const title = t("editor.choose_file", { field: f.label });
+  return `<button type="button" class="missing-chip" data-field="${f.key}" title="${escapeHtml(title)}">` +
+    `${icon(f.icon)}<span>${escapeHtml(f.label)}</span>${icon("upload", "chip-add")}</button>`;
+}
+
 function renderZones(g) {
-const grid = document.getElementById("media-grid");
-grid.innerHTML = "";
-getFields().forEach(f => {
-const has = hasMedia(g, f.key);
-const zone = document.createElement("div");
-zone.className = "drop-zone" + (has ? " has-media" : "");
-zone.dataset.field = f.key;
-let previewHtml = "";
-if (has) {
-const url = mediaUrl(g[f.key]);
-if (f.key === "video") {
-previewHtml = `<video class="preview-video" src="${url}" controls muted></video>`;
-} else if (f.key === "manual") {
-previewHtml = `<div class="placeholder"><div class="big">${icon("file-text")}</div><div>${t("zone.manual_pdf")}</div><a class="manual-link" href="${url}" target="_blank" rel="noopener">${t("zone.open")}</a></div>`;
-} else {
-previewHtml = `<img class="zoomable" src="${url}" alt="${escapeHtml(f.label)}" title="${t("zone.zoom_title")}" />`;
-}
-} else {
-previewHtml = `<div class="placeholder"><div class="big">${icon(f.icon)}</div><div>${t("zone.drop")}</div></div>`;
-}
-zone.innerHTML = `
-<div class="zone-header">
-<div class="zone-title">${icon(f.icon)}<span>${escapeHtml(f.label)}</span></div>
-<div class="zone-actions">${has ? `<button type="button" class="btn btn-icon" data-action="clear" title="${t("zone.clear_title")}" aria-label="${t("zone.clear_title")}">${icon("trash")}</button>` : ""}</div>
-</div>
-<div class="preview-area">${previewHtml}</div>
-${has ? `<div class="path-display" title="${escapeHtml(g[f.key])}">${escapeHtml(g[f.key])}</div>` : ""}
-`;
-zone.addEventListener("dragover", e => { e.preventDefault(); e.stopPropagation(); e.currentTarget.classList.add("drag-over"); });
-zone.addEventListener("dragleave", e => { e.preventDefault(); e.currentTarget.classList.remove("drag-over"); });
-zone.addEventListener("drop", onDrop);
-const clearBtn = zone.querySelector('[data-action="clear"]');
-if (clearBtn) clearBtn.addEventListener("click", e => { e.stopPropagation(); clearField(f.key); });
-const zoomImg = zone.querySelector("img.zoomable");
-if (zoomImg) {
-  zoomImg.addEventListener("error", () => {
-    zoomImg.parentElement.innerHTML =
-      `<div class="placeholder"><div class="big">${icon("alert-triangle")}</div><div>${t("zone.preview_unavailable")}</div></div>`;
+  const fields = getFields();
+  const present = fields.filter(f => hasMedia(g, f.key));
+  const missing = fields.filter(f => !hasMedia(g, f.key));
+  const grid = document.getElementById("media-grid");
+  grid.innerHTML = present.map(f => mediaTileHtml(g, f)).join("");
+  grid.hidden = !present.length;
+  document.getElementById("missing-chips").innerHTML = missing.map(missingChipHtml).join("");
+  document.getElementById("media-missing").hidden = !missing.length;
+
+  grid.querySelectorAll(".media-tile").forEach(tile => {
+    const img = tile.querySelector("img");
+    const dims = tile.querySelector(".tile-dims");
+    if (img) {
+      img.addEventListener("load", () => { dims.textContent = `${img.naturalWidth} × ${img.naturalHeight}`; });
+      img.addEventListener("error", () => {
+        tile.querySelector(".tile-media").innerHTML =
+          `<div class="tile-broken">${icon("alert-triangle")}<span>${t("zone.preview_unavailable")}</span></div>`;
+      });
+      img.addEventListener("click", () => openLightbox(img.src, tile.querySelector(".tile-title").textContent.trim()));
+    }
+    const video = tile.querySelector("video");
+    if (video) {
+      video.addEventListener("loadedmetadata", () => {
+        const s = Math.round(video.duration || 0);
+        dims.textContent = `${video.videoWidth} × ${video.videoHeight}` + (s ? ` · ${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}` : "");
+      });
+    }
   });
-  zoomImg.addEventListener("click", e => {
+}
+
+/** Drop targets: present tiles (replace) and missing chips (add). */
+function mediaDropTarget(e) {
+  return e.target.closest && e.target.closest(".media-tile, .missing-chip");
+}
+(() => {
+  const stage = document.querySelector(".stage");
+  stage.addEventListener("dragover", e => {
+    const target = mediaDropTarget(e);
+    if (!target) return;
     e.preventDefault();
-    e.stopPropagation();
-    openLightbox(zoomImg.src, f.label);
+    target.classList.add("drag-over");
   });
+  stage.addEventListener("dragleave", e => {
+    const target = mediaDropTarget(e);
+    if (target && !target.contains(e.relatedTarget)) target.classList.remove("drag-over");
+  });
+  stage.addEventListener("drop", e => {
+    const target = mediaDropTarget(e);
+    if (!target) return;
+    target.classList.remove("drag-over");
+    onDrop(e, target.dataset.field);
+  });
+  stage.addEventListener("click", e => {
+    const actionBtn = e.target.closest("[data-action]");
+    const tile = e.target.closest(".media-tile, .missing-chip");
+    if (!tile) return;
+    const field = tile.dataset.field;
+    if (actionBtn && actionBtn.dataset.action === "clear") clearField(field);
+    else if (tile.classList.contains("missing-chip") || (actionBtn && actionBtn.dataset.action === "pick")) pickMediaFile(field);
+  });
+  document.getElementById("media-file-input").addEventListener("change", e => {
+    const file = e.target.files && e.target.files[0];
+    const field = e.target.dataset.field;
+    e.target.value = "";
+    if (file && field) uploadMedia(field, { file });
+  });
+})();
+
+function pickMediaFile(field) {
+  if (currentIndex === null) return;
+  const input = document.getElementById("media-file-input");
+  input.dataset.field = field;
+  input.accept = MEDIA_ACCEPT[field] || "image/*";
+  input.click();
 }
-grid.appendChild(zone);
-});
+
+async function onDrop(e, field) {
+  e.preventDefault();
+  e.stopPropagation();
+  if (currentIndex === null || !field) return;
+  const dt = e.dataTransfer;
+  if (dt.files && dt.files.length > 0) { await uploadMedia(field, { file: dt.files[0] }); return; }
+  let url = null;
+  if (dt.types.includes("text/uri-list")) url = dt.getData("text/uri-list").split("\n")[0].trim();
+  else if (dt.types.includes("text/plain")) {
+    const txt = dt.getData("text/plain").trim();
+    if (txt.startsWith("http://") || txt.startsWith("https://")) url = txt;
+  }
+  if (!url && dt.types.includes("text/html")) {
+    const m = dt.getData("text/html").match(/src=["'](https?:\/\/[^"']+)["']/i);
+    if (m) url = m[1];
+  }
+  if (url) await uploadMedia(field, { url });
+  else toast(t("toast.no_file_url"), "error");
 }
-async function onDrop(e) {
-e.preventDefault(); e.stopPropagation();
-const zone = e.currentTarget;
-zone.classList.remove("drag-over");
-if (currentIndex === null) return;
-const field = zone.dataset.field;
-const dt = e.dataTransfer;
-if (dt.files && dt.files.length > 0) { await uploadMedia(field, { file: dt.files[0] }); return; }
-let url = null;
-if (dt.types.includes("text/uri-list")) url = dt.getData("text/uri-list").split("\n")[0].trim();
-else if (dt.types.includes("text/plain")) {
-const txt = dt.getData("text/plain").trim();
-if (txt.startsWith("http://") || txt.startsWith("https://")) url = txt;
-}
-if (!url && dt.types.includes("text/html")) {
-const m = dt.getData("text/html").match(/src=["'](https?:\/\/[^"']+)["']/i);
-if (m) url = m[1];
-}
-if (url) await uploadMedia(field, { url });
-else toast(t("toast.no_file_url"), "error");
-}
+
 async function uploadMedia(field, { file, url }) {
   if (currentIndex === null) return;
   if (file && typeof file.size === "number" && file.size > MAX_UPLOAD_BYTES) {
@@ -1018,7 +1274,7 @@ async function uploadMedia(field, { file, url }) {
     const g = games.find(x => x.index === currentIndex);
     if (g) { g[field] = data.path; renderZones(g); }
     renderList(document.getElementById("search").value);
-    toast(t("toast.upload_ok", { field, filename: data.filename }));
+    toast(t("toast.upload_ok", { field: fieldLabel(field), filename: data.filename }));
     setStatus(t("status.saved"));
   } catch (e) {
     handleError(e);
@@ -1028,7 +1284,7 @@ async function uploadMedia(field, { file, url }) {
 async function clearField(field) {
   // Detach media tag in XML only (file kept on disk)
   const choice = await askConfirm({
-    title: t("confirm.clear_field_title", { field }),
+    title: t("confirm.clear_field_title", { field: fieldLabel(field) }),
     bodyHtml: t("confirm.clear_field_body"),
     showBackup: false,
     okLabel: t("zone.clear_title"),
@@ -1044,96 +1300,16 @@ async function clearField(field) {
     handleError(e);
   }
 }
-async function saveName() {
-  if (currentIndex === null) return true;
-  if (!changedFields(["name"]).length) return true;
-  const newName = document.getElementById("game-name-input").value.trim();
-  if (!newName) { toast(t("toast.name_empty"), "error"); return false; }
-  setStatus(t("status.saving_name"));
-  try {
-    const data = await apiFetch(gameUrl(`/api/name/${currentIndex}`), {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newName }),
-    });
-    const g = games.find(x => x.index === currentIndex);
-    if (g) g.name = newName;
-    markSaved(["name"]);
-    games.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
-    currentListIndex = games.findIndex(x => x.index === currentIndex);
-    renderList(document.getElementById("search").value);
-    toast(t("toast.name_saved"));
-    setStatus(t("status.saved"));
-    return true;
-  } catch (e) {
-    handleError(e);
-    return false;
-  }
-}
-
-async function saveDesc() {
-  if (currentIndex === null) return true;
-  if (!changedFields(["desc"]).length) return true;
-  const newDesc = document.getElementById("desc-textarea").value;
-  setStatus(t("status.saving_desc"));
-  try {
-    const data = await apiFetch(gameUrl(`/api/desc/${currentIndex}`), {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ desc: newDesc }),
-    });
-    const g = games.find(x => x.index === currentIndex);
-    if (g) g.desc = newDesc;
-    markSaved(["desc"]);
-    toast(t("toast.desc_saved"));
-    setStatus(t("status.saved"));
-    return true;
-  } catch (e) {
-    handleError(e);
-    return false;
-  }
-}
-
-async function saveMeta() {
-  if (currentIndex === null) return true;
-  // Only what the user changed: untouched fields are never rewritten
-  const keys = changedFields(META_KEYS);
-  if (!keys.length) return true;
-  const now = readEditor();
-  const payload = {};
-  keys.forEach(k => { payload[k] = now[k]; });
-  setStatus(t("status.saving_meta"));
-  try {
-    const data = await apiFetch(gameUrl(`/api/meta/${currentIndex}`), {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const g = games.find(x => x.index === currentIndex);
-    if (g && data.updated) Object.assign(g, data.updated);
-    markSaved(keys);
-    toast(t("toast.meta_saved"));
-    setStatus(t("status.saved"));
-    return true;
-  } catch (e) {
-    handleError(e);
-    return false;
-  }
-}
-
-document.getElementById("btn-save-name").addEventListener("click", () => saveOrSayNothing(["name"], saveName));
+document.getElementById("btn-save").addEventListener("click", () => {
+  if (!changedFields().length) { toast(t("toast.nothing_to_save")); return; }
+  saveAllChanges();
+});
+document.getElementById("btn-revert").addEventListener("click", revertChanges);
 document.getElementById("game-name-input").addEventListener("keydown", e => {
-if (e.key === "Enter") { e.preventDefault(); saveName(); }
+  if (e.key === "Enter") { e.preventDefault(); saveAllChanges(); }
 });
-document.getElementById("btn-save-desc").addEventListener("click", () => saveOrSayNothing(["desc"], saveDesc));
-document.getElementById("desc-textarea").addEventListener("keydown", e => {
-if ((e.ctrlKey || e.metaKey) && e.key === "s") { e.preventDefault(); saveDesc(); }
-});
-document.getElementById("btn-save-meta").addEventListener("click", () => saveOrSayNothing(META_KEYS, saveMeta));
-function saveOrSayNothing(keys, save) {
-  if (currentIndex !== null && !changedFields(keys).length) { toast(t("toast.nothing_to_save")); return; }
-  save();
-}
 // Any edit in the form refreshes the unsaved indicators
 ["input", "change"].forEach(ev => document.getElementById("editor").addEventListener(ev, () => updateUnsavedUi()));
-document.getElementById("meta-lang").addEventListener("input", e => updateLangFlag(e.target.value));
 document.getElementById("search").addEventListener("input", e => {
   const value = e.target.value;
   clearTimeout(searchDebounceTimer);
@@ -1228,18 +1404,8 @@ document.addEventListener("keydown", e => {
   if (ctrl && e.key.toLowerCase() === "s") {
     e.preventDefault();
     if (currentIndex === null) return;
-    (async () => {
-      if (e.target && e.target.id === "desc-textarea") {
-        await saveDesc();
-      } else if (e.target && e.target.id === "game-name-input") {
-        await saveName();
-      } else if (e.target && (e.target.id || "").startsWith("meta-")) {
-        await saveMeta();
-      } else {
-        if (!changedFields().length) { toast(t("toast.nothing_to_save")); return; }
-        await saveAllChanges();
-      }
-    })();
+    if (!changedFields().length) { toast(t("toast.nothing_to_save")); return; }
+    saveAllChanges();
     return;
   }
 

@@ -73,7 +73,7 @@ def test_description_is_loaded_when_a_game_opens(page):
     page.click("#game-list .game-item >> nth=5")
     page.wait_for_function("document.getElementById('desc-textarea').value === 'Description of game 0005'")
     assert not page.evaluate("document.getElementById('desc-textarea').readOnly")
-    assert "has-changes" not in page.get_attribute("#btn-save-desc", "class")
+    assert page.is_hidden("#save-bar")
 
 
 def test_thumbnails_load_and_missing_ones_show_an_icon(page):

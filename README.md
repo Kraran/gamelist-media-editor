@@ -13,12 +13,14 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
 ## Features
 
 **Media**
-- Drag-and-drop for **image**, **video**, **marquee**, **manual**, **boxback**, **support** (`cartridge`), **boxart**, **fanart**, **mix**, **maps**
+- **Media gallery**: each media shown in its own shape (upright boxes, wide logos…) with its size in pixels; missing media grouped below
+- Drag-and-drop (file or image from a web page) or click to choose a file, for **image**, **video**, **marquee**, **manual**, **boxback**, **support** (`cartridge`), **boxart**, **fanart**, **mix**, **maps**
 - RetroBat extras handled automatically: **thumbnail**, **bezel**, **Pad2Key** (`.keys`)
 - Image lightbox, upload limit 50 MB, previous file removed when a media is replaced
 
 **Metadata**
-- Name, description, genre, rating, release date, developer, publisher, family, players, language, region, `arcadesystemname`
+- Name, description, genre, rating (**stars**), release date (**date picker**), developer, publisher, family, players, language and region (**named lists**), `arcadesystemname`; suggestions from the values already in the gamelist
+- **One save bar** for all changes (`Ctrl+S`), with the changed fields marked and *Discard changes*; one write of `gamelist.xml` per save
 - RetroBat flags **favorite** / **hidden** / **kidgame**
 
 **Scrapers** (field by field, you choose what to apply)

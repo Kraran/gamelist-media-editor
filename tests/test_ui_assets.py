@@ -16,8 +16,6 @@ EMOJI = re.compile(r"[\U0001F000-\U0001FAFF☀-➿️]")
 def used_icons():
     names = set(re.findall(r'icon\("([a-z0-9-]+)"', HTML + JS))            # icon("x") in Jinja and JS
     names |= set(re.findall(r'icon:\s*"([a-z0-9-]+)"', JS))                 # FIELD_DEFS
-    flags = re.search(r"const SPECIAL_FLAGS = \{([^}]*)\}", JS).group(1)
-    names |= {n for n in re.findall(r':\s*"([a-z0-9-]*)"', flags) if n}
     return names
 
 
@@ -60,3 +58,10 @@ def test_no_emoji_in_translations(path):
             elif EMOJI.search(str(v)):
                 yield prefix + k
     assert not list(walk(json.loads(path.read_text(encoding="utf-8"))))
+
+
+def test_no_duplicate_ids_in_the_page(client):
+    html = client.get("/", headers={"Host": "127.0.0.1:5050"}).get_data(as_text=True)
+    ids = re.findall(r'\sid="([^"]+)"', html)
+    dups = sorted({i for i in ids if ids.count(i) > 1})
+    assert not dups, dups
