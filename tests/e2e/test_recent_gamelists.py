@@ -50,8 +50,10 @@ def test_missing_recent_is_dropped(page, gamelist, other_gamelist):
     other_gamelist.unlink()
     open_dialog(page)
     page.click("#open-gl-recent .open-gl-recent-item")
-    page.wait_for_selector("#toast.show")
-    assert page.locator("#open-gl-recent .open-gl-recent-item").count() == 0
+    # The "opened" toast of the previous step may still be up: wait for the list itself
+    page.wait_for_function("document.querySelectorAll('#open-gl-recent .open-gl-recent-item').length === 0")
+    page.wait_for_selector("#toast.show.error")
+    assert page.evaluate("document.getElementById('open-gamelist-modal').classList.contains('open')")
     assert "/nes/" not in page.evaluate("localStorage.getItem('gme_recent_gamelists')")
 
 
