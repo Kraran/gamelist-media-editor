@@ -1138,6 +1138,59 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); cur
 .ss-cand-name { font-weight: 600; }
 .ss-cand-meta { color: var(--text-3); font-size: var(--fs-xs); }
 
+/* ROM check */
+.romcheck-modal { width: min(960px, 100%); height: min(820px, calc(100vh - 48px)); }
+.romcheck-intro code { overflow-wrap: anywhere; }
+.romcheck-stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--s2); }
+.rc-stat {
+  display: grid;
+  gap: 2px;
+  padding: var(--s2) var(--s3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  background: var(--surface);
+}
+.rc-stat-n { font: 700 var(--fs-xl)/1.1 var(--font-display); font-variant-numeric: tabular-nums; }
+.rc-stat-label { color: var(--text-3); font-size: var(--fs-xs); }
+.rc-stat.is-ok .rc-stat-n { color: var(--ok); }
+.rc-stat.is-warn .rc-stat-n { color: var(--warn); }
+.romcheck-body { flex: 1; min-height: 0; overflow-y: auto; margin: 0 calc(var(--s2) * -1); padding: 0 var(--s2); }
+.rc-section + .rc-section { margin-top: var(--s5); }
+.rc-head { display: flex; align-items: center; gap: var(--s2); cursor: pointer; }
+.rc-title { font-weight: 700; }
+.rc-count {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--raised);
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.rc-desc { margin: 4px 0 var(--s2) 24px; color: var(--text-3); font-size: var(--fs-sm); }
+.rc-warning { display: flex; gap: var(--s2); margin: 0 0 var(--s2) 24px; color: var(--warn); font-size: var(--fs-sm); }
+.rc-warning .icon { flex: none; margin-top: 2px; }
+.rc-option { display: flex; align-items: center; gap: var(--s2); margin: 0 0 var(--s2) 24px; color: var(--text-2); font-size: var(--fs-sm); cursor: pointer; }
+.rc-list { display: grid; gap: 1px; margin-left: 16px; border-left: 1px solid var(--line); padding-left: var(--s2); }
+.rc-row {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 0.9fr) minmax(0, 1.3fr) auto;
+  align-items: center;
+  gap: var(--s3);
+  padding: 5px var(--s2);
+  border-radius: var(--r-control);
+  cursor: pointer;
+}
+.rc-row:hover { background: var(--surface); }
+.rc-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-sm); }
+.rc-path { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-3); font-size: var(--fs-xs); background: none; }
+.rc-meta { color: var(--text-3); font-size: var(--fs-xs); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.rc-more, .rc-note { padding: var(--s2); color: var(--text-3); font-size: var(--fs-xs); }
+.rc-all-good { display: grid; justify-items: center; gap: var(--s2); padding: var(--s6) var(--s4); color: var(--text-2); text-align: center; }
+.rc-all-good .icon { width: 40px; height: 40px; color: var(--ok); stroke-width: 1.5; }
+.romcheck-backup { display: flex; align-items: center; gap: var(--s2); margin-right: auto; color: var(--text-2); font-size: var(--fs-sm); cursor: pointer; }
+#romcheck-export { margin-right: var(--s2); }
+
 /* Open gamelist */
 .open-gl-modal { width: min(720px, 100%); }
 .open-gl-label { margin-bottom: 4px; color: var(--text-2); font-size: var(--fs-xs); font-weight: 500; }
@@ -1264,6 +1317,9 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); cur
   .about-layout { grid-template-columns: 1fr; }
   .about-portrait { max-height: 180px; }
   .ss-media-prefs { grid-template-columns: 1fr; }
+  .romcheck-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .rc-row { grid-template-columns: 16px minmax(0, 1fr) auto; }
+  .rc-path { grid-column: 2 / -1; }
   .settings-layout { grid-template-columns: 1fr; }
   .settings-nav { grid-auto-flow: column; overflow-x: auto; padding: 0 0 var(--s2); border-right: 0; border-bottom: 1px solid var(--line); }
   .ss-meta-head { display: none; }

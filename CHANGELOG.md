@@ -4,6 +4,9 @@ All notable changes to Gamelist Media Editor are documented in this file.
 
 ## [Unreleased]
 
+### Added
+- **Check ROMs** (Actions menu): compares the gamelist with the files of its folder and reports the ROMs missing from the gamelist, the entries whose ROM is gone and the games listed twice. Tick what to change, then *Update the gamelist*: missing ROMs are added (named after the file, ready to scrape), dead entries removed (optionally with their media, unless another game uses them), duplicates merged into the most complete entry. A `.bak` backup is made first (on by default); nothing is ticked when more than half of the games lack their ROM (wrong folder, disconnected drive). *Export the report* saves it as a text file. Media folders are skipped, disc tracks listed in a `.cue` / `.gdi` / `.m3u` are not counted as games, a folder named like `Game.ps3` is one game; 30,000 files are checked in under a second
+
 ### Fixed
 - **Recent gamelists** (Open gamelist dialog): clicking a recent file only copied its path into the field, and long paths were cut at the end, so several recent files looked identical. A click now opens the file; each entry shows its system folder first and its path cut at the start; the file already open is not listed; a recent file that no longer exists is marked, removed when you try to open it, and any entry can be removed (×)
 - **Recent gamelists were not remembered**: the list lived in the browser storage of the app window, which *Quit* stopped too abruptly to save it. The server now keeps the list in `recent_gamelists.json` next to the `.exe` / `app.py` (the 10 most recent are shown; the list of older versions is imported once). *Quit* also lets the app window close normally before stopping it, so the language and scrape-source choices are saved too

@@ -56,6 +56,9 @@
           <button type="button" class="menu-item" role="menuitem" id="btn-fill-arcade">
             {{ icon("cpu") }}<span class="menu-item-text"><span class="menu-item-title" data-i18n="tools.arcade_sys_title">Remplir les systèmes arcade</span><span class="menu-item-sub" data-i18n="actions.arcade_sub">Depuis mame.xml : CPS2, Neo-Geo…</span></span>
           </button>
+          <button type="button" class="menu-item" role="menuitem" id="btn-rom-check">
+            {{ icon("list-details") }}<span class="menu-item-text"><span class="menu-item-title" data-i18n="romcheck.title">Vérifier les ROMs</span><span class="menu-item-sub" data-i18n="romcheck.action_sub">Compare le gamelist aux fichiers du dossier</span></span>
+          </button>
           <div class="menu-sep" role="separator"></div>
           <button type="button" class="menu-item is-danger" role="menuitem" id="btn-purge-regions">
             {{ icon("eraser") }}<span class="menu-item-text"><span class="menu-item-title" data-i18n="tools.purge_title">Supprimer toutes les balises &lt;region&gt;</span><span class="menu-item-sub" data-i18n="actions.purge_sub">Dans tous les jeux, après confirmation</span></span>
@@ -311,6 +314,24 @@
         <span class="tools-hint" id="ss-hint" data-i18n="scrape.hint">Ce qui manque est coché ; rien n’est remplacé sans ton accord.</span>
         <button type="button" class="btn" id="ss-modal-cancel" data-i18n="scrape.cancel">Annuler</button>
         <button type="button" class="btn btn-accent" id="ss-modal-apply">{{ icon("check") }}<span id="ss-apply-label">Appliquer</span></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="romcheck-modal" role="dialog" aria-modal="true" aria-labelledby="romcheck-title">
+    <div class="modal romcheck-modal">
+      <div class="tools-header">
+        <h3 class="modal-title" id="romcheck-title">{{ icon("list-details") }}<span data-i18n="romcheck.title">Vérifier les ROMs</span></h3>
+        <button type="button" class="btn btn-icon" id="romcheck-close" title="Fermer" data-i18n-title="tools.close">{{ icon("x") }}</button>
+      </div>
+      <p class="tools-intro romcheck-intro" id="romcheck-intro"></p>
+      <div class="romcheck-stats" id="romcheck-stats"></div>
+      <div class="romcheck-body" id="romcheck-body"></div>
+      <div class="tools-footer">
+        <button type="button" class="btn btn-ghost" id="romcheck-export">{{ icon("file-text") }}<span data-i18n="romcheck.export">Exporter le rapport</span></button>
+        <label class="romcheck-backup"><input type="checkbox" id="romcheck-backup" checked /><span data-i18n="romcheck.backup">Sauvegarde .bak avant</span></label>
+        <button type="button" class="btn" id="romcheck-cancel" data-i18n="tools.close">Fermer</button>
+        <button type="button" class="btn btn-accent" id="romcheck-apply" disabled>{{ icon("check") }}<span id="romcheck-apply-label">Mettre à jour le gamelist</span></button>
       </div>
     </div>
   </div>
