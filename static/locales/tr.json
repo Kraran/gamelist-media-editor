@@ -399,7 +399,8 @@
     "refresh_title": "Yenile",
     "loading": "Yükleniyor…",
     "empty_folder": "Burada klasör veya .xml dosyası yok.",
-    "browse_error": "Bu klasör listelenemedi."
+    "browse_error": "Bu klasör listelenemedi.",
+    "recent_forget": "Listeden kaldır"
   },
   "about": {
     "open_title": "Hakkında",

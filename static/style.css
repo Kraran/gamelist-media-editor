@@ -1204,21 +1204,40 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); cur
 .form-row { display: grid; gap: 5px; }
 .form-row label { color: var(--text-2); font-size: var(--fs-xs); font-weight: 500; }
 .open-gl-input { font-family: var(--font-mono); font-size: var(--fs-sm); }
-.open-gl-recent { display: grid; gap: 2px; max-height: 110px; overflow-y: auto; }
+.open-gl-recent { display: grid; gap: 2px; max-height: 150px; overflow-y: auto; }
+.open-gl-recent-row { display: flex; align-items: center; gap: 2px; min-width: 0; }
 .open-gl-recent-item {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--s2);
+  min-width: 0;
   padding: 5px var(--s2);
   border: 0;
   border-radius: var(--r-control);
   background: transparent;
   color: var(--text-2);
-  font: var(--fs-sm) var(--font-mono);
+  font: var(--fs-sm) var(--font-ui);
   text-align: left;
   cursor: pointer;
 }
-.open-gl-recent-item:hover { background: var(--surface); color: var(--text); }
+.open-gl-recent-item:hover, .open-gl-recent-item:focus-visible { background: var(--surface); color: var(--text); }
+.open-gl-recent-item .icon { color: var(--accent-text); }
+.open-gl-recent-name { flex: none; font-weight: 600; color: var(--text); }
+/* Long paths: cut at the start, the end (system folder) stays visible */
+.open-gl-recent-path {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-3);
+  font: var(--fs-xs) var(--font-mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: rtl;
+  text-align: left;
+}
+.open-gl-recent-forget { width: 28px; flex: none; background: transparent; border-color: transparent; color: var(--text-3); }
+.open-gl-recent-forget:hover { color: var(--text); }
 
 /* About */
 .about-modal { width: min(720px, 100%); padding: 0; gap: 0; }

@@ -399,7 +399,8 @@
     "refresh_title": "Aggiorna",
     "loading": "Caricamento…",
     "empty_folder": "Nessuna cartella o file .xml qui.",
-    "browse_error": "Impossibile elencare questa cartella."
+    "browse_error": "Impossibile elencare questa cartella.",
+    "recent_forget": "Rimuovi dall’elenco"
   },
   "about": {
     "open_title": "Informazioni",

@@ -399,7 +399,8 @@
     "refresh_title": "Opdater",
     "loading": "Indlæser…",
     "empty_folder": "Ingen mapper eller .xml-filer her.",
-    "browse_error": "Kunne ikke liste denne mappe."
+    "browse_error": "Kunne ikke liste denne mappe.",
+    "recent_forget": "Fjern fra listen"
   },
   "about": {
     "open_title": "Om",
