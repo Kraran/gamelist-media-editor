@@ -400,7 +400,8 @@
     "loading": "Ładowanie…",
     "empty_folder": "Brak folderów lub plików .xml.",
     "browse_error": "Nie można wyświetlić tego folderu.",
-    "recent_forget": "Usuń z listy"
+    "recent_forget": "Usuń z listy",
+    "recent_missing": "nie znaleziono"
   },
   "about": {
     "open_title": "O programie",

@@ -400,7 +400,8 @@
     "loading": "Chargement…",
     "empty_folder": "Aucun dossier ni fichier .xml ici.",
     "browse_error": "Impossible de lister ce dossier.",
-    "recent_forget": "Retirer de la liste"
+    "recent_forget": "Retirer de la liste",
+    "recent_missing": "introuvable"
   },
   "about": {
     "open_title": "À propos",

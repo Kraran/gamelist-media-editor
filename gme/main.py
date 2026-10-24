@@ -3,7 +3,7 @@
 import sys
 import threading
 
-from gme import remote_cache
+from gme import recent, remote_cache
 from gme.server import app
 from gme.thumbs import prune_cache
 from gme.version import APP_VERSION
@@ -35,6 +35,7 @@ def main():
     if xml_arg:
         try:
             info = set_gamelist_path(xml_arg)
+            recent.remember(info["xml_path"])
             print(f"  XML            : {info['xml_path']}")
             print(f"  Dossier medias : {info['base_dir']}")
         except Exception as e:

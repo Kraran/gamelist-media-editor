@@ -9,7 +9,7 @@ import requests
 from flask import Blueprint, jsonify, render_template, request, send_from_directory
 from lxml import etree
 
-from gme import xml_store
+from gme import recent, xml_store
 from gme.arcade import find_mame_listxml, index_mame_listxml, pretty_arcade_system
 from gme.fields import FieldError, clean_meta, set_desc, set_meta, set_name
 from gme.http import api_err
@@ -197,6 +197,7 @@ def api_open_gamelist():
     raw = body.get("path") or body.get("xml") or ""
     try:
         info = set_gamelist_path(raw)
+        recent.remember(info["xml_path"])
         games = get_games(load_xml())
         return jsonify({
             "success": True,
@@ -207,6 +208,7 @@ def api_open_gamelist():
             "count": len(games),
         })
     except FileNotFoundError as e:
+        recent.forget(os.path.abspath(str(raw).strip().strip('"').strip("'")))
         return api_err(str(e), 404, code="open_not_found")
     except ValueError as e:
         return api_err(str(e), 400, code="open_invalid")

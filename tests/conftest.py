@@ -1,7 +1,7 @@
 """Shared fixtures: a throw-away gamelist + Flask test client."""
 import pytest
 
-from gme import xml_store
+from gme import recent, xml_store
 from gme.server import app
 
 GAMELIST = """<?xml version="1.0"?>
@@ -13,6 +13,14 @@ GAMELIST = """<?xml version="1.0"?>
 """
 
 LOCAL = {"Host": "127.0.0.1:5050", "Origin": "http://127.0.0.1:5050", "Sec-Fetch-Site": "same-origin"}
+
+
+@pytest.fixture(autouse=True)
+def recent_file(tmp_path, monkeypatch):
+    """Recent gamelists go to a temporary file, never next to app.py."""
+    path = tmp_path / "recent_gamelists.json"
+    monkeypatch.setattr(recent, "RECENT_FILE", str(path))
+    return path
 
 
 @pytest.fixture

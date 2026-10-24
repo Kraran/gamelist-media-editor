@@ -400,7 +400,8 @@
     "loading": "Laden…",
     "empty_folder": "Geen mappen of .xml-bestanden hier.",
     "browse_error": "Kan deze map niet weergeven.",
-    "recent_forget": "Uit de lijst verwijderen"
+    "recent_forget": "Uit de lijst verwijderen",
+    "recent_missing": "niet gevonden"
   },
   "about": {
     "open_title": "Over",

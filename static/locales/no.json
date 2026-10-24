@@ -400,7 +400,8 @@
     "loading": "Laster…",
     "empty_folder": "Ingen mapper eller .xml-filer her.",
     "browse_error": "Kunne ikke liste denne mappen.",
-    "recent_forget": "Fjern fra listen"
+    "recent_forget": "Fjern fra listen",
+    "recent_missing": "ikke funnet"
   },
   "about": {
     "open_title": "Om",

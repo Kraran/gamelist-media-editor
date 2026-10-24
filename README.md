@@ -38,7 +38,7 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
 - Filter games by **missing media** (counts per media), search
 - **Next incomplete** (`N`): jumps to the next game in the list that is missing media (or that matches the media filter)
 - **Keyboard**: `J`/`K` next/previous game, `N` next incomplete, `S` scrape, `Ctrl+S` save, `Ctrl+F` or `/` search, `?` shows the list
-- **Open another `gamelist.xml`** at any time (file browser + recent files), **Reload** after an outside edit
+- **Open another `gamelist.xml`** at any time (file browser, the 10 most recent files in one click), **Reload** after an outside edit
 - **Actions** menu (whole gamelist): `.bak` backup, arcade system names from `mame.xml`, purge all `<region>` tags
 - **Settings**: language, ScreenScraper member login and media types, scrape source chosen per system, keyboard shortcuts
 - Game ⋯ menu: copy the ROM path, delete the game (ROM + media + XML entry) with optional backup
@@ -82,7 +82,7 @@ Tip: drag a `gamelist.xml` onto the `.exe` to open it directly.
 
 Optional: `Creer-Raccourci.ps1` creates a desktop shortcut to `Lancer.bat` with the app icon.
 
-Your `screenscraper_config.json` (member login, media types) is stored next to `app.py` / the `.exe`. Keep it when you update.
+Your `screenscraper_config.json` (member login, media types) and `recent_gamelists.json` (recently opened gamelists) are stored next to `app.py` / the `.exe`. Keep them when you update.
 
 ---
 
@@ -124,6 +124,7 @@ Code layout (`app.py` is only the entry point; the overview is in `gme/__init__.
 | `gme/scrapers/ss.py`, `adb.py`, `steam.py` | ScreenScraper, Arcade Database, Steam (client, parsing, routes) |
 | `gme/scrapers/compare.py`, `apply.py` | current vs proposed per field (statuses, presets), applying a scrape (shared by the three sources) |
 | `gme/scrapers/common.py` | throttling, name matching, ROM hashes |
+| `gme/recent.py` | recently opened gamelists (`recent_gamelists.json` next to `app.py` or the `.exe`) |
 | `gme/remote_cache.py` | proposed images: previews (`/api/scrape/preview/<key>`), kept in `cache/remote/` and reused when applied |
 | `gme/xml_store.py` | the open `gamelist.xml`: path, cache, writes, game lookup |
 | `gme/thumbs.py` | list thumbnails (`/api/thumb`), cached in `cache/thumbs/` next to `app.py` or the `.exe` |

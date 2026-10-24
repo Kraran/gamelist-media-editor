@@ -539,7 +539,6 @@ async function loadGames() {
       updateSystemBadge(data.system || null);
       if (data.xml_path) {
         window.__gmeXmlPath = data.xml_path;
-        if (typeof pushRecentGamelist === "function") pushRecentGamelist(data.xml_path);
       }
       setNoGamelistUi(true);
       // restore empty-state-select visibility (editor still hidden until selection)
@@ -1857,63 +1856,71 @@ document.getElementById("btn-delete-game").addEventListener("click", async () =>
 
 
 /* --- Switch gamelist.xml without restart --------------------------------- */
-const RECENT_GL_KEY = "gme_recent_gamelists";
-const RECENT_GL_MAX = 8;
+const RECENT_GL_KEY = "gme_recent_gamelists";   // where older versions kept the list (browser)
 
-/* Recent files: one click opens. The system folder (parent of gamelist.xml)
- * comes first, because long paths only differ at their end. */
+/* Recent files (kept by the server in recent_gamelists.json, see gme/recent.py):
+ * one click opens. The system folder (parent of gamelist.xml) comes first,
+ * because long paths only differ at their end. */
+const RECENT_SHOWN = 10;
+
 function recentKey(path) {
   // Windows paths: same file whatever the case or the slashes
   return /^[a-zA-Z]:[\\/]|\\/.test(path) ? path.replace(/\//g, "\\").toLowerCase() : path;
 }
-function getRecentGamelists() {
+
+/** Older versions kept the list in the browser: hand it to the server once. */
+async function importBrowserRecents() {
+  let old = null;
+  try { old = JSON.parse(localStorage.getItem(RECENT_GL_KEY) || "null"); } catch (_) {}
+  if (!Array.isArray(old) || !old.length) return;
   try {
-    const raw = localStorage.getItem(RECENT_GL_KEY);
-    const arr = raw ? JSON.parse(raw) : [];
-    return Array.isArray(arr) ? arr.filter((p) => typeof p === "string" && p) : [];
-  } catch (_) {
-    return [];
-  }
-}
-function saveRecentGamelists(list) {
-  try { localStorage.setItem(RECENT_GL_KEY, JSON.stringify(list.slice(0, RECENT_GL_MAX))); } catch (_) {}
-}
-function pushRecentGamelist(path) {
-  if (!path) return;
-  const key = recentKey(path);
-  saveRecentGamelists([path, ...getRecentGamelists().filter((p) => recentKey(p) !== key)]);
-}
-function forgetRecentGamelist(path) {
-  const key = recentKey(path);
-  saveRecentGamelists(getRecentGamelists().filter((p) => recentKey(p) !== key));
+    await apiFetch("/api/recent/import", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ paths: old }),
+    });
+    localStorage.removeItem(RECENT_GL_KEY);
+  } catch (_) {}
 }
 
-function renderRecentGamelists() {
+async function renderRecentGamelists(data) {
   const box = document.getElementById("open-gl-recent");
   if (!box) return;
+  if (!data) {
+    try { data = await apiFetch("/api/recent"); } catch (_) { data = { recent: [] }; }
+  }
   const current = window.__gmeXmlPath ? recentKey(window.__gmeXmlPath) : null;
-  const list = getRecentGamelists().filter((p) => recentKey(p) !== current);
+  const list = (data.recent || []).filter((r) => recentKey(r.path) !== current).slice(0, RECENT_SHOWN);
   if (!list.length) {
     box.innerHTML = `<div class="open-gl-recent-empty">${escapeHtml(t("open_gl.recent_empty"))}</div>`;
     return;
   }
-  box.innerHTML = list.map((p) => {
+  box.innerHTML = list.map(({ path: p, exists }) => {
     const parts = p.split(/[\\/]/).filter(Boolean);
     const folder = parts.length > 1 ? parts[parts.length - 2] : p;
-    return `<div class="open-gl-recent-row" role="listitem">` +
-      `<button type="button" class="open-gl-recent-item" data-path="${escapeHtml(p)}" title="${escapeHtml(p)}">` +
-      `${icon("device-gamepad-2")}<span class="open-gl-recent-name">${escapeHtml(folder)}</span>` +
+    const title = exists ? p : `${p} (${t("open_gl.recent_missing")})`;
+    return `<div class="open-gl-recent-row${exists ? "" : " is-missing"}" role="listitem">` +
+      `<button type="button" class="open-gl-recent-item" data-path="${escapeHtml(p)}" title="${escapeHtml(title)}">` +
+      `${icon(exists ? "device-gamepad-2" : "alert-triangle")}<span class="open-gl-recent-name">${escapeHtml(folder)}</span>` +
       `<span class="open-gl-recent-path">\u200e${escapeHtml(p)}\u200e</span></button>` +
       `<button type="button" class="btn btn-icon btn-sm open-gl-recent-forget" data-path="${escapeHtml(p)}"` +
       ` title="${escapeHtml(t("open_gl.recent_forget"))}" aria-label="${escapeHtml(t("open_gl.recent_forget"))}">${icon("x")}</button>` +
       `</div>`;
   }).join("");
 }
-document.getElementById("open-gl-recent").addEventListener("click", (e) => {
+document.getElementById("open-gl-recent").addEventListener("click", async (e) => {
   const forget = e.target.closest(".open-gl-recent-forget");
   if (forget) {
-    forgetRecentGamelist(forget.dataset.path);
-    renderRecentGamelists();
+    try {
+      const data = await apiFetch("/api/recent/forget", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path: forget.dataset.path }),
+      });
+      renderRecentGamelists(data);
+    } catch (err) {
+      handleError(err);
+    }
     return;
   }
   const item = e.target.closest(".open-gl-recent-item");
@@ -2052,7 +2059,6 @@ async function applyOpenGamelist() {
     });
     window.__gmeXmlPath = data.xml_path || path;
     window.__gmeLoaded = true;
-    pushRecentGamelist(window.__gmeXmlPath);
     games = data.games || [];
     setNoGamelistUi(true);
     resetEditorSelection();
@@ -2067,11 +2073,8 @@ async function applyOpenGamelist() {
     toast(t("toast.gamelist_opened", { name: label, n: data.count != null ? data.count : games.length }));
     setStatus(t("status.ready", { n: games.length }));
   } catch (e) {
-    // A recent file that was moved or deleted: drop it from the list
-    if (e && e.code === "open_not_found") {
-      forgetRecentGamelist(path);
-      renderRecentGamelists();
-    }
+    // A recent file that was moved or deleted: the server dropped it from the list
+    if (e && e.code === "open_not_found") renderRecentGamelists();
     handleError(e);
   }
 }
@@ -2179,6 +2182,7 @@ async function boot() {
     GENRES = {};
   }
   initGenreSelects();
+  await importBrowserRecents();
   await loadGames();
   // First launch / no gamelist: open the file browser automatically
   if (!window.__gmeLoaded && typeof openGamelistModal === "function") {

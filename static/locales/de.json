@@ -400,7 +400,8 @@
     "loading": "Laden…",
     "empty_folder": "Keine Ordner oder .xml-Dateien hier.",
     "browse_error": "Ordner konnte nicht gelesen werden.",
-    "recent_forget": "Aus der Liste entfernen"
+    "recent_forget": "Aus der Liste entfernen",
+    "recent_missing": "nicht gefunden"
   },
   "about": {
     "open_title": "Über",
