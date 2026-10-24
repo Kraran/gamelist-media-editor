@@ -21,5 +21,5 @@ build/
 dist/
 *.spec.bak
 
-# Thumbnail cache (regenerated on demand)
+# Caches: list thumbnails, scrape previews (regenerated on demand)
 cache/

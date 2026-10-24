@@ -5,6 +5,10 @@ All notable changes to Gamelist Media Editor are documented in this file.
 ## [Unreleased]
 
 ### Added
+- **One "Scrape" button**: the source is picked for the system (Arcade Database for MAME, FBNeo, Neo-Geo, CPS, Naomi…; Steam for the `steam` folder; ScreenScraper for everything else). The ▾ menu forces another source, remembered per system, with a way back to the automatic choice. Replaces the three ScreenScraper / Arcade DB / Steam buttons
+- **Scrape comparison**: each field shows the current value next to the proposed one, images side by side with their size in pixels, marked *New*, *Different* or *Replaces*. Only what the game is missing is ticked; *Fill gaps* / *Replace all* / *None* presets; identical fields and fields the source does not have are listed at the bottom; the apply button counts the selected fields and has the focus (Enter applies)
+- Proposed images are downloaded once for the preview, kept for a day in `cache/remote/`, and reused when applied: no second ScreenScraper download (quota). Previews are addressed by a key, so ScreenScraper URLs, which carry the member login, never appear in an address or in the server log
+- `preset` in the scrape apply routes (`"missing"` or `"all"` instead of a field list): the server selects the fields itself, ready for a future batch scrape
 - **Game sheet**: media gallery where each media keeps its shape (masonry of columns, larger on big screens) with its size in pixels or video length; missing media grouped as small drop targets that also open a file picker on click; *Replace* button on each media
 - **Single save bar** under the editor: lists the unsaved changes, *Save* (`Ctrl+S`) and *Discard changes*; changed fields are marked. Replaces the three separate Save buttons
 - **Rating in stars** (half steps, keyboard arrows), **release date picker** (stored as `YYYYMMDDT000000`; a value it cannot show is kept and displayed), **language and region lists** named in the interface language (values outside the list such as `en,fr` are kept), **suggestions** for developer, publisher, family, players and arcade system from the values already in the gamelist
@@ -25,6 +29,8 @@ All notable changes to Gamelist Media Editor are documented in this file.
 - GitHub Actions CI: tests on Windows and Linux, Python 3.9 and 3.13, plus `app.js` syntax check
 
 ### Changed
+- Scrape apply: ScreenScraper, Arcade Database and Steam share one implementation (`gme/scrapers/apply.py`, `compare.py`); metadata go through the same validation as a manual edit (a rating from a source is normalized, an invalid one is reported)
+- Downloaded media are written atomically, and a Steam trailer is downloaded to a temporary file first: an interrupted download no longer leaves a truncated file in place of the previous one
 - **Much faster with large gamelists**: on a realistic 30,000-game MAME list the app now opens in 1 s instead of 14 s and opens a game in 0.17 s instead of 1.4 s. The game list is virtualized (about 40 rows in the page instead of 420,000 elements), the server builds it in one pass (2.0 s → 0.3 s) and sends 3 times less data: only filled fields, descriptions loaded when a game is opened
 - "Delete this game" moved from the app bar to the game header; the window adapts below 1280 px (icon-only bar buttons) and 1100 px (metadata under the media)
 - Text, field outlines and focus rings meet WCAG AA contrast
@@ -37,6 +43,8 @@ All notable changes to Gamelist Media Editor are documented in this file.
 - Repository cleanup: `PUBLISH_v1.1.3.bat` (one-off publish script), `generate_icons.py` with `icon_data/` and `icons_*.json` (base64 copies of icons already in `static/`), unused root `icon.png`
 
 ### Fixed
+- Scrape applied fields the user had not ticked: the ScreenScraper thumbnail, bezel and Pad2Key were always downloaded (replacing existing files), and Arcade Database always wrote the arcade system name. They are now rows of the comparison like the others
+- A field ticked while the source had no value for it erased the game's value; a scrape now never erases anything
 - An invalid rating rejected by the metadata route left the other submitted fields changed in memory, so the next save of anything wrote them too. Values are now all validated before anything is changed
 - Media messages showed the internal field name (`boxart`) instead of its translated label
 - **`gamelist.xml` could be seen empty, or lost, during a save**: the file was truncated then rewritten, so a program reading it at that moment (EmulationStation, another editor) got an empty file, and a crash or power cut mid-write destroyed it. Saves now write a temporary file next to it and swap it in atomically; `screenscraper_config.json` too. On Windows, if another program holds the file open, the save retries briefly then writes in place as before

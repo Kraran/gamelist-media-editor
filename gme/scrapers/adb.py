@@ -5,17 +5,16 @@ import re
 
 import requests
 from flask import Blueprint, jsonify, request
-from lxml import etree
 
-from gme import xml_store
 from gme.arcade import pretty_arcade_system
 from gme.http import api_err
 from gme.i18n import st
-from gme.media import MAX_DOWNLOAD_BYTES, download_remote_media, safe_delete_file
+from gme.scrapers.apply import apply_route
 from gme.scrapers.common import throttle_api, name_similarity
+from gme.scrapers.compare import scrape_payload
 from gme.systems import detect_system_id
 from gme.version import APP_UA
-from gme.xml_store import MEDIA_DIRS, get_base_name, get_game_elem, require_gamelist, resolve_under_base, save_xml
+from gme.xml_store import get_game_elem, require_gamelist
 
 bp = Blueprint("adb", __name__)
 
@@ -227,23 +226,6 @@ def parse_adb_game(item):
     }
 
 
-def adb_current_from_game(game):
-    current = {
-        "name": game.findtext("name", "") or "",
-        "desc": game.findtext("desc", "") or "",
-        "rating": game.findtext("rating", "") or "",
-        "releasedate": game.findtext("releasedate", "") or "",
-        "developer": game.findtext("developer", "") or "",
-        "publisher": game.findtext("publisher", "") or "",
-        "genre": game.findtext("genre", "") or "",
-        "players": game.findtext("players", "") or "",
-        "lang": game.findtext("lang", "") or "",
-    }
-    for f in MEDIA_DIRS:
-        current[f] = game.findtext(f, "") or ""
-    return current
-
-
 @bp.route("/api/adb/scrape/<int:index>", methods=["POST"])
 def api_adb_scrape(index):
     """
@@ -345,7 +327,7 @@ def api_adb_scrape(index):
             "rom_name": rom_name,
             "romset": romset,
             "proposed": parsed,
-            "current": adb_current_from_game(game),
+            **scrape_payload(game, parsed, {"User-Agent": ADB_UA}),
         })
 
     # Multiple candidates
@@ -389,7 +371,7 @@ def api_adb_scrape(index):
                         "rom_name": rom_name,
                         "romset": romset,
                         "proposed": parsed,
-                        "current": adb_current_from_game(game),
+                        **scrape_payload(game, parsed, {"User-Agent": ADB_UA}),
                     })
 
     return jsonify({
@@ -410,114 +392,5 @@ def api_adb_scrape(index):
 
 @bp.route("/api/adb/apply/<int:index>", methods=["POST"])
 def api_adb_apply(index):
-    """Apply selected Arcade Database fields — same contract as /api/ss/apply."""
-    err = require_gamelist()
-    if err:
-        return err
-    body = request.get_json(silent=True) or {}
-    fields = list(body.get("fields") or [])
-    proposed = body.get("proposed") or {}
-    if (proposed.get("arcadesystemname") or "").strip() and "arcadesystemname" not in fields:
-        fields.append("arcadesystemname")
-    if not fields:
-        return api_err(st("server.no_fields"), 400, code="no_fields")
-    try:
-        tree, game = get_game_elem(index)
-    except IndexError:
-        return api_err(st("server.invalid_index"), 404, code="bad_index")
-
-    applied = []
-    errors = []
-    meta_map = {
-        "name": "name", "desc": "desc", "rating": "rating",
-        "releasedate": "releasedate", "developer": "developer",
-        "publisher": "publisher", "genre": "genre",
-        "players": "players", "lang": "lang", "region": "region",
-        "family": "family", "kidgame": "kidgame",
-        "arcadesystemname": "arcadesystemname",
-    }
-
-    for field in fields:
-        if field not in meta_map:
-            continue
-        value = (proposed.get(field) or "").strip()
-        if field == "name" and not value:
-            errors.append(st("server.name_empty_ignored"))
-            continue
-        if field == "rating" and value:
-            try:
-                fval = float(value)
-                if not (0.0 <= fval <= 1.0):
-                    errors.append(st("server.rating_range_value", value=value))
-                    continue
-            except ValueError:
-                errors.append(st("server.rating_invalid_value", value=value))
-                continue
-        if field == "lang" and value:
-            value = value.lower()
-        tag = meta_map[field]
-        elem = game.find(tag)
-        if value == "":
-            if elem is not None:
-                game.remove(elem)
-        else:
-            if elem is None:
-                if tag == "name":
-                    elem = etree.Element("name")
-                    game.insert(0, elem)
-                elif tag == "desc":
-                    name_elem = game.find("name")
-                    elem = etree.Element("desc")
-                    if name_elem is not None:
-                        name_elem.addnext(elem)
-                    else:
-                        game.append(elem)
-                else:
-                    elem = etree.SubElement(game, tag)
-            elem.text = value
-        applied.append(field)
-
-    medias = proposed.get("medias") or {}
-    base_name = get_base_name(game)
-    for field in fields:
-        if field not in MEDIA_DIRS:
-            continue
-        info = medias.get(field) or {}
-        url = (info.get("url") or "").strip()
-        if not url:
-            errors.append(f"{field}: {st('server.no_adb_url')}")
-            continue
-        media_dir_name = MEDIA_DIRS[field]
-        media_dir = os.path.join(xml_store.BASE_DIR, media_dir_name)
-        os.makedirs(media_dir, exist_ok=True)
-        try:
-            new_filename = download_remote_media(
-                url, media_dir, base_name, field,
-                headers={"User-Agent": ADB_UA},
-                timeout=40,
-            )
-            rel_path = f"./{media_dir_name}/{new_filename}"
-            old_rel = game.findtext(field, "") or ""
-            if old_rel and resolve_under_base(old_rel) != resolve_under_base(rel_path):
-                safe_delete_file(old_rel)
-            elem = game.find(field)
-            if elem is None:
-                elem = etree.SubElement(game, field)
-            elem.text = rel_path
-            applied.append(field)
-        except ValueError as e:
-            if str(e) == "too_large":
-                errors.append(f"{field}: {st('server.file_too_large', n=MAX_DOWNLOAD_BYTES // (1024*1024))}")
-            elif str(e) == "url_not_allowed":
-                errors.append(f"{field}: {st('server.url_not_http')}")
-            elif str(e) == "green_placeholder":
-                continue
-            else:
-                errors.append(f"{field}: {e}")
-        except Exception as e:
-            errors.append(f"{field}: {e}")
-
-    if applied:
-        save_xml(tree)
-
-    return jsonify({"success": True, "applied": applied, "errors": errors, "source": "arcadeitalia"})
+    """Apply the selected Arcade Database fields (contract: gme/scrapers/apply.py)."""
+    return apply_route(index, "arcadeitalia", headers={"User-Agent": ADB_UA}, no_url_key="server.no_adb_url")

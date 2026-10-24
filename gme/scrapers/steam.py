@@ -6,17 +6,17 @@ from urllib.parse import urlparse
 
 import requests
 from flask import Blueprint, jsonify, request
-from lxml import etree
 
 from gme import xml_store
 from gme.http import api_err
 from gme.i18n import st
-from gme.media import MAX_DOWNLOAD_BYTES, safe_delete_file
-from gme.scrapers.adb import adb_current_from_game
+from gme.media import MAX_DOWNLOAD_BYTES
+from gme.scrapers.apply import apply_route
 from gme.scrapers.common import throttle_api, clean_game_name, name_similarity
+from gme.scrapers.compare import scrape_payload
 from gme.systems import detect_system_id
 from gme.version import APP_UA
-from gme.xml_store import MEDIA_DIRS, get_base_name, get_game_elem, require_gamelist, resolve_under_base, save_xml
+from gme.xml_store import MEDIA_DIRS, get_base_name, get_game_elem, require_gamelist
 
 bp = Blueprint("steam", __name__)
 
@@ -365,9 +365,6 @@ def api_steam_scrape(index):
 
     appid = parse_steam_appid(force_id) or parse_steam_appid(local_name) or parse_steam_appid(path_rel)
 
-    def current_map():
-        return adb_current_from_game(game)
-
     def finish(data, method):
         movies = data.get("movies") or []
         movie, video_info = steam_choose_movie(movies)
@@ -386,7 +383,7 @@ def api_steam_scrape(index):
             "rom_name": rom_name,
             "local_name": local_name,
             "proposed": parsed,
-            "current": current_map(),
+            **scrape_payload(game, parsed),
             "steam_appid": parsed.get("steam_appid"),
             "trailer": video_info.get("trailer"),
             "video_quality": video_info.get("quality"),
@@ -443,135 +440,57 @@ def api_steam_scrape(index):
     })
 
 
+def steam_download_video(game, field, info):
+    """Steam trailer: best quality first, then the 480p fallback if over the limit."""
+    urls = []
+    for u in (info.get("url"), info.get("fallback_url")):
+        if u and u not in urls:
+            urls.append(u)
+    media_dir_name = MEDIA_DIRS[field]
+    media_dir = os.path.join(xml_store.BASE_DIR, media_dir_name)
+    os.makedirs(media_dir, exist_ok=True)
+    filename = f"{get_base_name(game)}-{field}.mp4"
+    dest = os.path.join(media_dir, filename)
+    last_err = None
+    for url in urls:
+        url = _steam_https(url)
+        if urlparse(url).scheme not in ("http", "https"):
+            last_err = st("server.url_not_http")
+            continue
+        tmp = dest + ".part"
+        try:
+            r = requests.get(url, headers={"User-Agent": STEAM_UA}, timeout=60, stream=True)
+            r.raise_for_status()
+            written = 0
+            with open(tmp, "wb") as f:
+                for chunk in r.iter_content(65536):
+                    if not chunk:
+                        continue
+                    written += len(chunk)
+                    if written > MAX_DOWNLOAD_BYTES:
+                        raise ValueError("too_large")
+                    f.write(chunk)
+            os.replace(tmp, dest)
+            return f"./{media_dir_name}/{filename}"
+        except ValueError:
+            last_err = st("server.file_too_large", n=MAX_DOWNLOAD_BYTES // (1024 * 1024))
+        except Exception as e:
+            last_err = str(e)
+        finally:
+            if os.path.exists(tmp):
+                try:
+                    os.remove(tmp)
+                except OSError:
+                    pass
+    raise RuntimeError(last_err or st("server.steam_too_large"))
+
+
 @bp.route("/api/steam/apply/<int:index>", methods=["POST"])
 def api_steam_apply(index):
-    """Apply selected Steam fields. Video: max then 480p fallback if over 50 MB."""
-    err = require_gamelist()
-    if err:
-        return err
-    body = request.get_json(silent=True) or {}
-    fields = body.get("fields") or []
-    proposed = body.get("proposed") or {}
-    if not fields:
-        return api_err(st("server.no_fields"), 400, code="no_fields")
-    try:
-        tree, game = get_game_elem(index)
-    except IndexError:
-        return api_err(st("server.invalid_index"), 404, code="invalid_index")
-
-    applied = []
-    errors = []
-    meta_map = {
-        "name": "name", "desc": "desc", "rating": "rating",
-        "releasedate": "releasedate", "developer": "developer",
-        "publisher": "publisher", "genre": "genre",
-        "players": "players", "lang": "lang", "region": "region",
-        "family": "family", "kidgame": "kidgame",
-        "arcadesystemname": "arcadesystemname",
-    }
-
-    for field in fields:
-        if field not in meta_map:
-            continue
-        value = (proposed.get(field) or "").strip()
-        if field == "name" and not value:
-            errors.append(st("server.name_empty_ignored"))
-            continue
-        tag = meta_map[field]
-        elem = game.find(tag)
-        if value == "":
-            if elem is not None:
-                game.remove(elem)
-        else:
-            if elem is None:
-                if tag == "name":
-                    elem = etree.Element("name")
-                    game.insert(0, elem)
-                elif tag == "desc":
-                    name_elem = game.find("name")
-                    elem = etree.Element("desc")
-                    if name_elem is not None:
-                        name_elem.addnext(elem)
-                    else:
-                        game.append(elem)
-                else:
-                    elem = etree.SubElement(game, tag)
-            elem.text = value
-        applied.append(field)
-
-    medias = proposed.get("medias") or {}
-    base_name = get_base_name(game)
-
-    def download_url(url, dest):
-        r = requests.get(
-            _steam_https(url),
-            headers={"User-Agent": STEAM_UA},
-            timeout=60,
-            stream=True,
-        )
-        r.raise_for_status()
-        written = 0
-        with open(dest, "wb") as f:
-            for chunk in r.iter_content(8192):
-                if not chunk:
-                    continue
-                written += len(chunk)
-                if written > MAX_DOWNLOAD_BYTES:
-                    f.close()
-                    try:
-                        os.remove(dest)
-                    except OSError:
-                        pass
-                    raise ValueError("too_large")
-                f.write(chunk)
-        return written
-
-    for field in fields:
-        if field not in MEDIA_DIRS:
-            continue
-        info = medias.get(field) or {}
-        urls = []
-        if info.get("url"):
-            urls.append(info["url"])
-        if info.get("fallback_url") and info["fallback_url"] not in urls:
-            urls.append(info["fallback_url"])
-        if not urls:
-            errors.append(f"{field}: {st('server.no_steam_url')}")
-            continue
-        media_dir_name = MEDIA_DIRS[field]
-        media_dir = os.path.join(xml_store.BASE_DIR, media_dir_name)
-        os.makedirs(media_dir, exist_ok=True)
-        dest = os.path.join(media_dir, f"{base_name}-{field}.mp4")
-        last_err = None
-        saved = False
-        for url in urls:
-            parsed = urlparse(_steam_https(url))
-            if parsed.scheme not in ("http", "https"):
-                last_err = "URL non http(s)"
-                continue
-            try:
-                download_url(url, dest)
-                saved = True
-                break
-            except ValueError:
-                last_err = st("server.file_too_large", n=MAX_DOWNLOAD_BYTES // (1024 * 1024))
-                continue
-            except Exception as e:
-                last_err = str(e)
-                continue
-        if not saved:
-            errors.append(f"{field}: {last_err or st('server.steam_too_large')}")
-            continue
-        rel_path = f"./{media_dir_name}/{base_name}-{field}.mp4"
-        old_rel = game.findtext(field, "") or ""
-        if old_rel and resolve_under_base(old_rel) != resolve_under_base(rel_path):
-            safe_delete_file(old_rel)
-        elem = game.find(field)
-        if elem is None:
-            elem = etree.SubElement(game, field)
-        elem.text = rel_path
-        applied.append(field)
-
-    if applied:
-        save_xml(tree)
-    return jsonify({"success": True, "applied": applied, "errors": errors, "source": "steam"})
+    """Apply the selected Steam fields (contract: gme/scrapers/apply.py)."""
+    return apply_route(
+        index, "steam",
+        headers={"User-Agent": STEAM_UA},
+        media_handlers={"video": steam_download_video},
+        no_url_key="server.no_steam_url",
+    )

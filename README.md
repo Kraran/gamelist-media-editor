@@ -23,10 +23,15 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
 - **One save bar** for all changes (`Ctrl+S`), with the changed fields marked and *Discard changes*; one write of `gamelist.xml` per save
 - RetroBat flags **favorite** / **hidden** / **kidgame**
 
-**Scrapers** (field by field, you choose what to apply)
+**Scrapers**
+- **One Scrape button**: the right source for the system (Arcade Database for arcade folders, Steam for `steam`, ScreenScraper otherwise); the ▾ menu forces another one, remembered per system
+- **Comparison before applying**: current and proposed values side by side, images with their size; only what is missing is ticked, nothing is replaced unless you tick it (*Fill gaps* / *Replace all* / *None*)
+- Proposed images are downloaded once and reused when applied (no second ScreenScraper download)
 - **ScreenScraper**: ROM hash match (also inside `.zip`), then name search with a candidate list; media types configurable; system detected from the RetroBat folder name (all RetroBat systems)
 - **Arcade Database**: MAME / FBNeo / Neo-Geo / Atomiswave (PCB → Support, Cabinet → Boxart, Flyer → Boxback, Decal → Marquee) and arcade hardware name (`cps1.cpp` → CPS1)
 - **Steam**: trailer download (French when available, 720p if ≤ 50 MB, else 480p)
+
+![Scrape comparison: current and proposed media side by side, missing fields ticked](docs/screenshots/scrape.png)
 
 **Workflow**
 - Game list with **thumbnails** and a **media count** per game (hover it to see what is missing); fast with very large gamelists (a 30,000-game MAME list opens in about a second)
@@ -81,7 +86,7 @@ Your `screenscraper_config.json` (member login, media types) is stored next to `
 ## Usage
 
 1. Open your system's `gamelist.xml` (for example `RetroBat\roms\snes\gamelist.xml`). Media go to `images/`, `videos/` and `manuals/` next to it.
-2. Select a game, then drop files on the media zones or use **ScreenScraper**, **Arcade DB** or **Steam**.
+2. Select a game, then drop files on the media, or click **Scrape**, check what changes and apply (Enter).
 3. Edit the metadata and save (`Ctrl+S`).
 4. Use **Tools** for global actions, **Reload** if you edited the XML outside the app.
 
@@ -114,14 +119,18 @@ Code layout (`app.py` is only the entry point; the overview is in `gme/__init__.
 | `gme/main.py`, `gme/server.py` | start-up, Flask app, request guards, blueprints |
 | `gme/editor.py` | editor routes: list, open gamelist, media, metadata, tools |
 | `gme/scrapers/ss.py`, `adb.py`, `steam.py` | ScreenScraper, Arcade Database, Steam (client, parsing, routes) |
+| `gme/scrapers/compare.py`, `apply.py` | current vs proposed per field (statuses, presets), applying a scrape (shared by the three sources) |
 | `gme/scrapers/common.py` | throttling, name matching, ROM hashes |
+| `gme/remote_cache.py` | proposed images: previews (`/api/scrape/preview/<key>`), kept in `cache/remote/` and reused when applied |
 | `gme/xml_store.py` | the open `gamelist.xml`: path, cache, writes, game lookup |
 | `gme/thumbs.py` | list thumbnails (`/api/thumb`), cached in `cache/thumbs/` next to `app.py` or the `.exe` |
-| `gme/media.py`, `gme/systems.py`, `gme/arcade.py` | media files, ScreenScraper system ids, arcade hardware names |
+| `gme/fields.py` | metadata validation and XML setters (editor and scrapers) |
+| `gme/media.py`, `gme/systems.py`, `gme/arcade.py` | media files, ScreenScraper system ids and default scraper per system, arcade hardware names |
 | `gme/security.py`, `gme/i18n.py`, `gme/window.py` | local-only guards, server messages, app window |
 | `templates/`, `static/` | UI (`app.js`, `style.css`, `locales/*.json`) |
 
 - The game list is virtualized (`renderList` / `renderListWindow` in `app.js`): only the rows in view exist in the page. `/api/games` sends the non-empty fields without descriptions; `/api/game/<index>` returns one game with its description
+- Scrapers return a `proposed` dict (same shape for the three sources); `compare.compare_rows` gives each field a status (`new`, `different`, `replace`, `same`, `unavailable`) and the apply routes take either the ticked `fields` or a `preset` (`missing`, `all`)
 - `xml_store.XML_PATH` / `xml_store.BASE_DIR` change when another gamelist is opened: read them through the module, never import the names
 - Version: `APP_VERSION` and `APP_RELEASE_DATE` in `gme/version.py` are the only places to change (header, About dialog, User-Agent, console)
 - `python app.py --no-browser [gamelist.xml]` starts the server without opening a window
