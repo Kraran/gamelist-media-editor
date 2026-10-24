@@ -1,18 +1,18 @@
 # Installation
 
-Version documentée : **1.3.0**
+Version documentée : **1.4.0**
 
 ## Option A — Exécutable Windows (recommandé)
 
-1. Ouvre la [release v1.3.0](https://github.com/Kraran/gamelist-media-editor/releases/tag/v1.3.0)
-2. Télécharge **`GamelistMediaEditor-Windows-v1.3.0.zip`**
+1. Ouvre la [release v1.4.0](https://github.com/Kraran/gamelist-media-editor/releases/tag/v1.4.0)
+2. Télécharge **`GamelistMediaEditor-Windows-v1.4.0.zip`**
 3. Décompresse où tu veux
 4. Lance **`GamelistMediaEditor.exe`**
 
-**Aucun Python à installer.**  
-Fenêtre dédiée (mode application) si Edge / Chrome / Brave est le navigateur par défaut ou installé. Sinon, le navigateur habituel s’ouvre sur [http://127.0.0.1:5050](http://127.0.0.1:5050).
+**Aucun Python à installer.** L’interface fonctionne hors ligne (polices et icônes intégrées).  
+Fenêtre dédiée (mode application) si Edge / Chrome / Brave est installé. Sinon, le navigateur habituel s’ouvre sur [http://127.0.0.1:5050](http://127.0.0.1:5050).
 
-Au premier lancement : **📂 Gamelist…** pour choisir le XML.
+Au premier lancement : **Gamelist…** pour choisir le XML.
 
 ### Compiler l’exe (développeurs)
 
@@ -22,7 +22,8 @@ Windows + Python 3.9+ :
 BUILD_EXE.bat
 ```
 
-Sortie : `dist\GamelistMediaEditor.exe` (dossier ignoré par Git — normal).
+Sortie : `dist\GamelistMediaEditor.exe` (dossier ignoré par Git — normal).  
+La CI GitHub construit aussi l’exe à chaque push et le joint au run (14 jours).
 
 ## Option B — Source Python
 
@@ -34,10 +35,11 @@ Sortie : `dist\GamelistMediaEditor.exe` (dossier ignoré par Git — normal).
 python -m pip install -r requirements.txt
 ```
 
-Dépendances : Flask, lxml, requests, **Pillow**.
+Dépendances : Flask, lxml, requests, Pillow.
 
 4. `Lancer.bat` ou `python app.py`  
-   Optionnel : `python app.py "C:\chemin\vers\gamelist.xml"`
+   Optionnel : `python app.py "C:\chemin\vers\gamelist.xml"`  
+   `python app.py --no-browser` démarre le serveur sans ouvrir de fenêtre.
 
 5. [http://127.0.0.1:5050](http://127.0.0.1:5050)
 
@@ -55,10 +57,21 @@ roms\snes\
 Les chemins écrits dans le XML sont relatifs (`./images/…`, `./videos/…`).  
 Les fichiers **Pad2Key** (`.keys`) vont **à côté de la ROM**, pas dans `images/`.
 
-## Mise à jour 1.2.0 → 1.3.0
+## Fichiers créés à côté de l’exe / de `app.py`
 
-- Remplace les fichiers de l’app (garde `screenscraper_config.json` à côté de l’exe / de `app.py`)
-- En source : `python -m pip install -r requirements.txt` (Pillow ajouté)
+| Fichier / dossier | Rôle |
+|---|---|
+| `screenscraper_config.json` | Compte membre ScreenScraper, région, types de médias |
+| `cache\thumbs\` | Miniatures de la liste (recréées à la demande) |
+| `cache\remote\` | Images proposées par un scrape, gardées un jour (pas de second téléchargement) |
+
+Le dossier `cache` peut être supprimé sans risque.
+
+## Mise à jour 1.3.0 → 1.4.0
+
+- Remplace les fichiers de l’app (garde `screenscraper_config.json`)
+- En source : `python -m pip install -r requirements.txt`
 - Aucune migration du `gamelist.xml`
+- Les **Outils** sont devenus **Réglages** (roue dentée) et **Actions** (⋯) : voir [Utilisation](Utilisation)
 
-**Gamelist Media Editor** · v1.3.0
+**Gamelist Media Editor** · v1.4.0
