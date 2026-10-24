@@ -480,6 +480,7 @@
     "done": "Gamelisten uppdaterad: {added} tillagda, {removed} borttagna, {merged} sammanslagna",
     "report_gamelist": "Gamelist",
     "report_date": "Datum",
-    "size_units": "B,KB,MB,GB"
+    "size_units": "B,KB,MB,GB",
+    "arcade_note": "Arkadsystem: .chd-skivor och ett romsets mapp (kinst/ bredvid kinst.zip) räknas inte som spel."
   }
 }

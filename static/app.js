@@ -1783,6 +1783,7 @@ function renderRomCheck() {
     r.duplicates.map(d => ({ key: d.path, name: d.entries.map(e => e.name || "—").join(" · "), path: d.path,
       meta: t("romcheck.copies_n", { n: d.entries.length }) })));
   if (r.non_file) html += `<p class="rc-note">${escapeHtml(t("romcheck.non_file", { n: r.non_file }))}</p>`;
+  if (r.arcade) html += `<p class="rc-note">${escapeHtml(t("romcheck.arcade_note"))}</p>`;
   document.getElementById("romcheck-body").innerHTML = html;
   updateRomCheckSelection();
 }

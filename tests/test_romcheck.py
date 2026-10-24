@@ -105,3 +105,41 @@ def test_merge_duplicates_keeps_every_field(tmp_path, client):
 def test_nothing_to_do_is_refused(folder, client):
     r = client.post("/api/check-roms/apply", headers=LOCAL, json={})
     assert r.status_code == 400
+
+
+def open_folder(tmp_path, system, gamelist, files):
+    root = tmp_path / "roms" / system
+    root.mkdir(parents=True)
+    (root / "gamelist.xml").write_text(gamelist, encoding="utf-8")
+    for name in files:
+        (root / name).parent.mkdir(parents=True, exist_ok=True)
+        (root / name).write_bytes(b"x")
+    xml_store.set_gamelist_path(str(root / "gamelist.xml"))
+    return root
+
+
+def test_mame_chd_are_not_games(tmp_path, client):
+    """MAME: kinst.zip is the game, kinst/kinst.chd its disk; a stray .chd is not a game either."""
+    open_folder(tmp_path, "mame",
+                "<gameList><game><path>./kinst.zip</path><name>Killer Instinct</name></game></gameList>",
+                ["kinst.zip", "kinst/kinst.chd", "sfiii/sfiii-cd.chd", "sfiii.zip", "stray.chd",
+                 "area51.zip", "area51/area51.chd"])
+    try:
+        data = report(client)
+        assert data["arcade"] is True
+        assert sorted(u["path"] for u in data["unlisted"]) == ["./area51.zip", "./sfiii.zip"]
+    finally:
+        xml_store.close_gamelist()
+
+
+def test_folder_named_like_a_rom_holds_its_data(tmp_path, client):
+    """Any system: "alpha/" beside "alpha.zip" is that game's data, not more games."""
+    open_folder(tmp_path, "snes",
+                "<gameList><game><path>./alpha.zip</path><name>Alpha</name></game></gameList>",
+                ["alpha.zip", "alpha/patch.zip", "Hacks/beta.zip"])
+    try:
+        data = report(client)
+        assert data["arcade"] is False
+        assert [u["path"] for u in data["unlisted"]] == ["./Hacks/beta.zip"]
+    finally:
+        xml_store.close_gamelist()

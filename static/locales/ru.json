@@ -480,6 +480,7 @@
     "done": "Gamelist обновлён: добавлено {added}, удалено {removed}, объединено {merged}",
     "report_gamelist": "Gamelist",
     "report_date": "Дата",
-    "size_units": "Б,КБ,МБ,ГБ"
+    "size_units": "Б,КБ,МБ,ГБ",
+    "arcade_note": "Аркадная система: диски .chd и папка ромсета (kinst/ рядом с kinst.zip) не считаются играми."
   }
 }

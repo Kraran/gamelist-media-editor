@@ -480,6 +480,7 @@
     "done": "Zaktualizowano: dodano {added}, usunięto {removed}, scalono {merged}",
     "report_gamelist": "Lista gier",
     "report_date": "Data",
-    "size_units": "B,KB,MB,GB"
+    "size_units": "B,KB,MB,GB",
+    "arcade_note": "System automatów: dyski .chd i folder romsetu (kinst/ obok kinst.zip) nie są liczone jako gry."
   }
 }

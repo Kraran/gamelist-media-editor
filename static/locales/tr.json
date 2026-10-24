@@ -480,6 +480,7 @@
     "done": "Gamelist güncellendi: {added} eklendi, {removed} kaldırıldı, {merged} birleştirildi",
     "report_gamelist": "Gamelist",
     "report_date": "Tarih",
-    "size_units": "B,KB,MB,GB"
+    "size_units": "B,KB,MB,GB",
+    "arcade_note": "Arcade sistemi: .chd diskleri ve bir romset klasörü (kinst.zip yanındaki kinst/) oyun sayılmaz."
   }
 }

@@ -480,6 +480,7 @@
     "done": "Gamelist actualizado: {added} añadido(s), {removed} quitado(s), {merged} fusionado(s)",
     "report_gamelist": "Gamelist",
     "report_date": "Fecha",
-    "size_units": "B,KB,MB,GB"
+    "size_units": "B,KB,MB,GB",
+    "arcade_note": "Sistema arcade: los discos .chd y la carpeta de un romset (kinst/ junto a kinst.zip) no cuentan como juegos."
   }
 }
