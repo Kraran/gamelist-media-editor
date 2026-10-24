@@ -4,7 +4,7 @@
 
 Local web app to edit the media and metadata of EmulationStation **RetroBat** (and Batocera / Recalbox) `gamelist.xml` files, with drag-and-drop and built-in scrapers.
 
-**Version 1.3.0** · [Documentation (Wiki)](https://github.com/Kraran/gamelist-media-editor/wiki) · [Releases](https://github.com/Kraran/gamelist-media-editor/releases) · [Changelog](CHANGELOG.md)
+**Version 1.4.0** · [Documentation (Wiki)](https://github.com/Kraran/gamelist-media-editor/wiki) · [Releases](https://github.com/Kraran/gamelist-media-editor/releases) · [Changelog](CHANGELOG.md)
 
 ![The editor: game list, media of the selected game, description and metadata](docs/screenshots/editor.png)
 
@@ -15,7 +15,7 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
 **Media**
 - **Media gallery**: each media shown in its own shape (upright boxes, wide logos…) with its size in pixels; missing media grouped below
 - Drag-and-drop (file or image from a web page) or click to choose a file, for **image**, **video**, **marquee**, **manual**, **boxback**, **support** (`cartridge`), **boxart**, **fanart**, **mix**, **maps**
-- RetroBat extras handled automatically: **thumbnail**, **bezel**, **Pad2Key** (`.keys`)
+- RetroBat extras from ScreenScraper: **thumbnail**, **bezel**, **Pad2Key** (`.keys`)
 - Image lightbox, upload limit 50 MB, previous file removed when a media is replaced
 
 **Metadata**
@@ -56,9 +56,9 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
 
 ### Option A — Windows executable (recommended)
 
-1. Download **`GamelistMediaEditor-Windows-v1.3.0.zip`** from the [v1.3.0 release](https://github.com/Kraran/gamelist-media-editor/releases/tag/v1.3.0)
+1. Download **`GamelistMediaEditor-Windows-v1.4.0.zip`** from the [v1.4.0 release](https://github.com/Kraran/gamelist-media-editor/releases/tag/v1.4.0)
 2. Extract anywhere and run **`GamelistMediaEditor.exe`** (no Python needed)
-3. The app window opens on http://127.0.0.1:5050 — use **📂 Gamelist…** to open a `gamelist.xml`
+3. The app window opens on http://127.0.0.1:5050 — use **Gamelist…** to open a `gamelist.xml`
 
 Tip: drag a `gamelist.xml` onto the `.exe` to open it directly.
 

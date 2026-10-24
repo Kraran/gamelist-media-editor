@@ -1,6 +1,6 @@
 # Dépannage
 
-Version documentée : **1.3.0**
+Version documentée : **1.4.0**
 
 ### « ModuleNotFoundError: flask » ou « Pillow »
 
@@ -24,7 +24,7 @@ Ouvre un `gamelist.xml` valide via **Gamelist…**, vérifie les balises `<game>
 
 - Dossier système (`roms\snes`, `roms\mame`…)
 - Autre candidat
-- Boost membre dans Outils
+- Boost membre dans **Réglages › ScreenScraper**
 - API parfois saturée : réessaie plus tard
 
 ### Arcade DB : pas de PCB / Decal / système arcade
@@ -43,10 +43,18 @@ Corrigé en 1.3.0 (signature du fichier). Re-scrape le média pour remplacer l�
 
 ### Interface pas traduite / pas à jour
 
-`static/locales/` doit contenir les 13 JSON. **Outils → Langue → Appliquer**, puis **Ctrl+F5**.
+`static/locales/` doit contenir les 13 JSON. **Réglages › Général › Langue**, puis **Ctrl+F5**.
 
 ### L’exe ne démarre pas
 
 Autorise-le dans l’antivirus (PyInstaller). Relance `BUILD_EXE.bat` si tu compiles.
 
-**Gamelist Media Editor** · v1.3.0
+### « Ce jeu a changé dans gamelist.xml »
+
+Le `gamelist.xml` a été modifié par un autre programme pendant que l’app était ouverte. L’action est refusée pour ne pas toucher un autre jeu ; la liste se recharge. Refais l’action.
+
+### Les miniatures de la liste ne s’affichent pas
+
+Elles sont créées au premier affichage dans `cache\thumbs\` à côté de l’exe. Supprimer le dossier `cache` les régénère.
+
+**Gamelist Media Editor** · v1.4.0

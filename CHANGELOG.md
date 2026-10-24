@@ -4,6 +4,10 @@ All notable changes to Gamelist Media Editor are documented in this file.
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-10-24
+
+New interface (dark theme), one Scrape button with a comparison before applying, much faster with large gamelists, safety fixes. Release notes: [docs/release-notes/RELEASE_NOTES_v1.4.0.md](docs/release-notes/RELEASE_NOTES_v1.4.0.md).
+
 ### Added
 - **Settings** dialog (app bar, gear): General (language, applied at once), ScreenScraper (member login, region, media types, test), Scrape sources (the per-system choices made in the Scrape menu, with a way back to automatic), Keyboard shortcuts. Replaces the Tools dialog
 - **Actions** menu (app bar ⋯) for the whole gamelist: `.bak` backup, arcade system names from `mame.xml`, purge `<region>`; disabled while no gamelist is open

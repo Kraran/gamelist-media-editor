@@ -1,6 +1,6 @@
 # FAQ
 
-Version documentée : **1.3.0**
+Version documentée : **1.4.0**
 
 ### Faut-il Python ?
 
@@ -17,7 +17,7 @@ Non. L’outil édite le XML et les médias, il ne teste pas les cores.
 
 ### Puis-je ajouter des vidéos ?
 
-Oui : glisser-déposer, scrape ScreenScraper / Arcade DB, ou bande-annonce **Steam**.
+Oui : glisser-déposer, scrape ScreenScraper / Arcade DB, ou bande-annonce **Steam** (bouton Scraper, menu ▾).
 
 ### Qu’est-ce que le « Support » ?
 
@@ -29,7 +29,7 @@ ScreenScraper envoie parfois une image **entièrement verte** à la place du dos
 
 ### Où sont les identifiants ScreenScraper ?
 
-Clés développeur **intégrées**. Login membre (boost) + types d’images : **Outils**, fichier `screenscraper_config.json` à côté de l’exe.
+Clés développeur **intégrées**. Login membre (boost) + types d’images : **Réglages › ScreenScraper**, fichier `screenscraper_config.json` à côté de l’exe.
 
 ### Les données partent-elles sur Internet ?
 
@@ -39,4 +39,16 @@ Seulement pendant un scrape (SS, Arcade DB ou Steam). Sinon tout reste en local.
 
 Le mode `--app=` (sans barre d’adresse) est une option Chromium. Firefox s’ouvre en navigateur normal.
 
-**Gamelist Media Editor** · v1.3.0
+### Le scrape va-t-il écraser mes médias ?
+
+Non, sauf si tu le demandes. La fenêtre de comparaison ne coche que ce qui manque ; un média existant n’est remplacé que si tu coches sa carte (badge **Remplace**).
+
+### Pourquoi Arcade Database s’ouvre au lieu de ScreenScraper ?
+
+Le bouton Scraper choisit la source selon le dossier du système (arcade → Arcade Database). Le menu ▾ force une autre source, retenue pour ce système.
+
+### Comment aller vite sur toute une liste ?
+
+Filtre sur un média manquant, puis `N` (jeu incomplet suivant), `S` (scraper), Entrée (appliquer), et ainsi de suite.
+
+**Gamelist Media Editor** · v1.4.0
