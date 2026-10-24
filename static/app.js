@@ -100,6 +100,7 @@ function applyI18n() {
   } catch (_) {}
   try { updateFilterCounts(); } catch (_) {}
   try { initCodeSelects(); renderRating(); renderReleaseDate(); updateUnsavedUi(); } catch (_) {}
+  try { updateScrapeButton(); } catch (_) {}
   try {
     if (typeof games !== "undefined" && games.length) {
       const badge = document.getElementById("game-count");
@@ -460,6 +461,8 @@ function updateFilterCounts(q) {
 }
 
 function updateSystemBadge(system) {
+  currentSystem = system || null;
+  updateScrapeButton();
   const el = document.getElementById("system-name");
   if (!el) return;
   if (!system || !system.label) {
@@ -497,12 +500,7 @@ function setNoGamelistUi(loaded) {
   if (editor) editor.hidden = true;
   if (del) del.disabled = true;
   if (reload) reload.disabled = !loaded;
-  const ss = document.getElementById("btn-ss-scrape");
-  const adb = document.getElementById("btn-adb-scrape");
-  const steam = document.getElementById("btn-steam-scrape");
-  if (ss) ss.disabled = true;
-  if (adb) adb.disabled = true;
-  if (steam) steam.disabled = true;
+  setScrapeEnabled(false);
   if (!loaded) {
     if (empty) empty.hidden = false;
     if (emptySelect) emptySelect.hidden = true;
@@ -579,12 +577,7 @@ async function loadGames() {
         document.getElementById("editor").hidden = true;
         document.getElementById("empty-state").hidden = false;
         document.getElementById("btn-delete-game").disabled = true;
-        const _ssBtn2 = document.getElementById("btn-ss-scrape");
-        if (_ssBtn2) _ssBtn2.disabled = true;
-        const _adbBtn2 = document.getElementById("btn-adb-scrape");
-        if (_adbBtn2) _adbBtn2.disabled = true;
-        const _steamBtn2 = document.getElementById("btn-steam-scrape");
-        if (_steamBtn2) _steamBtn2.disabled = true;
+        setScrapeEnabled(false);
         renderList();
       }
     } else {
@@ -1067,12 +1060,7 @@ currentListIndex = listIndex;
 document.getElementById("empty-state").hidden = true;
 document.getElementById("editor").hidden = false;
 document.getElementById("btn-delete-game").disabled = false;
-const _ssBtn = document.getElementById("btn-ss-scrape");
-if (_ssBtn) _ssBtn.disabled = false;
-const _adbBtn = document.getElementById("btn-adb-scrape");
-if (_adbBtn) _adbBtn.disabled = false;
-const _steamBtn = document.getElementById("btn-steam-scrape");
-if (_steamBtn) _steamBtn.disabled = false;
+setScrapeEnabled(!ssBusy);
 document.getElementById("game-path").textContent = g.path;
 for (const [k, f] of Object.entries(EDITOR_FIELDS)) {
   const v = g[k] || "";
@@ -1955,9 +1943,15 @@ async function boot() {
 }
 
 
-/* ========== ScreenScraper / Arcade DB ==========
- * Flow: scrape → optional candidate picker → apply selected fields.
- * Loading overlay: setSsLoading(true) while waiting on the (often slow) API.
+/* ========== Scrape ==========
+ * One "Scrape" button. Its source depends on the system (server default:
+ * system.scraper, see gme/systems.py) and can be forced from the ▾ menu; the
+ * choice is remembered per system in this browser.
+ * Flow: scrape → candidate list if ambiguous → comparison dialog → apply.
+ * The dialog is built from the server's `compare` rows (gme/scrapers/compare.py):
+ * what is missing is checked, nothing is replaced unless the user asks.
+ * Proposed images come from /api/scrape/preview/<key>: downloaded once by the
+ * server, then reused when applied (ScreenScraper counts every download).
  */
 let ssBusy = false;
 
@@ -1968,21 +1962,12 @@ function setSsLoading(on, message) {
   if (txt && message) txt.textContent = message;
   if (el) el.hidden = !on;
   document.body.classList.toggle("ss-busy", on);
-  const scrapeBtn = document.getElementById("btn-ss-scrape");
-  if (scrapeBtn) scrapeBtn.disabled = on || currentIndex === null;
-  const adbBtn = document.getElementById("btn-adb-scrape");
-  if (adbBtn) adbBtn.disabled = on || currentIndex === null;
-  const steamBtn = document.getElementById("btn-steam-scrape");
-  if (steamBtn) steamBtn.disabled = on || currentIndex === null;
+  setScrapeEnabled(!on && currentIndex !== null);
   const applyBtn = document.getElementById("ss-modal-apply");
-  if (applyBtn && !applyBtn.hidden) applyBtn.disabled = on;
+  if (applyBtn && !applyBtn.hidden) applyBtn.disabled = on || !selectedScrapeFields().length;
   const testBtn = document.getElementById("btn-ss-test");
   if (testBtn) testBtn.disabled = on;
 }
-
-let ssLastProposed = null;
-let scrapeSource = "screenscraper"; // screenscraper | arcadeitalia | steam
-
 async function loadSsConfig() {
   try {
     const cfg = await apiFetch("/api/ss/config");
@@ -2067,378 +2052,466 @@ async function testSsConfig() {
   }
 }
 
-function setSsSelectBarVisible(on) {
-  const bar = document.getElementById("ss-select-bar");
-  if (bar) bar.hidden = !on;
-}
-function openSsModal() {
-  document.getElementById("ss-modal").classList.add("open");
-}
-function closeSsModal() {
-  document.getElementById("ss-modal").classList.remove("open");
-  ssLastProposed = null;
-  const cand = document.getElementById("ss-candidates");
-  const fields = document.getElementById("ss-fields");
-  if (cand) { cand.hidden = true; cand.innerHTML = ""; }
-  if (fields) fields.hidden = false;
-  setSsSelectBarVisible(true);
-  const apply = document.getElementById("ss-modal-apply");
-  if (apply) apply.hidden = false;
-}
+document.getElementById("btn-ss-save").addEventListener("click", saveSsConfig);
+document.getElementById("btn-ss-test").addEventListener("click", testSsConfig);
 
-function buildSsFieldRows(proposed, current) {
-  const box = document.getElementById("ss-fields");
-  box.innerHTML = "";
-  const metaFields = [
-    { key: "name", label: t("scrape.field_name") },
-    { key: "desc", label: t("scrape.field_desc") },
-    { key: "rating", label: t("scrape.field_rating") },
-    { key: "releasedate", label: t("scrape.field_releasedate") },
-    { key: "developer", label: t("scrape.field_developer") },
-    { key: "publisher", label: t("scrape.field_publisher") },
-    { key: "genre", label: t("scrape.field_genre") },
-    { key: "players", label: t("scrape.field_players") },
-    { key: "lang", label: t("scrape.field_lang") },
-    { key: "region", label: t("scrape.field_region") },
-    { key: "family", label: t("scrape.field_family") },
-    { key: "kidgame", label: t("scrape.field_kidgame") },
-    { key: "arcadesystemname", label: t("scrape.field_arcadesystemname") },
-  ];
-  const mediaFields = [
-    { key: "image", label: t("scrape.field_image") },
-    { key: "video", label: t("scrape.field_video") },
-    { key: "marquee", label: t("scrape.field_marquee") },
-    { key: "manual", label: t("scrape.field_manual") },
-    { key: "boxart", label: t("scrape.field_boxart") },
-    { key: "boxback", label: t("scrape.field_boxback") },
-    { key: "cartridge", label: t("scrape.field_cartridge") },
-    { key: "fanart", label: t("scrape.field_fanart") },
-    { key: "mix", label: t("scrape.field_mix") },
-    { key: "map", label: t("scrape.field_map") },
-    { key: "bezel", label: t("scrape.field_bezel") },
-    { key: "pad2key", label: t("scrape.field_pad2key") },
-  ];
+const SCRAPERS = {
+  screenscraper: { label: "ScreenScraper", icon: "cloud-download", scrape: "/api/ss/scrape/", apply: "/api/ss/apply/", idKey: "gameid" },
+  arcadeitalia: { label: "Arcade Database", icon: "coin", scrape: "/api/adb/scrape/", apply: "/api/adb/apply/", idKey: "romset" },
+  steam: { label: "Steam", icon: "brand-steam", scrape: "/api/steam/scrape/", apply: "/api/steam/apply/", idKey: "appid" },
+};
+const SCRAPER_PREF_KEY = "gme_scraper_by_system";
+const SCRAPE_MEDIA_ICONS = {
+  image: "photo", thumbnail: "photo", marquee: "tag", boxart: "box", boxback: "flip-horizontal",
+  cartridge: "device-sd-card", fanart: "wallpaper", mix: "layout-collage", map: "map", bezel: "frame",
+  video: "movie", manual: "book", pad2key: "keyboard",
+};
+const SCRAPE_NOT_IMAGES = ["video", "manual", "pad2key"];
+// Same presets as the server (gme/scrapers/compare.py PRESETS)
+const SCRAPE_PRESETS = { missing: ["new"], all: ["new", "different", "replace"], none: [] };
+const SCRAPE_BADGES = { new: "scrape.status_new", different: "scrape.status_different", replace: "scrape.status_replace" };
 
-  function addRow(key, label, newVal, oldVal, isMedia) {
-    const hasNew = isMedia ? !!(proposed.medias && proposed.medias[key] && proposed.medias[key].url) : !!(newVal && String(newVal).trim());
-    const row = document.createElement("div");
-    row.className = "ss-field-row" + (hasNew ? "" : " disabled");
-    const checked = hasNew && (!oldVal || isMedia);
-    const preview = isMedia
-      ? (hasNew
-          ? `<span class="ss-new">${escapeHtml(proposed.medias[key].type || "media")}` +
-            (proposed.medias[key].trailer ? ` · ${escapeHtml(proposed.medias[key].trailer)}` : "") +
-            (proposed.medias[key].quality ? ` · ${escapeHtml(String(proposed.medias[key].quality))}` : "") +
-            (proposed.medias[key].bytes ? ` · ${Math.round(proposed.medias[key].bytes/1048576)} Mo` : "") +
-            `</span>` +
-            (oldVal ? `<br><span class="ss-old">${escapeHtml(oldVal)}</span>` : "")
-          : "<em>non disponible</em>")
-      : (hasNew
-          ? `<span class="ss-new">${escapeHtml(String(newVal).slice(0, 220))}${String(newVal).length > 220 ? "…" : ""}</span>` +
-            (oldVal ? `<br><span class="ss-old">${escapeHtml(String(oldVal).slice(0, 120))}</span>` : "")
-          : "<em>" + t("scrape.empty_ss") + "</em>");
-    row.innerHTML =
-      `<input type="checkbox" data-ss-field="${key}" ${checked ? "checked" : ""} ${hasNew ? "" : "disabled"} />` +
-      `<label class="ss-field-name">${escapeHtml(label)}</label>` +
-      `<div class="ss-field-values">${preview}</div>`;
-    box.appendChild(row);
-  }
+let currentSystem = null;   // { folder, label, id, scraper } from /api/games
+let scrapeState = null;     // { source, proposed, rows } while the comparison is open
 
-  metaFields.forEach(f => addRow(f.key, f.label, proposed[f.key], current[f.key], false));
-  mediaFields.forEach(f => addRow(f.key, f.label, null, current[f.key], true));
-}
-
-async function scrapeCurrentGame(gameid) {
-  if (currentIndex === null) return;
-  if (ssBusy) return;
-  // Ignore DOM event objects accidentally passed as gameid
-  if (gameid != null && typeof gameid !== "string" && typeof gameid !== "number") {
-    gameid = null;
-  }
-  if (gameid != null) gameid = String(gameid).trim();
-  if (gameid === "" || gameid === "undefined" || gameid === "null") gameid = null;
-
-  const loadingMsg = gameid
-    ? t("scrape.ss_load_game")
-    : t("scrape.ss_search");
-  setSsLoading(true, loadingMsg);
-  setStatus(t("scrape.ss_status_search"));
+/* --- Source: automatic per system, or forced from the menu --- */
+function scraperPrefs() {
   try {
-    const opts = { method: "POST", headers: { "Content-Type": "application/json" } };
-    if (gameid) opts.body = JSON.stringify({ gameid });
-    else opts.body = JSON.stringify({});
+    const v = JSON.parse(localStorage.getItem(SCRAPER_PREF_KEY) || "{}");
+    return v && typeof v === "object" ? v : {};
+  } catch (_) {
+    return {};
+  }
+}
+function autoScraper() {
+  const s = currentSystem && currentSystem.scraper;
+  return SCRAPERS[s] ? s : "screenscraper";
+}
+function forcedScraper() {
+  const folder = currentSystem && currentSystem.folder;
+  const v = folder ? scraperPrefs()[folder] : null;
+  return SCRAPERS[v] ? v : null;
+}
+function chosenScraper() {
+  return forcedScraper() || autoScraper();
+}
+function rememberScraper(source) {
+  const folder = currentSystem && currentSystem.folder;
+  if (!folder) return;
+  const prefs = scraperPrefs();
+  if (!source || source === autoScraper()) delete prefs[folder];
+  else prefs[folder] = source;
+  try { localStorage.setItem(SCRAPER_PREF_KEY, JSON.stringify(prefs)); } catch (_) {}
+  updateScrapeButton();
+}
+function updateScrapeButton() {
+  const source = chosenScraper();
+  const sc = SCRAPERS[source];
+  const name = document.getElementById("scrape-source-name");
+  if (name) name.textContent = sc.label;
+  const use = document.querySelector("#btn-scrape svg use");
+  if (use) use.setAttribute("href", "#i-" + sc.icon);
+  document.querySelectorAll("#scrape-menu .menu-item[data-source]").forEach(item => {
+    item.setAttribute("aria-checked", item.dataset.source === source ? "true" : "false");
+  });
+  const forced = !!forcedScraper();
+  const system = (currentSystem && (currentSystem.label || currentSystem.folder)) || "—";
+  const note = document.getElementById("scrape-menu-note");
+  if (note) note.textContent = t(forced ? "editor.scrape_note_forced" : "editor.scrape_note_auto", { system });
+  const auto = document.getElementById("scrape-menu-auto");
+  if (auto) auto.hidden = !forced;
+}
+function setScrapeEnabled(on) {
+  ["btn-scrape", "btn-scrape-menu"].forEach(id => {
+    const b = document.getElementById(id);
+    if (b) b.disabled = !on;
+  });
+  if (!on) closeScrapeMenu(false);
+}
+
+function scrapeMenuItems() {
+  return [...document.querySelectorAll("#scrape-menu .menu-item, #scrape-menu-auto")].filter(el => !el.hidden);
+}
+function openScrapeMenu() {
+  const menu = document.getElementById("scrape-menu");
+  updateScrapeButton();
+  menu.hidden = false;
+  document.getElementById("btn-scrape-menu").setAttribute("aria-expanded", "true");
+  (menu.querySelector('.menu-item[aria-checked="true"]') || scrapeMenuItems()[0]).focus();
+  document.addEventListener("pointerdown", onScrapeMenuOutside, true);
+}
+function closeScrapeMenu(focusButton) {
+  const menu = document.getElementById("scrape-menu");
+  if (!menu || menu.hidden) return;
+  menu.hidden = true;
+  document.getElementById("btn-scrape-menu").setAttribute("aria-expanded", "false");
+  document.removeEventListener("pointerdown", onScrapeMenuOutside, true);
+  if (focusButton) document.getElementById("btn-scrape-menu").focus();
+}
+function onScrapeMenuOutside(e) {
+  if (!e.target.closest("#scrape-split")) closeScrapeMenu(false);
+}
+document.getElementById("btn-scrape-menu").addEventListener("click", () => {
+  if (document.getElementById("scrape-menu").hidden) openScrapeMenu();
+  else closeScrapeMenu(true);
+});
+document.getElementById("scrape-menu").addEventListener("keydown", e => {
+  e.stopPropagation();                         // arrows move in the menu, not in the game list
+  const items = scrapeMenuItems();
+  const i = items.indexOf(document.activeElement);
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    e.preventDefault();
+    const step = e.key === "ArrowDown" ? 1 : -1;
+    items[(i + step + items.length) % items.length].focus();
+  } else if (e.key === "Home" || e.key === "End") {
+    e.preventDefault();
+    items[e.key === "Home" ? 0 : items.length - 1].focus();
+  } else if (e.key === "Escape") {
+    e.preventDefault();
+    closeScrapeMenu(true);
+  } else if (e.key === "Tab") {
+    closeScrapeMenu(false);
+  }
+});
+document.querySelectorAll("#scrape-menu .menu-item[data-source]").forEach(item => {
+  item.addEventListener("click", async () => {
+    const source = item.dataset.source;
+    rememberScraper(source);
+    closeScrapeMenu(true);
+    if (await confirmLeaveEditor()) runScrape(source);
+  });
+});
+document.getElementById("scrape-menu-auto").addEventListener("click", () => {
+  rememberScraper(null);
+  closeScrapeMenu(true);
+});
+document.getElementById("btn-scrape").addEventListener("click", async () => {
+  if (await confirmLeaveEditor()) runScrape(chosenScraper());
+});
+
+/* --- Scrape one game --- */
+async function runScrape(source, forcedId) {
+  if (currentIndex === null || ssBusy) return;
+  const sc = SCRAPERS[source] || SCRAPERS.screenscraper;
+  if (forcedId != null) forcedId = String(forcedId).trim() || null;
+  setSsLoading(true, t(forcedId ? "scrape.loading_game" : "scrape.searching", { source: sc.label }));
+  setStatus(t("scrape.status_search", { source: sc.label }));
+  try {
     let data;
     try {
-      data = await apiFetch(gameUrl(`/api/ss/scrape/${currentIndex}`), opts);
+      data = await apiFetch(gameUrl(sc.scrape + currentIndex), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(forcedId ? { [sc.idKey]: forcedId } : {}),
+      });
     } catch (e) {
-      // Enrich with technical fields if the server sent them
       const d = e.data || {};
       let msg = e.message;
       if (d.hash && d.hash.crc && !msg.includes("CRC")) msg += ` · CRC ${d.hash.crc}`;
       throw new Error(msg);
     }
-
-    // Ambiguous: show candidate picker
     if (data.need_choice && data.candidates && data.candidates.length) {
-      showSsCandidates(data);
-      setStatus(t("scrape.ss_status_choice"));
+      showScrapeCandidates(source, data);
+      setStatus(t("scrape.status_choice", { source: sc.label }));
       return;
     }
-
     if (!data.proposed) throw new Error(t("scrape.no_proposal"));
-    ssLastProposed = data.proposed;
-    scrapeSource = data.source || "screenscraper";
-    const titleEl = document.getElementById("ss-modal-title");
-    if (titleEl) {
-      titleEl.textContent = scrapeSource === "arcadeitalia"
-        ? t("scrape.adb_modal_apply")
-        : scrapeSource === "steam"
-          ? t("scrape.steam_modal_apply")
-          : t("scrape.ss_modal_apply");
-    }
-    const info = document.getElementById("ss-modal-info");
-    const method = data.match_method || "?";
-    if (scrapeSource === "arcadeitalia") {
-      info.textContent =
-        `Romset « ${data.proposed.adb_romset || data.proposed.ss_id || "?"} » · ` +
-        `« ${data.proposed.name || "?"} » · dossier ${data.system_folder || "?"} · match: ${method}`;
-    } else {
-      info.textContent =
-        `Jeu SS #${data.proposed.ss_id || "?"} · « ${data.proposed.name || "?"} » · ` +
-        `système ${data.system_folder || "?"} (${data.system_id || "?"}) · ` +
-        `match: ${method}` +
-        (data.hash && data.hash.crc ? ` · CRC ${data.hash.crc}` + (data.hash.source ? ` [${data.hash.source}]` : "") : "");
-    }
-    document.getElementById("ss-fields").hidden = false;
-    document.getElementById("ss-candidates").hidden = true;
-    document.getElementById("ss-modal-apply").hidden = false;
-    setSsSelectBarVisible(true);
-    buildSsFieldRows(data.proposed, data.current || {});
-    openSsModal();
-    setStatus(t("scrape.ss_status_ready"));
+    showScrapeCompare(source, data, !!forcedId);
+    setStatus(t("scrape.status_ready", { source: sc.label }));
   } catch (e) {
-    handleError(e, "ScreenScraper");
+    handleError(e, sc.label);
   } finally {
     setSsLoading(false);
+    focusSsModal();
   }
 }
 
-function showSsCandidates(data) {
-  const box = document.getElementById("ss-candidates");
-  const fields = document.getElementById("ss-fields");
-  fields.hidden = true;
-  box.hidden = false;
-  setSsSelectBarVisible(false);
-  document.getElementById("ss-modal-apply").hidden = true;
-  scrapeSource = data.source || "screenscraper";
-  const titleEl = document.getElementById("ss-modal-title");
-  if (titleEl) {
-    titleEl.textContent = scrapeSource === "arcadeitalia"
-      ? t("scrape.adb_modal_choose")
-      : scrapeSource === "steam"
-        ? t("scrape.steam_modal_choose")
-        : t("scrape.ss_modal_choose");
+/** Keyboard: Enter applies what is checked; in the candidate list, the best match. */
+function focusSsModal() {
+  const modal = document.getElementById("ss-modal");
+  if (!modal.classList.contains("open")) return;
+  const apply = document.getElementById("ss-modal-apply");
+  const target = !apply.hidden && !apply.disabled ? apply
+    : modal.querySelector(".ss-candidate, .seg, #ss-modal-cancel");
+  if (target) target.focus();
+}
+
+function setScrapeTitle(source, text) {
+  const sc = SCRAPERS[source];
+  document.getElementById("ss-modal-title").innerHTML = icon(sc.icon) + `<span>${escapeHtml(text)}</span>`;
+}
+function scrapeFieldLabel(key) {
+  return t("scrape.field_" + key, null, key);
+}
+function scrapeMatchLabel(method, picked) {
+  if (picked) return t("scrape.match_pick");
+  if (!method) return "?";
+  if (method.startsWith("hash")) return t("scrape.match_hash");
+  if (["gameid", "romset", "appid"].includes(method)) return t("scrape.match_id");
+  return t("scrape.match_name");
+}
+function scrapeInfoText(source, data, picked) {
+  const p = data.proposed || {};
+  const id = source === "steam" ? "AppID " + (p.steam_appid || data.steam_appid || "?")
+    : source === "arcadeitalia" ? (p.adb_romset || data.romset || "?")
+    : "#" + (p.ss_id || "?");
+  let txt = t("scrape.found", { name: p.name || "?", id, how: scrapeMatchLabel(data.match_method, picked) });
+  if (data.hash && data.hash.crc) txt += ` · CRC ${data.hash.crc}`;
+  return txt;
+}
+
+/** Values as the editor shows them: stars, dates, language and region names. */
+function fmtScrapeValue(key, value) {
+  const v = String(value || "").trim();
+  if (!v) return "";
+  if (key === "rating") {
+    const n = parseFloat(v);
+    if (!isNaN(n)) return t("editor.rating_value", { n: fmtStars(Math.max(0, Math.min(1, n)) * 5) });
   }
-  const info = document.getElementById("ss-modal-info");
-  info.textContent =
-    (data.message || t("scrape.multiple_results")) +
-    ` · recherche « ${data.search || data.local_name || data.romset || ""} » · ` +
-    `dossier ${data.system_folder || "?"}` +
-    (data.system_id != null ? ` (SS id ${data.system_id})` : "") +
-    (data.hash && data.hash.crc ? ` · CRC ${data.hash.crc}` : "");
+  if (key === "releasedate") {
+    const m = /^(\d{4})(\d{2})(\d{2})/.exec(v);
+    if (m) {
+      const d = new Date(+m[1], +m[2] - 1, +m[3]);
+      try {
+        return d.toLocaleDateString(currentLocale || "fr", { year: "numeric", month: "long", day: "numeric" });
+      } catch (_) {
+        return `${m[1]}-${m[2]}-${m[3]}`;
+      }
+    }
+  }
+  if (key === "lang") return langLabel(v);
+  if (key === "region") return regionLabel(v);
+  return v;
+}
+function scrapeBadge(status) {
+  const key = SCRAPE_BADGES[status];
+  return key ? `<span class="ss-badge" data-status="${status}">${escapeHtml(t(key))}</span>` : "";
+}
+function scrapeMediaCardHtml(r) {
+  const label = scrapeFieldLabel(r.key);
+  const ic = SCRAPE_MEDIA_ICONS[r.key] || "photo";
+  const isFile = SCRAPE_NOT_IMAGES.includes(r.key);
+  const fileBox = text => `<span class="ss-file">${icon(ic)}<span>${escapeHtml(text)}</span></span>`;
+  const current = !r.current
+    ? `<span class="ss-empty">${escapeHtml(t("scrape.none"))}</span>`
+    : isFile ? fileBox(r.current.split("/").pop())
+    : `<img src="${escapeHtml(mediaUrl(r.current))}" alt="" loading="lazy">`;
+  const facts = [r.media_type, r.quality, r.bytes ? t("scrape.size_mb", { n: Math.round(r.bytes / 1048576) }) : "", r.trailer]
+    .filter(Boolean).map(String);
+  const proposed = r.preview
+    ? `<span class="ss-shimmer" aria-hidden="true"></span><img src="${escapeHtml(r.preview)}" alt="" loading="lazy">`
+    : fileBox(facts.join(" · ") || label);
+  // New media: only the proposed frame (nothing to compare with)
+  const single = r.status === "new";
+  const typeTitle = r.media_type ? ` title="${escapeHtml(r.media_type)}"` : "";
+  return `<label class="ss-media-card" data-status="${r.status}">` +
+    `<span class="ss-card-head"><input type="checkbox" data-ss-field="${r.key}">` +
+    `<span class="ss-card-title">${icon(ic)}<span>${escapeHtml(label)}</span></span>${scrapeBadge(r.status)}</span>` +
+    `<span class="ss-pair${single ? " is-single" : ""}">` +
+    (single ? "" :
+      `<span class="ss-pane is-current"><span class="ss-frame">${current}</span>` +
+      `<span class="ss-cap">${escapeHtml(t("scrape.current"))}<span class="ss-dims"></span></span></span>`) +
+    `<span class="ss-pane is-proposed"><span class="ss-frame"${typeTitle}>${proposed}</span>` +
+    `<span class="ss-cap">${escapeHtml(t("scrape.proposed"))}<span class="ss-dims"></span></span></span>` +
+    `</span></label>`;
+}
+function scrapeMetaRowHtml(r) {
+  const cur = fmtScrapeValue(r.key, r.current);
+  const nw = fmtScrapeValue(r.key, r.proposed);
+  const star = r.key === "rating" ? icon("star", "ss-star") : "";
+  return `<label class="ss-meta-row${r.key === "desc" ? " is-long" : ""}" data-status="${r.status}">` +
+    `<input type="checkbox" data-ss-field="${r.key}">` +
+    `<span class="ss-meta-label"><span>${escapeHtml(scrapeFieldLabel(r.key))}</span>${scrapeBadge(r.status)}</span>` +
+    `<span class="ss-val is-current" title="${escapeHtml(cur)}">${cur ? `<span class="ss-old">${star}${escapeHtml(cur)}</span>` : `<span class="ss-none">${escapeHtml(t("scrape.none"))}</span>`}</span>` +
+    `<span class="ss-arrow" aria-hidden="true">→</span>` +
+    `<span class="ss-val is-proposed" title="${escapeHtml(nw)}">${star}${escapeHtml(nw)}</span>` +
+    `</label>`;
+}
+
+function showScrapeCompare(source, data, picked) {
+  const sc = SCRAPERS[source];
+  const rows = Array.isArray(data.compare) ? data.compare : [];
+  scrapeState = { source, proposed: data.proposed, rows };
+  setScrapeTitle(source, sc.label);
+  document.getElementById("ss-modal-info").textContent = scrapeInfoText(source, data, picked);
+
+  const actionable = rows.filter(r => SCRAPE_PRESETS.all.includes(r.status));
+  const media = actionable.filter(r => r.kind === "media");
+  const meta = actionable.filter(r => r.kind === "meta");
+  const same = rows.filter(r => r.status === "same");
+  const none = rows.filter(r => r.status === "unavailable");
+  const names = list => list.map(r => escapeHtml(scrapeFieldLabel(r.key))).join(", ");
+  let html = "";
+  if (media.length) {
+    html += `<section class="ss-section"><h4 class="ss-section-title">${escapeHtml(t("scrape.section_media"))}</h4>` +
+      `<div class="ss-media-grid">${media.map(scrapeMediaCardHtml).join("")}</div></section>`;
+  }
+  if (meta.length) {
+    html += `<section class="ss-section"><h4 class="ss-section-title">${escapeHtml(t("scrape.section_info"))}</h4>` +
+      `<div class="ss-meta-table"><div class="ss-meta-head" aria-hidden="true"><span></span><span></span>` +
+      `<span>${escapeHtml(t("scrape.current"))}</span><span></span><span>${escapeHtml(t("scrape.proposed"))}</span></div>` +
+      meta.map(scrapeMetaRowHtml).join("") + `</div></section>`;
+  }
+  if (!actionable.length) {
+    html += `<div class="ss-nothing">${icon("circle-check")}<p>${escapeHtml(t("scrape.nothing_new", { source: sc.label }))}</p></div>`;
+  }
+  const rest = [];
+  if (same.length) rest.push(`<p class="ss-rest">${icon("check")}<span><b>${escapeHtml(t("scrape.rest_same"))}</b> ${names(same)}</span></p>`);
+  if (none.length) rest.push(`<p class="ss-rest">${icon("x")}<span><b>${escapeHtml(t("scrape.rest_unavailable", { source: sc.label }))}</b> ${names(none)}</span></p>`);
+  if (rest.length) html += `<div class="ss-rests">${rest.join("")}</div>`;
+
+  const box = document.getElementById("ss-fields");
+  box.innerHTML = html;
+  box.querySelectorAll(".ss-pane img").forEach(img => {
+    const pane = img.closest(".ss-pane");
+    img.addEventListener("load", () => {
+      pane.classList.add("is-loaded");
+      pane.querySelector(".ss-dims").textContent = ` · ${img.naturalWidth} × ${img.naturalHeight}`;
+    });
+    img.addEventListener("error", () => {
+      pane.classList.add("is-loaded");
+      pane.querySelector(".ss-frame").innerHTML =
+        `<span class="ss-empty is-error">${icon("alert-triangle")}<span>${escapeHtml(t("zone.preview_unavailable"))}</span></span>`;
+    });
+  });
+  box.hidden = false;
+  document.getElementById("ss-candidates").hidden = true;
+  document.getElementById("ss-select-bar").hidden = !actionable.length;
+  document.getElementById("ss-hint").hidden = !actionable.length;
+  document.getElementById("ss-modal-apply").hidden = false;
+  applyScrapePreset("missing");
+  openSsModal();
+  box.scrollTop = 0;
+}
+
+function showScrapeCandidates(source, data) {
+  scrapeState = null;
+  setScrapeTitle(source, t("scrape.choose_title", { source: SCRAPERS[source].label }));
+  let info = t("scrape.choose_info", { search: data.search || data.local_name || data.romset || "?", n: data.candidates.length });
+  if (data.hash && data.hash.crc) info += ` · CRC ${data.hash.crc}`;
+  document.getElementById("ss-modal-info").textContent = info;
+  const box = document.getElementById("ss-candidates");
   box.innerHTML = "";
-  (data.candidates || []).forEach(c => {
+  data.candidates.forEach(c => {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "ss-candidate";
-    const scorePct = Math.round((c.score || 0) * 100);
-    const idLabel = c.romset || c.ss_id || "?";
+    const idLabel = c.romset || c.ss_id || c.appid || "?";
     btn.innerHTML =
       `<span class="ss-cand-name">${escapeHtml(c.name || idLabel)}</span>` +
-      `<span class="ss-cand-meta">${escapeHtml(idLabel)}` +
+      `<span class="ss-cand-meta">${escapeHtml(String(idLabel))}` +
       (c.system ? ` · ${escapeHtml(c.system)}` : "") +
-      ` · ${t("scrape.similarity", { pct: scorePct })}</span>`;
+      ` · ${escapeHtml(t("scrape.similarity", { pct: Math.round((c.score || 0) * 100) }))}</span>`;
     btn.addEventListener("click", () => {
       closeSsModal();
-      if (scrapeSource === "arcadeitalia") scrapeAdbGame(c.ss_id || c.romset);
-      else if (scrapeSource === "steam") scrapeSteamGame(c.ss_id || c.appid);
-      else scrapeCurrentGame(c.ss_id);
+      runScrape(source, c.ss_id || c.romset || c.appid);
     });
     box.appendChild(btn);
   });
+  box.hidden = false;
+  document.getElementById("ss-fields").hidden = true;
+  document.getElementById("ss-select-bar").hidden = true;
+  document.getElementById("ss-hint").hidden = true;
+  document.getElementById("ss-modal-apply").hidden = true;
   openSsModal();
 }
 
-async function applySsSelection() {
-  if (currentIndex === null || !ssLastProposed) return;
-  if (ssBusy) return;
-  const fields = [];
-  document.querySelectorAll("#ss-fields input[data-ss-field]:checked").forEach(cb => {
-    fields.push(cb.getAttribute("data-ss-field"));
+/* --- Selection: presets and count --- */
+function scrapeCheckboxes() {
+  return [...document.querySelectorAll("#ss-fields input[data-ss-field]")];
+}
+function selectedScrapeFields() {
+  return scrapeCheckboxes().filter(cb => cb.checked).map(cb => cb.dataset.ssField);
+}
+function scrapeStatusOf(key) {
+  const row = scrapeState && scrapeState.rows.find(r => r.key === key);
+  return row ? row.status : "";
+}
+function applyScrapePreset(preset) {
+  const wanted = SCRAPE_PRESETS[preset] || [];
+  scrapeCheckboxes().forEach(cb => { cb.checked = wanted.includes(scrapeStatusOf(cb.dataset.ssField)); });
+  updateScrapeSelection();
+}
+function updateScrapeSelection() {
+  const boxes = scrapeCheckboxes();
+  const chosen = new Set(selectedScrapeFields());
+  boxes.forEach(cb => cb.closest(".ss-media-card, .ss-meta-row").classList.toggle("is-checked", cb.checked));
+  const n = chosen.size;
+  document.getElementById("ss-count").textContent = t("scrape.selected", { n });
+  document.getElementById("ss-apply-label").textContent = n ? t("scrape.apply_n", { n }) : t("scrape.apply");
+  const apply = document.getElementById("ss-modal-apply");
+  apply.disabled = !n || ssBusy;
+  // The first preset matching the selection exactly is shown as active
+  const match = Object.keys(SCRAPE_PRESETS).find(p => boxes.every(cb =>
+    SCRAPE_PRESETS[p].includes(scrapeStatusOf(cb.dataset.ssField)) === cb.checked));
+  document.querySelectorAll("#ss-select-bar .seg").forEach(b => {
+    b.setAttribute("aria-pressed", b.dataset.preset === match ? "true" : "false");
   });
+}
+document.getElementById("ss-fields").addEventListener("change", e => {
+  if (e.target.matches("input[data-ss-field]")) updateScrapeSelection();
+});
+document.querySelectorAll("#ss-select-bar .seg").forEach(b => {
+  b.addEventListener("click", () => applyScrapePreset(b.dataset.preset));
+});
+
+async function applyScrape() {
+  if (currentIndex === null || !scrapeState || ssBusy) return;
+  const fields = selectedScrapeFields();
   if (!fields.length) {
     toast(t("toast.no_fields"), "error");
     return;
   }
+  const sc = SCRAPERS[scrapeState.source];
   setSsLoading(true, t("status.applying_download"));
-  setStatus(t("scrape.ss_status_apply"));
+  setStatus(t("scrape.status_apply", { source: sc.label }));
   try {
-    const applyUrl = scrapeSource === "arcadeitalia"
-      ? `/api/adb/apply/${currentIndex}`
-      : scrapeSource === "steam"
-        ? `/api/steam/apply/${currentIndex}`
-        : `/api/ss/apply/${currentIndex}`;
-    const data = await apiFetch(gameUrl(applyUrl), {
+    const data = await apiFetch(gameUrl(sc.apply + currentIndex), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fields, proposed: ssLastProposed }),
+      body: JSON.stringify({ fields, proposed: scrapeState.proposed }),
     });
     closeSsModal();
     await loadGames();
+    const errors = data.errors || [];
     let msg = t("scrape.apply_ok", { n: (data.applied || []).length });
-    if (data.errors && data.errors.length) msg += t("scrape.apply_errors", { n: data.errors.length });
-    toast(msg);
-    if (data.errors && data.errors.length) {
-      console.warn("SS apply errors", data.errors);
+    if (errors.length) {
+      msg += t("scrape.apply_errors", { n: errors.length }) + " — " + errors[0];
+      console.warn("scrape apply errors", errors);
     }
-    setStatus(t("scrape.ss_done"));
+    toast(msg, errors.length ? "warning" : "success");
+    setStatus(t("scrape.status_done", { source: sc.label }));
   } catch (e) {
-    handleError(e, "ScreenScraper");
+    handleError(e, sc.label);
   } finally {
     setSsLoading(false);
   }
 }
 
-document.getElementById("btn-ss-save").addEventListener("click", saveSsConfig);
-document.getElementById("btn-ss-test").addEventListener("click", testSsConfig);
-
-async function scrapeAdbGame(romset) {
-  if (currentIndex === null) return;
-  if (ssBusy) return;
-  if (romset != null && typeof romset !== "string" && typeof romset !== "number") romset = null;
-  if (romset != null) romset = String(romset).trim() || null;
-
-  setSsLoading(true, romset ? t("scrape.adb_load") : t("scrape.adb_search"));
-  setStatus(t("scrape.adb_status_search"));
-  scrapeSource = "arcadeitalia";
-  try {
-    const opts = {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(romset ? { romset } : {}),
-    };
-    let data;
-    try {
-      data = await apiFetch(gameUrl(`/api/adb/scrape/${currentIndex}`), opts);
-    } catch (e) {
-      throw new Error(e.message);
-    }
-    if (data.need_choice && data.candidates && data.candidates.length) {
-      showSsCandidates(data);
-      setStatus(t("scrape.adb_status_choice"));
-      return;
-    }
-    if (!data.proposed) throw new Error(t("scrape.no_proposal_adb"));
-    ssLastProposed = data.proposed;
-    scrapeSource = "arcadeitalia";
-    const titleEl = document.getElementById("ss-modal-title");
-    if (titleEl) titleEl.textContent = t("scrape.adb_modal_apply");
-    const info = document.getElementById("ss-modal-info");
-    info.textContent = t("scrape.adb_info", {
-      romset: data.proposed.adb_romset || data.romset || "?",
-      name: data.proposed.name || "?",
-      folder: data.system_folder || "?",
-      method: data.match_method || "?",
-    });
-    document.getElementById("ss-fields").hidden = false;
-    document.getElementById("ss-candidates").hidden = true;
-    document.getElementById("ss-modal-apply").hidden = false;
-    setSsSelectBarVisible(true);
-    buildSsFieldRows(data.proposed, data.current || {});
-    openSsModal();
-    setStatus(t("scrape.adb_status_ready"));
-  } catch (e) {
-    handleError(e, "Arcade Database");
-  } finally {
-    setSsLoading(false);
-  }
+function openSsModal() {
+  document.getElementById("ss-modal").classList.add("open");
+}
+function closeSsModal() {
+  const modal = document.getElementById("ss-modal");
+  const wasOpen = modal.classList.contains("open");
+  modal.classList.remove("open");
+  scrapeState = null;
+  const cand = document.getElementById("ss-candidates");
+  const fields = document.getElementById("ss-fields");
+  cand.hidden = true;
+  cand.innerHTML = "";
+  fields.innerHTML = "";
+  fields.hidden = false;
+  if (wasOpen) document.getElementById("btn-scrape").focus();
 }
 
-
-async function scrapeSteamGame(appid) {
-  if (currentIndex === null) return;
-  if (ssBusy) return;
-  if (appid != null && typeof appid !== "string" && typeof appid !== "number") appid = null;
-  if (appid != null) appid = String(appid).trim() || null;
-
-  setSsLoading(true, appid ? t("scrape.steam_load") : t("scrape.steam_search"));
-  setStatus(t("scrape.steam_status_search"));
-  scrapeSource = "steam";
-  try {
-    const opts = {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(appid ? { appid } : {}),
-    };
-    const data = await apiFetch(gameUrl(`/api/steam/scrape/${currentIndex}`), opts);
-    if (data.need_choice && data.candidates && data.candidates.length) {
-      showSsCandidates(data);
-      setStatus(t("scrape.steam_status_choice"));
-      return;
-    }
-    if (!data.proposed) throw new Error(t("scrape.no_proposal_steam"));
-    ssLastProposed = data.proposed;
-    scrapeSource = "steam";
-    const titleEl = document.getElementById("ss-modal-title");
-    if (titleEl) titleEl.textContent = t("scrape.steam_modal_apply");
-    const info = document.getElementById("ss-modal-info");
-    const q = data.video_quality || data.proposed.video_quality || "";
-    const bytes = data.video_bytes || data.proposed.video_bytes;
-    const sizeTxt = bytes ? `${Math.round(bytes / 1048576)} Mo` : "";
-    info.textContent = t("scrape.steam_info", {
-      appid: data.proposed.steam_appid || data.steam_appid || "?",
-      name: data.proposed.name || "?",
-      trailer: data.trailer || data.proposed.trailer || "?",
-      quality: q || "?",
-      size: sizeTxt || "?",
-    });
-    document.getElementById("ss-fields").hidden = false;
-    document.getElementById("ss-candidates").hidden = true;
-    document.getElementById("ss-modal-apply").hidden = false;
-    setSsSelectBarVisible(true);
-    buildSsFieldRows(data.proposed, data.current || {});
-    openSsModal();
-    setStatus(t("scrape.steam_status_ready"));
-  } catch (e) {
-    handleError(e, "Steam");
-  } finally {
-    setSsLoading(false);
-  }
-}
-
-document.getElementById("btn-ss-scrape").addEventListener("click", async () => {
-  if (await confirmLeaveEditor()) scrapeCurrentGame();
-});
-document.getElementById("btn-steam-scrape").addEventListener("click", async () => {
-  if (await confirmLeaveEditor()) scrapeSteamGame();
-});
-document.getElementById("btn-adb-scrape").addEventListener("click", async () => {
-  if (await confirmLeaveEditor()) scrapeAdbGame();
-});
 // Closing the window / tab with unsaved changes: the browser asks
 window.addEventListener("beforeunload", e => {
   if (changedFields().length) { e.preventDefault(); e.returnValue = ""; }
 });
-function setSsFieldsChecked(on) {
-  document.querySelectorAll("#ss-fields input[data-ss-field]").forEach(cb => {
-    if (!cb.disabled) cb.checked = on;
-  });
-}
-document.getElementById("ss-select-all")?.addEventListener("click", () => setSsFieldsChecked(true));
-document.getElementById("ss-select-none")?.addEventListener("click", () => setSsFieldsChecked(false));
 document.getElementById("ss-modal-close").addEventListener("click", closeSsModal);
 document.getElementById("ss-modal-cancel").addEventListener("click", closeSsModal);
-document.getElementById("ss-modal-apply").addEventListener("click", applySsSelection);
+document.getElementById("ss-modal-apply").addEventListener("click", applyScrape);
 document.getElementById("ss-modal").addEventListener("click", e => {
   if (e.target.id === "ss-modal") closeSsModal();
 });

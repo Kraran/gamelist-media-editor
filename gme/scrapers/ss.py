@@ -6,18 +6,17 @@ import json
 
 import requests
 from flask import Blueprint, jsonify, request
-from lxml import etree
 
-from gme import xml_store
 from gme.fsutil import atomic_write
 from gme.http import api_err
 from gme.i18n import st
-from gme.media import MAX_DOWNLOAD_BYTES, download_pad2key, download_remote_media, pad2key_dest, safe_delete_file
 from gme.paths import APP_DIR
+from gme.scrapers.apply import apply_route
 from gme.scrapers.common import throttle_api, clean_game_name, name_similarity, rom_identification
+from gme.scrapers.compare import scrape_payload
 from gme.systems import detect_system_id
 from gme.version import APP_UA, SS_SOFTNAME
-from gme.xml_store import MEDIA_DIRS, P2K_TYPES, get_base_name, get_game_elem, require_gamelist, resolve_under_base, save_xml
+from gme.xml_store import P2K_TYPES, get_game_elem, require_gamelist, resolve_under_base
 
 bp = Blueprint("ss", __name__)
 
@@ -572,19 +571,6 @@ def api_ss_scrape(index):
         parsed = parse_ss_game(jeu, prefer, ss_media_pref(cfg))
         if not parsed:
             return None
-        current = {
-            "name": game.findtext("name", "") or "",
-            "desc": game.findtext("desc", "") or "",
-            "rating": game.findtext("rating", "") or "",
-            "releasedate": game.findtext("releasedate", "") or "",
-            "developer": game.findtext("developer", "") or "",
-            "publisher": game.findtext("publisher", "") or "",
-            "genre": game.findtext("genre", "") or "",
-            "players": game.findtext("players", "") or "",
-            "lang": game.findtext("lang", "") or "",
-        }
-        for f in MEDIA_DIRS:
-            current[f] = game.findtext(f, "") or ""
         return {
             "success": True,
             "match_method": match_method,
@@ -593,7 +579,7 @@ def api_ss_scrape(index):
             "rom_name": rom_name,
             "hash": hash_info,
             "proposed": parsed,
-            "current": current,
+            **scrape_payload(game, parsed),
         }
 
     # --- Forced game id (user picked a candidate) ---
@@ -773,135 +759,5 @@ def api_ss_scrape(index):
 
 @bp.route("/api/ss/apply/<int:index>", methods=["POST"])
 def api_ss_apply(index):
-    """
-    Apply selected ScreenScraper fields to the game.
-    Body: { "fields": ["desc","image",...], "proposed": { ... from scrape ... } }
-    Media fields: download from proposed.medias[field].url via existing upload logic.
-    """
-    err = require_gamelist()
-    if err:
-        return err
-    body = request.get_json(silent=True) or {}
-    fields = body.get("fields") or []
-    proposed = body.get("proposed") or {}
-    if not fields:
-        return api_err(st("server.no_fields"), 400, code="no_fields")
-    try:
-        tree, game = get_game_elem(index)
-    except IndexError:
-        return api_err(st("server.invalid_index"), 404, code="invalid_index")
-
-    applied = []
-    errors = []
-
-    meta_map = {
-        "name": "name", "desc": "desc", "rating": "rating",
-        "releasedate": "releasedate", "developer": "developer",
-        "publisher": "publisher", "genre": "genre",
-        "players": "players", "lang": "lang", "region": "region",
-        "family": "family", "kidgame": "kidgame",
-        "arcadesystemname": "arcadesystemname",
-    }
-
-    # Text / meta fields
-    for field in fields:
-        if field in meta_map:
-            value = (proposed.get(field) or "").strip()
-            if field == "name" and not value:
-                errors.append(st("server.name_empty_ignored"))
-                continue
-            if field == "rating" and value:
-                try:
-                    fval = float(value)
-                    if not (0.0 <= fval <= 1.0):
-                        errors.append(st("server.rating_range_value", value=value))
-                        continue
-                except ValueError:
-                    errors.append(st("server.rating_invalid_value", value=value))
-                    continue
-            if field == "lang" and value:
-                value = value.lower()
-            tag = meta_map[field]
-            elem = game.find(tag)
-            if value == "":
-                if elem is not None:
-                    game.remove(elem)
-            else:
-                if elem is None:
-                    if tag == "name":
-                        elem = etree.Element("name")
-                        game.insert(0, elem)
-                    elif tag == "desc":
-                        name_elem = game.find("name")
-                        elem = etree.Element("desc")
-                        if name_elem is not None:
-                            name_elem.addnext(elem)
-                        else:
-                            game.append(elem)
-                    else:
-                        elem = etree.SubElement(game, tag)
-                elem.text = value
-            applied.append(field)
-
-    # Media fields — download. Thumbnail is always applied when SS has box-2D.
-    medias = proposed.get("medias") or {}
-    base_name = get_base_name(game)
-    media_fields = [f for f in fields if f in MEDIA_DIRS]
-    if "thumbnail" not in media_fields:
-        media_fields.append("thumbnail")
-    if "bezel" not in media_fields:
-        media_fields.append("bezel")
-    for field in media_fields:
-        info = medias.get(field) or {}
-        url = (info.get("url") or "").strip()
-        if not url:
-            if field in ("thumbnail", "bezel"):
-                continue
-            errors.append(f"{field}: {st('server.no_ss_url')}")
-            continue
-        media_dir_name = MEDIA_DIRS[field]
-        media_dir = os.path.join(xml_store.BASE_DIR, media_dir_name)
-        os.makedirs(media_dir, exist_ok=True)
-        try:
-            new_filename = download_remote_media(
-                url, media_dir, base_name, field, timeout=40
-            )
-            rel_path = f"./{media_dir_name}/{new_filename}"
-            old_rel = game.findtext(field, "") or ""
-            if old_rel and resolve_under_base(old_rel) != resolve_under_base(rel_path):
-                safe_delete_file(old_rel)
-            elem = game.find(field)
-            if elem is None:
-                elem = etree.SubElement(game, field)
-            elem.text = rel_path
-            applied.append(field)
-        except ValueError as e:
-            if str(e) == "too_large":
-                errors.append(f"{field}: {st('server.file_too_large', n=MAX_DOWNLOAD_BYTES // (1024*1024))}")
-            elif str(e) == "url_not_allowed":
-                errors.append(f"{field}: {st('server.url_not_http')}")
-            elif str(e) == "green_placeholder":
-                continue
-            else:
-                errors.append(f"{field}: {e}")
-        except Exception as e:
-            errors.append(f"{field}: {e}")
-
-    p2k = (medias.get("pad2key") or {})
-    p2k_url = (p2k.get("url") or "").strip()
-    if p2k_url:
-        try:
-            dest = pad2key_dest(game)
-            download_pad2key(p2k_url, dest)
-            applied.append("pad2key")
-        except Exception as e:
-            errors.append(f"pad2key: {e}")
-
-    if applied:
-        save_xml(tree)
-
-    return jsonify({
-        "success": True,
-        "applied": applied,
-        "errors": errors,
-    })
+    """Apply the selected ScreenScraper fields (contract: gme/scrapers/apply.py)."""
+    return apply_route(index, "screenscraper", no_url_key="server.no_ss_url")

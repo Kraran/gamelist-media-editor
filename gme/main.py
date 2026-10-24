@@ -3,6 +3,7 @@
 import sys
 import threading
 
+from gme import remote_cache
 from gme.server import app
 from gme.thumbs import prune_cache
 from gme.version import APP_VERSION
@@ -55,6 +56,7 @@ def main():
     if not no_browser:
         threading.Timer(0.9, lambda: open_browser(url)).start()
     threading.Thread(target=prune_cache, daemon=True).start()
+    threading.Thread(target=remote_cache.prune_cache, daemon=True).start()
 
     # use_reloader=False required for PyInstaller / single process
     app.run(host="127.0.0.1", port=5050, debug=False, use_reloader=False, threaded=True)

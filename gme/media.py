@@ -5,7 +5,8 @@ from urllib.parse import unquote, urlparse
 
 import requests
 
-from gme import xml_store
+from gme import remote_cache, xml_store
+from gme.fsutil import atomic_write
 from gme.version import APP_UA
 from gme.xml_store import get_base_name, resolve_under_base
 
@@ -253,42 +254,27 @@ def _png_is_solid_green(data):
 def download_remote_media(url, media_dir, base_name, field, headers=None, timeout=40):
     """Download a remote media file and save it with a real image/video/pdf extension.
 
+    A copy already downloaded for the scrape preview (``remote_cache``) is
+    reused, so applying a previewed image costs no second download.
     ScreenScraper URLs often end with ``image.php`` — that suffix is ignored.
     Returns the dest filename (not a path).
     """
-    parsed = urlparse(url)
-    if parsed.scheme not in ("http", "https"):
+    if urlparse(url).scheme not in ("http", "https"):
         raise ValueError("url_not_allowed")
-    r = requests.get(
-        url,
-        headers=headers or {"User-Agent": APP_UA},
-        timeout=timeout,
-        stream=True,
-    )
-    r.raise_for_status()
-    cl = r.headers.get("content-length")
-    if cl and str(cl).isdigit() and int(cl) > MAX_DOWNLOAD_BYTES:
-        r.close()
-        raise ValueError("too_large")
-    chunks = []
-    written = 0
-    for chunk in r.iter_content(8192):
-        if not chunk:
-            continue
-        written += len(chunk)
-        if written > MAX_DOWNLOAD_BYTES:
-            raise ValueError("too_large")
-        chunks.append(chunk)
-    data = b"".join(chunks)
-    if not data:
-        raise ValueError("empty")
+    data = remote_cache.get(url)
+    content_type = None
+    if data is None:
+        data, content_type = remote_cache.fetch(
+            url,
+            headers=headers or {"User-Agent": APP_UA},
+            timeout=timeout,
+            max_bytes=MAX_DOWNLOAD_BYTES,
+        )
     if field == "boxback" and is_ss_green_placeholder(data):
         raise ValueError("green_placeholder")
-    ext = resolve_media_ext(url, r.headers.get("content-type"), field, data[:64])
+    ext = resolve_media_ext(url, content_type, field, data[:64])
     filename = f"{base_name}-{field}{ext}"
-    dest = os.path.join(media_dir, filename)
-    with open(dest, "wb") as f:
-        f.write(data)
+    atomic_write(os.path.join(media_dir, filename), data)
     return filename
 
 

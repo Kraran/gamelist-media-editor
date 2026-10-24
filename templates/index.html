@@ -92,16 +92,27 @@
             </div>
             <p class="game-path" id="game-path">—</p>
             <div class="game-header-actions">
-              <div class="scrape-group" role="group">
-                <button type="button" class="btn" id="btn-ss-scrape" data-i18n-title="editor.ss_scrape_title" title="Récupérer médias et métadonnées depuis ScreenScraper">
-                  {{ icon("cloud-download") }}<span data-i18n="editor.ss_scrape">ScreenScraper</span>
+              <div class="scrape-split" id="scrape-split">
+                <button type="button" class="btn scrape-main" id="btn-scrape" data-i18n-title="editor.scrape_title" title="Récupérer médias et informations, puis choisir ce qui change">
+                  {{ icon("cloud-download") }}<span data-i18n="editor.scrape">Scraper</span><span class="scrape-source" id="scrape-source-name">ScreenScraper</span>
                 </button>
-                <button type="button" class="btn" id="btn-adb-scrape" data-i18n-title="editor.adb_scrape_title" title="Arcade Database (MAME/FBNeo) — à utiliser sur les systèmes arcade">
-                  {{ icon("coin") }}<span data-i18n="editor.adb_scrape">Arcade DB</span>
-                </button>
-                <button type="button" class="btn" id="btn-steam-scrape" data-i18n-title="editor.steam_scrape_title" title="Télécharger la bande-annonce Steam">
-                  {{ icon("brand-steam") }}<span data-i18n="editor.steam_scrape">Steam</span>
-                </button>
+                <button type="button" class="btn scrape-more" id="btn-scrape-menu" aria-haspopup="menu" aria-expanded="false" aria-controls="scrape-menu" data-i18n-aria="editor.scrape_choose" aria-label="Choisir la source">{{ icon("chevron-down") }}</button>
+                <div class="menu" id="scrape-menu" role="menu" aria-labelledby="btn-scrape-menu" hidden>
+                  <div class="menu-label" data-i18n="editor.scrape_source">Source</div>
+                  <button type="button" class="menu-item" role="menuitemradio" aria-checked="false" data-source="screenscraper">
+                    {{ icon("cloud-download") }}<span class="menu-item-text"><span class="menu-item-title">ScreenScraper</span><span class="menu-item-sub" data-i18n="editor.scrape_ss_sub">Consoles, ordinateurs et arcade</span></span>{{ icon("check", "menu-check") }}
+                  </button>
+                  <button type="button" class="menu-item" role="menuitemradio" aria-checked="false" data-source="arcadeitalia">
+                    {{ icon("coin") }}<span class="menu-item-text"><span class="menu-item-title">Arcade Database</span><span class="menu-item-sub" data-i18n="editor.scrape_adb_sub">MAME, FBNeo, Neo-Geo… (PCB, borne, flyer)</span></span>{{ icon("check", "menu-check") }}
+                  </button>
+                  <button type="button" class="menu-item" role="menuitemradio" aria-checked="false" data-source="steam">
+                    {{ icon("brand-steam") }}<span class="menu-item-text"><span class="menu-item-title">Steam</span><span class="menu-item-sub" data-i18n="editor.scrape_steam_sub">Bande-annonce et fiche du magasin</span></span>{{ icon("check", "menu-check") }}
+                  </button>
+                  <div class="menu-foot">
+                    <span class="menu-note" id="scrape-menu-note"></span>
+                    <button type="button" class="btn btn-sm btn-ghost" id="scrape-menu-auto" role="menuitem" data-i18n="editor.scrape_auto" hidden>Choix automatique</button>
+                  </div>
+                </div>
               </div>
               <button type="button" class="btn btn-ghost btn-ghost-danger" id="btn-delete-game" data-i18n-title="header.delete_game_title" title="Supprime le jeu sélectionné (ROM + médias + entrée XML)" disabled>
                 {{ icon("trash") }}<span data-i18n="header.delete_game">Supprimer ce jeu</span>
@@ -248,19 +259,24 @@
   <div class="modal-overlay" id="ss-modal" role="dialog" aria-modal="true" aria-labelledby="ss-modal-title">
     <div class="modal ss-modal">
       <div class="tools-header">
-        <h3 class="modal-title" id="ss-modal-title" data-i18n="ss_modal.title">Scraper — appliquer les champs</h3>
+        <h3 class="modal-title" id="ss-modal-title">Scraper</h3>
         <button type="button" class="btn btn-icon" id="ss-modal-close" title="Fermer" data-i18n-title="tools.close">{{ icon("x") }}</button>
       </div>
-      <p class="tools-intro" id="ss-modal-info" data-i18n="ss_modal.info">Choisis les champs à importer pour ce jeu.</p>
-      <div class="ss-select-bar" id="ss-select-bar">
-        <button type="button" class="btn btn-sm" id="ss-select-all" data-i18n="scrape.select_all">Tout sélectionner</button>
-        <button type="button" class="btn btn-sm" id="ss-select-none" data-i18n="scrape.deselect_all">Tout désélectionner</button>
+      <p class="tools-intro" id="ss-modal-info"></p>
+      <div class="ss-toolbar" id="ss-select-bar">
+        <div class="segmented" role="group" data-i18n-aria="scrape.selection" aria-label="Sélection">
+          <button type="button" class="seg" data-preset="missing" aria-pressed="true" data-i18n-title="scrape.preset_missing_title" title="Coche seulement ce qui manque dans la fiche"><span data-i18n="scrape.preset_missing">Compléter</span></button>
+          <button type="button" class="seg" data-preset="all" aria-pressed="false" data-i18n-title="scrape.preset_all_title" title="Coche aussi ce qui remplace une valeur existante"><span data-i18n="scrape.preset_all">Tout remplacer</span></button>
+          <button type="button" class="seg" data-preset="none" aria-pressed="false"><span data-i18n="scrape.preset_none">Rien</span></button>
+        </div>
+        <span class="ss-count" id="ss-count" aria-live="polite"></span>
       </div>
       <div class="ss-candidates" id="ss-candidates" hidden></div>
-      <div class="ss-fields" id="ss-fields"></div>
+      <div class="ss-compare" id="ss-fields"></div>
       <div class="tools-footer">
+        <span class="tools-hint" id="ss-hint" data-i18n="scrape.hint">Ce qui manque est coché ; rien n’est remplacé sans ton accord.</span>
         <button type="button" class="btn" id="ss-modal-cancel" data-i18n="scrape.cancel">Annuler</button>
-        <button type="button" class="btn btn-accent" id="ss-modal-apply" data-i18n="scrape.apply">Appliquer la sélection</button>
+        <button type="button" class="btn btn-accent" id="ss-modal-apply">{{ icon("check") }}<span id="ss-apply-label">Appliquer</span></button>
       </div>
     </div>
   </div>

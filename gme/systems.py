@@ -66,6 +66,27 @@ SS_SYSTEM_MAP = {
 }
 
 
+# Scraper picked by the single "Scrape" button (the user can force another one,
+# remembered per system by the page). Arcade Database knows every MAME romset;
+# Steam finds a game from its app id. Everything else: ScreenScraper.
+ARCADE_DB_FOLDERS = {
+    "arcade", "mame", "mame2003", "mame2010", "hbmame", "fbneo", "fba", "neogeo",
+    "cps1", "cps2", "cps3", "atomiswave", "naomi", "naomi2", "cave", "gaelco",
+    "segastv", "model2", "model3", "zinc",
+}
+STEAM_FOLDERS = {"steam"}
+SCRAPERS = ("screenscraper", "arcadeitalia", "steam")
+
+
+def default_scraper(folder):
+    folder = (folder or "").lower()
+    if folder in ARCADE_DB_FOLDERS:
+        return "arcadeitalia"
+    if folder in STEAM_FOLDERS:
+        return "steam"
+    return "screenscraper"
+
+
 def detect_system_id():
     """Guess ScreenScraper systemeid from parent folder of gamelist.xml."""
     folder = os.path.basename(os.path.normpath(xml_store.BASE_DIR)).lower().strip()
@@ -101,4 +122,5 @@ def get_system_info():
         "folder": folder or display.lower(),
         "label": display,
         "id": sid,
+        "scraper": default_scraper(folder),
     }
