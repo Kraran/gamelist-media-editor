@@ -400,7 +400,8 @@
     "loading": "Загрузка…",
     "empty_folder": "Нет папок или файлов .xml.",
     "browse_error": "Не удалось прочитать эту папку.",
-    "recent_forget": "Убрать из списка"
+    "recent_forget": "Убрать из списка",
+    "recent_missing": "не найден"
   },
   "about": {
     "open_title": "О программе",

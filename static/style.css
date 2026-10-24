@@ -1236,6 +1236,8 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); cur
   direction: rtl;
   text-align: left;
 }
+.open-gl-recent-row.is-missing .open-gl-recent-item { opacity: 0.6; }
+.open-gl-recent-row.is-missing .open-gl-recent-item .icon { color: var(--warn); }
 .open-gl-recent-forget { width: 28px; flex: none; background: transparent; border-color: transparent; color: var(--text-3); }
 .open-gl-recent-forget:hover { color: var(--text); }
 

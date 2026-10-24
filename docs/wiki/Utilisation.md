@@ -6,7 +6,7 @@ Version documentée : **1.4.0**
 
 1. Lance l’exe (ou `Lancer.bat` / `python app.py`)
 2. Une fenêtre application s’ouvre si possible, sinon le navigateur
-3. **Gamelist…** si aucun XML n’est chargé (navigateur de fichiers + fichiers récents)
+3. **Gamelist…** si aucun XML n’est chargé (navigateur de fichiers, ou un clic sur l’un des 10 derniers fichiers ouverts)
 
 Tu peux changer de système à tout moment sans redémarrer.
 

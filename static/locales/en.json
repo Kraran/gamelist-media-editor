@@ -400,7 +400,8 @@
     "loading": "Loading…",
     "empty_folder": "No folders or .xml files here.",
     "browse_error": "Could not list this folder.",
-    "recent_forget": "Remove from the list"
+    "recent_forget": "Remove from the list",
+    "recent_missing": "not found"
   },
   "about": {
     "open_title": "About",

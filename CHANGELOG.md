@@ -5,7 +5,8 @@ All notable changes to Gamelist Media Editor are documented in this file.
 ## [Unreleased]
 
 ### Fixed
-- **Recent gamelists** (Open gamelist dialog): clicking a recent file only copied its path into the field, and long paths were cut at the end, so several recent files looked identical. A click now opens the file; each entry shows its system folder first and its path cut at the start; the file already open is not listed; a recent file that no longer exists is removed when you try to open it, and any entry can be removed (×)
+- **Recent gamelists** (Open gamelist dialog): clicking a recent file only copied its path into the field, and long paths were cut at the end, so several recent files looked identical. A click now opens the file; each entry shows its system folder first and its path cut at the start; the file already open is not listed; a recent file that no longer exists is marked, removed when you try to open it, and any entry can be removed (×)
+- **Recent gamelists were not remembered**: the list lived in the browser storage of the app window, which *Quit* stopped too abruptly to save it. The server now keeps the list in `recent_gamelists.json` next to the `.exe` / `app.py` (the 10 most recent are shown; the list of older versions is imported once). *Quit* also lets the app window close normally before stopping it, so the language and scrape-source choices are saved too
 
 ## [1.4.0] - 2026-10-24
 

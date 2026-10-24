@@ -400,7 +400,8 @@
     "loading": "Yükleniyor…",
     "empty_folder": "Burada klasör veya .xml dosyası yok.",
     "browse_error": "Bu klasör listelenemedi.",
-    "recent_forget": "Listeden kaldır"
+    "recent_forget": "Listeden kaldır",
+    "recent_missing": "bulunamadı"
   },
   "about": {
     "open_title": "Hakkında",

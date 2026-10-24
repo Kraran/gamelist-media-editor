@@ -112,9 +112,18 @@ def close_ui_window():
         return
     try:
         if proc.poll() is None:
-            proc.terminate()
+            # Ask the window to close first, so that the browser writes its
+            # storage (language, scrape sources…) to disk; force it after 3 s.
+            if os.name == "nt":
+                subprocess.run(
+                    ["taskkill", "/PID", str(proc.pid), "/T"],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+                )
+            else:
+                proc.terminate()
             try:
-                proc.wait(timeout=2)
+                proc.wait(timeout=3)
             except Exception:
                 proc.kill()
     except Exception:

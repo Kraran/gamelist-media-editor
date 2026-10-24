@@ -5,6 +5,7 @@ from flask import Flask
 from gme import security
 from gme.editor import bp as editor_bp
 from gme.paths import resource_path
+from gme.recent import bp as recent_bp
 from gme.remote_cache import bp as remote_cache_bp
 from gme.scrapers.adb import bp as adb_bp
 from gme.scrapers.ss import bp as ss_bp
@@ -27,5 +28,5 @@ app.before_request(security.guard_local_requests)
 app.before_request(security.check_game_identity)
 app.after_request(security.flag_reindexed)
 
-for blueprint in (editor_bp, ss_bp, adb_bp, steam_bp, thumbs_bp, remote_cache_bp):
+for blueprint in (editor_bp, ss_bp, adb_bp, steam_bp, thumbs_bp, remote_cache_bp, recent_bp):
     app.register_blueprint(blueprint)

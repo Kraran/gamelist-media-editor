@@ -400,7 +400,8 @@
     "loading": "Caricamento…",
     "empty_folder": "Nessuna cartella o file .xml qui.",
     "browse_error": "Impossibile elencare questa cartella.",
-    "recent_forget": "Rimuovi dall’elenco"
+    "recent_forget": "Rimuovi dall’elenco",
+    "recent_missing": "non trovato"
   },
   "about": {
     "open_title": "Informazioni",

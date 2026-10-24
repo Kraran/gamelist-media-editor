@@ -400,7 +400,8 @@
     "loading": "A carregar…",
     "empty_folder": "Sem pastas ou ficheiros .xml aqui.",
     "browse_error": "Não foi possível listar esta pasta.",
-    "recent_forget": "Remover da lista"
+    "recent_forget": "Remover da lista",
+    "recent_missing": "não encontrado"
   },
   "about": {
     "open_title": "Acerca de",

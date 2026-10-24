@@ -400,7 +400,8 @@
     "loading": "Cargando…",
     "empty_folder": "No hay carpetas ni archivos .xml aquí.",
     "browse_error": "No se pudo listar esta carpeta.",
-    "recent_forget": "Quitar de la lista"
+    "recent_forget": "Quitar de la lista",
+    "recent_missing": "no encontrado"
   },
   "about": {
     "open_title": "Acerca de",
