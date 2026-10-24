@@ -482,5 +482,25 @@
     "report_date": "Data",
     "size_units": "B,KB,MB,GB",
     "arcade_note": "System automatów: dyski .chd i folder romsetu (kinst/ obok kinst.zip) nie są liczone jako gry."
+  },
+  "mediacheck": {
+    "title": "Sprawdź media",
+    "action_sub": "Nieużywane media, odnośniki do brakujących plików",
+    "stat_files": "Pliki mediów",
+    "stat_orphans": "Nieużywane",
+    "stat_size": "Do zwolnienia",
+    "stat_broken": "Zerwane odnośniki",
+    "all_good": "Każdy plik mediów jest używany i każdy odnośnik wskazuje plik.",
+    "orphans_title": "Nieużywane media",
+    "orphans_desc": "Pliki w folderach {folders}, których nie używa żadna gra z listy.",
+    "orphans_warning": "Ponad połowa mediów wygląda na nieużywaną: czy folder jest współdzielony z inną listą? Nic nie jest zaznaczone.",
+    "broken_title": "Odnośniki do brakujących mediów",
+    "broken_desc": "Znacznik gry wskazuje plik, który już nie istnieje. Usunięcie znacznika nie dotyka żadnego pliku.",
+    "trash": "Do Kosza (z możliwością odzyskania)",
+    "done": "Usunięto plików: {deleted} (zwolniono {size}), odnośników: {unlinked}",
+    "done_trash": " — w Koszu",
+    "done_failed": " · nieusunięte pliki: {n} (zablokowane lub brak Kosza)",
+    "apply": "Wyczyść",
+    "apply_n": "Wyczyść ({n})"
   }
 }

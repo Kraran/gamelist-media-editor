@@ -482,5 +482,25 @@
     "report_date": "Datum",
     "size_units": "B,KB,MB,GB",
     "arcade_note": "Arcadesysteem: .chd-schijven en de map van een romset (kinst/ naast kinst.zip) tellen niet als spellen."
+  },
+  "mediacheck": {
+    "title": "Media controleren",
+    "action_sub": "Ongebruikte media, verwijzingen naar ontbrekende bestanden",
+    "stat_files": "Mediabestanden",
+    "stat_orphans": "Ongebruikt",
+    "stat_size": "Vrij te maken",
+    "stat_broken": "Kapotte verwijzingen",
+    "all_good": "Elk mediabestand wordt gebruikt en elke verwijzing wijst naar een bestand.",
+    "orphans_title": "Ongebruikte media",
+    "orphans_desc": "Bestanden in de mappen {folders} die geen spel uit de gamelist gebruikt.",
+    "orphans_warning": "Meer dan de helft van de media lijkt ongebruikt: wordt deze map gedeeld met een andere gamelist? Niets is aangevinkt.",
+    "broken_title": "Verwijzingen naar ontbrekende media",
+    "broken_desc": "De tag van het spel wijst naar een bestand dat niet meer bestaat. De tag verwijderen raakt geen bestand.",
+    "trash": "Naar de Prullenbak (herstelbaar)",
+    "done": "{deleted} mediabestand(en) verwijderd ({size} vrij), {unlinked} verwijzing(en) verwijderd",
+    "done_trash": " — in de Prullenbak",
+    "done_failed": " · {n} bestand(en) niet verwijderd (vergrendeld of geen Prullenbak)",
+    "apply": "Opruimen",
+    "apply_n": "Opruimen ({n})"
   }
 }

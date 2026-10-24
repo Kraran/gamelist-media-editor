@@ -482,5 +482,25 @@
     "report_date": "Datum",
     "size_units": "B,KB,MB,GB",
     "arcade_note": "Arkadsystem: .chd-skivor och ett romsets mapp (kinst/ bredvid kinst.zip) räknas inte som spel."
+  },
+  "mediacheck": {
+    "title": "Kontrollera media",
+    "action_sub": "Oanvända media, länkar till saknade filer",
+    "stat_files": "Mediefiler",
+    "stat_orphans": "Oanvända",
+    "stat_size": "Att frigöra",
+    "stat_broken": "Trasiga länkar",
+    "all_good": "Varje mediefil används och varje länk pekar på en fil.",
+    "orphans_title": "Oanvända media",
+    "orphans_desc": "Filer i mapparna {folders} som inget spel i gamelisten använder.",
+    "orphans_warning": "Över hälften av mediefilerna verkar oanvända: delas mappen med en annan gamelist? Inget är markerat.",
+    "broken_title": "Länkar till saknade media",
+    "broken_desc": "Spelets tagg pekar på en fil som inte längre finns. Att ta bort taggen rör ingen fil.",
+    "trash": "Flytta till Papperskorgen (kan återställas)",
+    "done": "{deleted} mediefil(er) borttagna ({size} frigjort), {unlinked} länk(ar) borttagna",
+    "done_trash": " — i Papperskorgen",
+    "done_failed": " · {n} fil(er) inte borttagna (låsta eller ingen Papperskorg)",
+    "apply": "Rensa",
+    "apply_n": "Rensa ({n})"
   }
 }
