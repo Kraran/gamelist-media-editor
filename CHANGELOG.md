@@ -5,6 +5,10 @@ All notable changes to Gamelist Media Editor are documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Game sheet**: media gallery where each media keeps its shape (masonry of columns, larger on big screens) with its size in pixels or video length; missing media grouped as small drop targets that also open a file picker on click; *Replace* button on each media
+- **Single save bar** under the editor: lists the unsaved changes, *Save* (`Ctrl+S`) and *Discard changes*; changed fields are marked. Replaces the three separate Save buttons
+- **Rating in stars** (half steps, keyboard arrows), **release date picker** (stored as `YYYYMMDDT000000`; a value it cannot show is kept and displayed), **language and region lists** named in the interface language (values outside the list such as `en,fr` are kept), **suggestions** for developer, publisher, family, players and arcade system from the values already in the gamelist
+- `POST /api/game/<index>`: saves name, description and metadata together, validated first, in one write of `gamelist.xml`
 - **Game list thumbnails**: screenshot (or box, mix, logo) of each game, generated once by the app and cached in `cache/thumbs/` (WebP, refreshed when the image changes)
 - **Media count per game** (`4/10`, green when complete) with the list of missing media on hover, instead of the unlabeled dots
 - **Single media filter** menu with the number of games missing each media, instead of twelve chips
@@ -29,9 +33,12 @@ All notable changes to Gamelist Media Editor are documented in this file.
 - Release notes moved from the repository root to `docs/release-notes/`
 
 ### Removed
+- Language flags loaded from flagcdn.com (an outside website): languages and regions are now named lists, everything works offline
 - Repository cleanup: `PUBLISH_v1.1.3.bat` (one-off publish script), `generate_icons.py` with `icon_data/` and `icons_*.json` (base64 copies of icons already in `static/`), unused root `icon.png`
 
 ### Fixed
+- An invalid rating rejected by the metadata route left the other submitted fields changed in memory, so the next save of anything wrote them too. Values are now all validated before anything is changed
+- Media messages showed the internal field name (`boxart`) instead of its translated label
 - **`gamelist.xml` could be seen empty, or lost, during a save**: the file was truncated then rewritten, so a program reading it at that moment (EmulationStation, another editor) got an empty file, and a crash or power cut mid-write destroyed it. Saves now write a temporary file next to it and swap it in atomically; `screenscraper_config.json` too. On Windows, if another program holds the file open, the save retries briefly then writes in place as before
 - Metadata labels were hard-coded in English or French ("Releasedate", "Developer", "Genre principal"…): they now follow the interface language
 - The backup checkbox of confirmation dialogs showed its French text twice

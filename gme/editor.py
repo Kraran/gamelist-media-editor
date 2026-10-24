@@ -318,6 +318,111 @@ def clear_field(index, field):
         return jsonify({"error": str(e)}), 500
 
 
+class FieldError(ValueError):
+    """A submitted value is invalid: (message key, error code)."""
+
+    def __init__(self, key, code):
+        super().__init__(key)
+        self.key, self.code = key, code
+
+
+def clean_meta(data):
+    """Validate and normalize metadata fields; raises FieldError. Unknown keys ignored."""
+    out = {}
+    for field, value in data.items():
+        if field not in META_FIELDS:
+            continue
+        value = (value or "").strip()
+        if field == "rating" and value:
+            try:
+                fval = float(value)
+            except ValueError:
+                raise FieldError("server.rating_invalid", "rating_invalid")
+            if not (0.0 <= fval <= 1.0):
+                raise FieldError("server.rating_range", "rating_range")
+            value = f"{fval:.2f}".rstrip("0").rstrip(".") if fval != 0 else "0"
+        if field == "lang" and value:
+            value = value.lower()
+        if field in BOOL_META_FIELDS:
+            value = "true" if value.lower() in ("true", "1", "yes", "on") else ""
+        out[field] = value
+    return out
+
+
+def set_name(game, name):
+    elem = game.find("name")
+    if elem is None:
+        elem = etree.Element("name")
+        game.insert(0, elem)
+    elem.text = name
+
+
+def set_desc(game, desc):
+    elem = game.find("desc")
+    if elem is None:
+        name_elem = game.find("name")
+        if name_elem is not None:
+            elem = etree.Element("desc")
+            name_elem.addnext(elem)
+        else:
+            elem = etree.SubElement(game, "desc")
+    elem.text = desc
+
+
+def set_meta(game, cleaned):
+    for field, value in cleaned.items():
+        elem = game.find(field)
+        if value == "":
+            if elem is not None:
+                game.remove(elem)
+        else:
+            if elem is None:
+                elem = etree.SubElement(game, field)
+            elem.text = value
+
+
+@bp.route("/api/game/<int:index>", methods=["POST"])
+def save_game(index):
+    """Save several parts of a game (name, desc, metadata) in ONE write.
+
+    Body: only the fields that changed, e.g. {"name": "...", "desc": "...",
+    "players": "1-2"}. Everything is validated before anything is written.
+    """
+    err = require_gamelist()
+    if err:
+        return err
+    data = request.get_json(silent=True) or {}
+    if not data:
+        return api_err(st("server.no_data"), 400, code="no_data")
+    name = None
+    if "name" in data:
+        name = (data.get("name") or "").strip()
+        if not name:
+            return api_err(st("server.empty_name"), 400, code="empty_name")
+    try:
+        cleaned = clean_meta(data)
+    except FieldError as e:
+        return api_err(st(e.key), 400, code=e.code)
+    try:
+        tree, game = get_game_elem(index)
+    except IndexError:
+        return api_err(st("server.invalid_index"), 404, code="invalid_index")
+    updated = dict(cleaned)
+    if name is not None:
+        set_name(game, name)
+        updated["name"] = name
+    if "desc" in data:
+        updated["desc"] = data.get("desc") or ""
+        set_desc(game, updated["desc"])
+    set_meta(game, cleaned)
+    try:
+        save_xml(tree)
+    except Exception as e:
+        log.exception("save failed")
+        return api_err(str(e), 500, code="save_failed")
+    return jsonify({"success": True, "updated": updated})
+
+
 @bp.route("/api/desc/<int:index>", methods=["POST"])
 def update_desc(index):
     err = require_gamelist()
@@ -330,15 +435,7 @@ def update_desc(index):
             tree, game = get_game_elem(index)
         except IndexError:
             return api_err(st("server.invalid_index"), 404, code="invalid_index")
-        elem = game.find("desc")
-        if elem is None:
-            name_elem = game.find("name")
-            if name_elem is not None:
-                elem = etree.Element("desc")
-                name_elem.addnext(elem)
-            else:
-                elem = etree.SubElement(game, "desc")
-        elem.text = new_desc
+        set_desc(game, new_desc)
         save_xml(tree)
         return jsonify({"success": True})
     except Exception as e:
@@ -359,11 +456,7 @@ def update_name(index):
             tree, game = get_game_elem(index)
         except IndexError:
             return api_err(st("server.invalid_index"), 404, code="invalid_index")
-        elem = game.find("name")
-        if elem is None:
-            elem = etree.Element("name")
-            game.insert(0, elem)
-        elem.text = new_name
+        set_name(game, new_name)
         save_xml(tree)
         return jsonify({"success": True, "name": new_name})
     except Exception as e:
@@ -383,32 +476,11 @@ def update_meta(index):
             tree, game = get_game_elem(index)
         except IndexError:
             return api_err(st("server.invalid_index"), 404, code="invalid_index")
-        updated = {}
-        for field, value in data.items():
-            if field not in META_FIELDS:
-                continue
-            value = (value or "").strip()
-            if field == "rating" and value:
-                try:
-                    fval = float(value)
-                    if not (0.0 <= fval <= 1.0):
-                        return api_err(st("server.rating_range"), 400, code="rating_range")
-                    value = f"{fval:.2f}".rstrip("0").rstrip(".") if fval != 0 else "0"
-                except ValueError:
-                    return api_err(st("server.rating_invalid"), 400, code="rating_invalid")
-            if field == "lang" and value:
-                value = value.lower()
-            if field in BOOL_META_FIELDS:
-                value = "true" if value.lower() in ("true", "1", "yes", "on") else ""
-            elem = game.find(field)
-            if value == "":
-                if elem is not None:
-                    game.remove(elem)
-            else:
-                if elem is None:
-                    elem = etree.SubElement(game, field)
-                elem.text = value
-            updated[field] = value
+        try:
+            updated = clean_meta(data)
+        except FieldError as e:
+            return api_err(st(e.key), 400, code=e.code)
+        set_meta(game, updated)
         save_xml(tree)
         return jsonify({"success": True, "updated": updated})
     except Exception as e:
