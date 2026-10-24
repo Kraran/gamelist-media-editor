@@ -5,6 +5,12 @@ All notable changes to Gamelist Media Editor are documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Settings** dialog (app bar, gear): General (language, applied at once), ScreenScraper (member login, region, media types, test), Scrape sources (the per-system choices made in the Scrape menu, with a way back to automatic), Keyboard shortcuts. Replaces the Tools dialog
+- **Actions** menu (app bar ⋯) for the whole gamelist: `.bak` backup, arcade system names from `mame.xml`, purge `<region>`; disabled while no gamelist is open
+- Game **⋯ menu**: *Copy the ROM path* and *Delete this game…* (moved out of the header, where it sat next to Scrape)
+- **Next incomplete** button and `N`: next game in the list that is missing media, or that matches the media filter when one is set; wraps around, says so when none is left
+- **Keyboard shortcuts**: `J`/`K` next/previous game, `N` next incomplete, `S` scrape, `?` shortcut list (`Ctrl+S`, `Ctrl+F` and `/` as before). Letters do nothing while typing in a field; the status bar shows them
+- Menus work with the keyboard (arrows, Home/End, Enter, Escape) and close on a click outside
 - **One "Scrape" button**: the source is picked for the system (Arcade Database for MAME, FBNeo, Neo-Geo, CPS, Naomi…; Steam for the `steam` folder; ScreenScraper for everything else). The ▾ menu forces another source, remembered per system, with a way back to the automatic choice. Replaces the three ScreenScraper / Arcade DB / Steam buttons
 - **Scrape comparison**: each field shows the current value next to the proposed one, images side by side with their size in pixels, marked *New*, *Different* or *Replaces*. Only what the game is missing is ticked; *Fill gaps* / *Replace all* / *None* presets; identical fields and fields the source does not have are listed at the bottom; the apply button counts the selected fields and has the focus (Enter applies)
 - Proposed images are downloaded once for the preview, kept for a day in `cache/remote/`, and reused when applied: no second ScreenScraper download (quota). Previews are addressed by a key, so ScreenScraper URLs, which carry the member login, never appear in an address or in the server log

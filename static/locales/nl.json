@@ -8,16 +8,17 @@
     "game_count_filtered": "{visible} / {total} spellen",
     "system_title": "Systeem (map van gamelist.xml)",
     "system_unknown": "Onbekend systeem",
-    "delete_game": "Dit spel verwijderen",
-    "delete_game_title": "Geselecteerd spel verwijderen (ROM + media + XML-item)",
+    "delete_game": "Dit spel verwijderen…",
     "reload": "Herladen",
     "reload_title": "gamelist.xml opnieuw laden van schijf",
-    "tools": "Tools",
-    "tools_title": "Tools en globale acties",
     "quit": "Afsluiten",
     "quit_title": "Server stoppen en sluiten",
     "open_gamelist": "Gamelist…",
-    "open_gamelist_title": "Andere gamelist.xml openen zonder herstarten"
+    "open_gamelist_title": "Andere gamelist.xml openen zonder herstarten",
+    "actions": "Acties",
+    "actions_title": "Acties op de hele gamelist",
+    "settings": "Instellingen",
+    "settings_title": "Taal, ScreenScraper, scrapebronnen, sneltoetsen"
   },
   "sidebar": {
     "search_placeholder": "Games zoeken…",
@@ -90,7 +91,12 @@
     "scrape_steam_sub": "Trailer en winkelpagina",
     "scrape_auto": "Terug naar automatische keuze",
     "scrape_note_auto": "Automatische keuze voor {system}",
-    "scrape_note_forced": "Jouw keuze voor {system}, onthouden"
+    "scrape_note_forced": "Jouw keuze voor {system}, onthouden",
+    "next_incomplete": "Volgende onvolledige",
+    "next_incomplete_title": "Naar het volgende spel in de lijst waarvan media ontbreken",
+    "game_menu": "Meer acties voor dit spel",
+    "copy_path": "ROM-pad kopiëren",
+    "delete_sub": "ROM, media en gamelist-item"
   },
   "fields": {
     "image": "Afbeelding (screenshot)",
@@ -126,7 +132,6 @@
     "saving_desc": "Beschrijving opslaan…",
     "saving_meta": "Metadata opslaan…",
     "reloaded": "Lijst herladen",
-    "hints": "↑↓ navigeren · Ctrl+S opslaan · Ctrl+F zoeken",
     "shutdown_title": "Server gestopt",
     "shutdown_msg": "Je kunt dit tabblad sluiten.<br>Het consolevenster zou vanzelf moeten sluiten.",
     "backup_xml": "XML wordt geback-upt…",
@@ -142,7 +147,9 @@
     "unsaved": "Niet-opgeslagen wijzigingen: {fields}",
     "kbd_navigate": "navigeren",
     "kbd_save": "opslaan",
-    "kbd_search": "zoeken"
+    "kbd_next_incomplete": "volgende onvolledige",
+    "kbd_scrape": "scrapen",
+    "kbd_help": "sneltoetsen"
   },
   "toast": {
     "no_file_url": "Geen bestand of URL gevonden",
@@ -162,7 +169,9 @@
     "list_reloaded": "Lijst herladen",
     "gamelist_opened": "Gamelist geopend: {name} ({n} spellen)",
     "arcade_sys_ok": "{n} filled · {skip} already set · {miss} not found",
-    "nothing_to_save": "Niets om op te slaan"
+    "nothing_to_save": "Niets om op te slaan",
+    "path_copied": "Pad gekopieerd: {path}",
+    "no_incomplete": "Geen ander onvolledig spel in de lijst"
   },
   "errors": {
     "offline": "Geen netwerkverbinding.",
@@ -200,12 +209,9 @@
     "discard": "Niet opslaan"
   },
   "tools": {
-    "title": "Tools",
-    "intro": "Globale acties op het bestand <code>gamelist.xml</code> (niet gekoppeld aan één game).",
     "close": "Sluiten",
     "lang_title": "Interfacetaal",
     "lang_desc": "Wijzig de taal van de interface. De keuze wordt in deze browser onthouden.",
-    "lang_label": "Taal",
     "ss_title": "ScreenScraper",
     "ss_desc": "Scrapen werkt <strong>direct</strong> (ingebouwde softwaregegevens). Optioneel: <strong>ledenaccount</strong> voor quota-<strong>boost</strong>. Lokaal opgeslagen in <code>screenscraper_config.json</code>.",
     "ss_ssid": "Lid-id (ssid) — optioneel",
@@ -217,14 +223,8 @@
     "ss_boost_on": "Ledenboost actief",
     "ss_boost_off": "Basisquota (optionele boost hierboven)",
     "ss_cfg_err": "Fout bij laden van config",
-    "backup_title": "Back-up van gamelist.xml",
-    "backup_desc": "Maakt een kopie <code>gamelist.xml.bak</code> naast het huidige bestand. Overschrijft een bestaand .bak.",
     "backup_btn": "Back-up (.bak)",
     "purge_title": "Alle <region>-tags verwijderen",
-    "purge_desc": "Verwijdert elke <code>&lt;region&gt;…&lt;/region&gt;</code>-regel van <strong>alle</strong> games. Bevestiging vereist (optionele .bak).",
-    "purge_btn": "<region>-tags verwijderen",
-    "hints": "Sneltoetsen: ↑↓ navigeren · Ctrl+S opslaan · Ctrl+F zoeken",
-    "lang_apply": "Taal toepassen",
     "lang_changed": "Taal: Nederlands",
     "ss_pass_saved_ph": "(opgeslagen — leeg laten om te behouden)",
     "ss_pass_optional_ph": "Lidwachtwoord (optioneel)",
@@ -238,7 +238,6 @@
     "ss_type_mix_v1": "Recalbox mix v1 (mixrbv1)",
     "ss_type_mix_v2": "Recalbox mix v2 (mixrbv2)",
     "arcade_sys_title": "Fill arcade systems",
-    "arcade_sys_desc": "Reads a MAME <code>mame.xml</code> dump and writes <code>&lt;arcadesystemname&gt;</code>.",
     "arcade_sys_btn": "Fill from MAME"
   },
   "scrape": {
@@ -416,5 +415,36 @@
     "author_page": "Profiel Kraran",
     "github": "GitHub-repository",
     "close": "Sluiten"
+  },
+  "actions": {
+    "label": "Hele gamelist",
+    "backup_sub": "Kopie gamelist.xml.bak naast het bestand",
+    "arcade_sub": "Uit mame.xml: CPS2, Neo-Geo…",
+    "purge_sub": "In alle spellen, na bevestiging"
+  },
+  "settings": {
+    "title": "Instellingen",
+    "tab_general": "Algemeen",
+    "tab_sources": "Scrapebronnen",
+    "tab_keys": "Sneltoetsen",
+    "sources_title": "Scrapebron per systeem",
+    "sources_desc": "De knop Scrapen kiest de bron per systeem: Arcade Database voor arcademappen, Steam voor steam, ScreenScraper voor de rest. Een andere keuze in het menu wordt hier onthouden, in deze browser.",
+    "sources_none": "Geen vaste keuze: de bron wordt per systeem automatisch gekozen.",
+    "sources_reset_all": "Alles terug naar automatisch",
+    "keys_desc": "Letters doen niets terwijl je in een veld typt.",
+    "key_next": "Volgend spel",
+    "key_prev": "Vorig spel",
+    "key_first_last": "Eerste / laatste spel van de lijst",
+    "key_next_incomplete": "Volgend spel waarvan media ontbreken",
+    "key_scrape": "Spel scrapen",
+    "key_save": "Wijzigingen opslaan",
+    "key_search": "Spel zoeken",
+    "key_apply": "Scrape toepassen (vergelijkingsvenster)",
+    "key_close": "Venster of menu sluiten",
+    "key_help": "Deze lijst tonen",
+    "k_home": "Home",
+    "k_end": "End",
+    "k_enter": "Enter",
+    "k_esc": "Esc"
   }
 }

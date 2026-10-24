@@ -35,10 +35,13 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
 
 **Workflow**
 - Game list with **thumbnails** and a **media count** per game (hover it to see what is missing); fast with very large gamelists (a 30,000-game MAME list opens in about a second)
-- Filter games by **missing media** (counts per media), search, keyboard navigation, `Ctrl+S` save, `Ctrl+F` search
+- Filter games by **missing media** (counts per media), search
+- **Next incomplete** (`N`): jumps to the next game in the list that is missing media (or that matches the media filter)
+- **Keyboard**: `J`/`K` next/previous game, `N` next incomplete, `S` scrape, `Ctrl+S` save, `Ctrl+F` or `/` search, `?` shows the list
 - **Open another `gamelist.xml`** at any time (file browser + recent files), **Reload** after an outside edit
-- **Tools**: language, ScreenScraper member login and media types, `.bak` backup, purge all `<region>` tags
-- Delete a game (ROM + media + XML entry) with optional backup
+- **Actions** menu (whole gamelist): `.bak` backup, arcade system names from `mame.xml`, purge all `<region>` tags
+- **Settings**: language, ScreenScraper member login and media types, scrape source chosen per system, keyboard shortcuts
+- Game ⋯ menu: copy the ROM path, delete the game (ROM + media + XML entry) with optional backup
 - Application window without address bar when Edge / Chrome / Brave is available; **Quit** stops the server
 - **13 languages**
 
@@ -88,9 +91,9 @@ Your `screenscraper_config.json` (member login, media types) is stored next to `
 1. Open your system's `gamelist.xml` (for example `RetroBat\roms\snes\gamelist.xml`). Media go to `images/`, `videos/` and `manuals/` next to it.
 2. Select a game, then drop files on the media, or click **Scrape**, check what changes and apply (Enter).
 3. Edit the metadata and save (`Ctrl+S`).
-4. Use **Tools** for global actions, **Reload** if you edited the XML outside the app.
+4. Use **Actions** for the whole gamelist (backup, `<region>` purge…), **Reload** if you edited the XML outside the app.
 
-Please use the scrapers responsibly: requests are throttled, avoid hammering the APIs. ScreenScraper works out of the box; a free member account (Tools) raises your quota.
+Please use the scrapers responsibly: requests are throttled, avoid hammering the APIs. ScreenScraper works out of the box; a free member account (Settings › ScreenScraper) raises your quota.
 
 ---
 
@@ -117,7 +120,7 @@ Code layout (`app.py` is only the entry point; the overview is in `gme/__init__.
 | Path | Role |
 |---|---|
 | `gme/main.py`, `gme/server.py` | start-up, Flask app, request guards, blueprints |
-| `gme/editor.py` | editor routes: list, open gamelist, media, metadata, tools |
+| `gme/editor.py` | editor routes: list, open gamelist, media, metadata, gamelist actions |
 | `gme/scrapers/ss.py`, `adb.py`, `steam.py` | ScreenScraper, Arcade Database, Steam (client, parsing, routes) |
 | `gme/scrapers/compare.py`, `apply.py` | current vs proposed per field (statuses, presets), applying a scrape (shared by the three sources) |
 | `gme/scrapers/common.py` | throttling, name matching, ROM hashes |
@@ -151,7 +154,7 @@ Interface:
 
 **Français · English · Español · Deutsch · Italiano · Português · Nederlands · Polski · Türkçe · Svenska · Norsk · Dansk · Русский**
 
-Open **Tools → Language**, choose a language, then **Apply language**. The choice is remembered by the browser.
+Open **Settings › General** and pick a language: it applies at once and is remembered by the browser.
 
 ## License
 

@@ -154,29 +154,21 @@ async function setLocale(code, { silent = false } = {}) {
   return ok;
 }
 
+/** Settings › General: the language applies as soon as it is picked. */
 function wireLanguageControls() {
   const sel = document.getElementById("ui-lang");
-  const btn = document.getElementById("btn-lang-apply");
-  if (sel) sel.value = currentLocale;
-  if (btn && !btn.dataset.i18nWired) {
-    btn.dataset.i18nWired = "1";
-    btn.addEventListener("click", async () => {
-      const code = (sel && sel.value) || currentLocale;
-      btn.disabled = true;
-      try {
-        await setLocale(code);
-      } finally {
-        btn.disabled = false;
-      }
-    });
-  }
-  // Also apply on change for convenience (still has explicit button)
-  if (sel && !sel.dataset.i18nWired) {
-    sel.dataset.i18nWired = "1";
-    sel.addEventListener("change", async () => {
-      // Wait for explicit Apply — do not auto-switch
-    });
-  }
+  if (!sel) return;
+  sel.value = currentLocale;
+  if (sel.dataset.i18nWired) return;
+  sel.dataset.i18nWired = "1";
+  sel.addEventListener("change", async () => {
+    sel.disabled = true;
+    try {
+      await setLocale(sel.value || currentLocale);
+    } finally {
+      sel.disabled = false;
+    }
+  });
 }
 
 let GENRES = {};
@@ -501,6 +493,7 @@ function setNoGamelistUi(loaded) {
   if (del) del.disabled = true;
   if (reload) reload.disabled = !loaded;
   setScrapeEnabled(false);
+  setGamelistActionsEnabled(!!loaded);
   if (!loaded) {
     if (empty) empty.hidden = false;
     if (emptySelect) emptySelect.hidden = true;
@@ -1376,11 +1369,20 @@ document.addEventListener("keydown", e => {
     }
     return;
   }
-  const tools = document.getElementById("tools-panel");
-  if (tools && tools.classList.contains("open")) {
+  const settings = document.getElementById("settings-modal");
+  if (settings && settings.classList.contains("open")) {
     if (e.key === "Escape") {
       e.preventDefault();
-      closeToolsPanel();
+      closeSettings();
+    }
+    return;
+  }
+  const about = document.getElementById("about-modal");
+  if (about && about.classList.contains("open")) return;
+  if (openMenuId) {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      closeMenu(openMenuId, true);
     }
     return;
   }
@@ -1416,6 +1418,34 @@ document.addEventListener("keydown", e => {
     e.preventDefault();
     navigateGame(e.key === "ArrowDown" ? 1 : -1);
     return;
+  }
+
+  // Letters (not while typing, no modifier): J/K next/previous, N next
+  // incomplete, S scrape, ? shortcuts. Same list in Settings › Shortcuts.
+  if (!typing && !ctrl && !e.altKey) {
+    const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    if (key === "j" || key === "k") {
+      e.preventDefault();
+      navigateGame(key === "j" ? 1 : -1);
+      return;
+    }
+    if (key === "n" && !e.repeat) {
+      e.preventDefault();
+      nextIncomplete();
+      return;
+    }
+    if (key === "s" && !e.repeat) {
+      const btn = document.getElementById("btn-scrape");
+      if (currentIndex === null || btn.disabled) return;
+      e.preventDefault();
+      btn.click();
+      return;
+    }
+    if (key === "?") {
+      e.preventDefault();
+      openSettings("keys");
+      return;
+    }
   }
 
   // Home / End → first / last visible game (not while typing)
@@ -1488,18 +1518,211 @@ function askConfirm({ title, bodyHtml, showBackup = true, okLabel, cancelLabel, 
   });
 }
 
-function openToolsPanel() {
-  document.getElementById("tools-panel").classList.add("open");
-  wireLanguageControls();
-  const sel = document.getElementById("ui-lang");
-  if (sel) sel.value = currentLocale;
-  if (typeof loadSsConfig === "function") loadSsConfig();
+/* --- Menus (scrape source, game actions, gamelist actions) ---------------
+ * A button with aria-haspopup="menu" opens the menu below it. Arrows move
+ * between items, Escape closes and gives the focus back, a click outside or
+ * on an item closes it.
+ */
+const MENUS = {};
+let openMenuId = null;
+
+function menuItems(menu) {
+  return [...menu.querySelectorAll('[role="menuitem"], [role="menuitemradio"]')]
+    .filter(el => !el.hidden && !el.disabled);
 }
-function closeToolsPanel() {
-  document.getElementById("tools-panel").classList.remove("open");
+function openMenu(id) {
+  const m = MENUS[id];
+  if (!m) return;
+  if (openMenuId && openMenuId !== id) closeMenu(openMenuId, false);
+  if (m.onOpen) m.onOpen();
+  m.menu.hidden = false;
+  m.button.setAttribute("aria-expanded", "true");
+  openMenuId = id;
+  const first = m.menu.querySelector('[aria-checked="true"]:not(:disabled)') || menuItems(m.menu)[0];
+  if (first) first.focus();
+  document.addEventListener("pointerdown", onMenuOutside, true);
+}
+function closeMenu(id, focusButton) {
+  const m = MENUS[id || openMenuId];
+  if (!m || m.menu.hidden) return;
+  m.menu.hidden = true;
+  m.button.setAttribute("aria-expanded", "false");
+  if (openMenuId === m.id) openMenuId = null;
+  document.removeEventListener("pointerdown", onMenuOutside, true);
+  if (focusButton) m.button.focus();
+}
+function onMenuOutside(e) {
+  const m = MENUS[openMenuId];
+  if (m && !m.menu.contains(e.target) && !m.button.contains(e.target)) closeMenu(m.id, false);
+}
+function setupMenu(id, buttonId, onOpen) {
+  const button = document.getElementById(buttonId);
+  const menu = document.getElementById(id);
+  MENUS[id] = { id, button, menu, onOpen };
+  button.addEventListener("click", () => (menu.hidden ? openMenu(id) : closeMenu(id, true)));
+  button.addEventListener("keydown", e => {
+    if (e.key === "ArrowDown" && menu.hidden) {
+      e.preventDefault();
+      e.stopPropagation();
+      openMenu(id);
+    }
+  });
+  menu.addEventListener("keydown", e => {
+    e.stopPropagation();                       // arrows move in the menu, not in the game list
+    const items = menuItems(menu);
+    const i = items.indexOf(document.activeElement);
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      const step = e.key === "ArrowDown" ? 1 : -1;
+      items[(i + step + items.length) % items.length].focus();
+    } else if (e.key === "Home" || e.key === "End") {
+      e.preventDefault();
+      items[e.key === "Home" ? 0 : items.length - 1].focus();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      closeMenu(id, true);
+    } else if (e.key === "Tab") {
+      closeMenu(id, false);
+    }
+  });
+  // Capture phase: the menu is closed before the item's action opens a dialog
+  menu.addEventListener("click", e => {
+    const item = e.target.closest('[role="menuitem"], [role="menuitemradio"]');
+    if (item && !item.disabled) closeMenu(id, true);
+  }, true);
 }
 
-document.getElementById("btn-tools").addEventListener("click", openToolsPanel);
+/* --- Settings: General, ScreenScraper, scrape sources, shortcuts --------- */
+const SETTINGS_PANES = ["general", "ss", "sources", "keys"];
+
+function openSettings(pane) {
+  closeMenu(null, false);
+  wireLanguageControls();
+  loadSsConfig();
+  renderScrapeSources();
+  document.getElementById("settings-modal").classList.add("open");
+  showSettingsPane(pane || "general", true);
+}
+function closeSettings() {
+  const modal = document.getElementById("settings-modal");
+  if (!modal.classList.contains("open")) return;
+  modal.classList.remove("open");
+  document.getElementById("btn-settings").focus();
+}
+function showSettingsPane(pane, focusTab) {
+  if (!SETTINGS_PANES.includes(pane)) pane = "general";
+  SETTINGS_PANES.forEach(p => {
+    const tab = document.getElementById("tab-" + p);
+    const on = p === pane;
+    tab.setAttribute("aria-selected", on ? "true" : "false");
+    tab.tabIndex = on ? 0 : -1;
+    document.getElementById("pane-" + p).hidden = !on;
+    if (on && focusTab) tab.focus();
+  });
+}
+document.querySelectorAll(".settings-tab").forEach(tab => {
+  tab.addEventListener("click", () => showSettingsPane(tab.dataset.pane));
+  tab.addEventListener("keydown", e => {
+    const step = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[e.key];
+    if (step === undefined) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const i = SETTINGS_PANES.indexOf(tab.dataset.pane);
+    showSettingsPane(SETTINGS_PANES[(i + step + SETTINGS_PANES.length) % SETTINGS_PANES.length], true);
+  });
+});
+document.getElementById("btn-settings").addEventListener("click", () => openSettings());
+document.getElementById("settings-close").addEventListener("click", closeSettings);
+document.getElementById("settings-modal").addEventListener("click", e => {
+  if (e.target.id === "settings-modal") closeSettings();
+});
+document.getElementById("btn-kbd-help").addEventListener("click", () => openSettings("keys"));
+
+/** Settings › Sources: the per-system choices made in the Scrape menu. */
+function renderScrapeSources() {
+  const box = document.getElementById("sources-list");
+  const prefs = scraperPrefs();
+  const folders = Object.keys(prefs).filter(f => SCRAPERS[prefs[f]]).sort();
+  if (!folders.length) {
+    box.innerHTML = `<p class="sources-empty">${escapeHtml(t("settings.sources_none"))}</p>`;
+    return;
+  }
+  box.innerHTML = folders.map(f => {
+    const sc = SCRAPERS[prefs[f]];
+    return `<div class="source-row"><code class="source-folder">${escapeHtml(f)}</code>` +
+      `<span class="source-name">${icon(sc.icon)}${escapeHtml(sc.label)}</span>` +
+      `<button type="button" class="btn btn-sm btn-ghost" data-reset-folder="${escapeHtml(f)}">` +
+      `${escapeHtml(t("editor.scrape_auto"))}</button></div>`;
+  }).join("") +
+    `<div class="sources-foot"><button type="button" class="btn btn-sm" data-reset-folder="*">` +
+    `${escapeHtml(t("settings.sources_reset_all"))}</button></div>`;
+}
+document.getElementById("sources-list").addEventListener("click", e => {
+  const btn = e.target.closest("[data-reset-folder]");
+  if (!btn) return;
+  const folder = btn.dataset.resetFolder;
+  const prefs = scraperPrefs();
+  if (folder === "*") Object.keys(prefs).forEach(k => delete prefs[k]);
+  else delete prefs[folder];
+  try { localStorage.setItem(SCRAPER_PREF_KEY, JSON.stringify(prefs)); } catch (_) {}
+  updateScrapeButton();
+  renderScrapeSources();
+  const first = document.querySelector("#sources-list button") || document.getElementById("tab-sources");
+  first.focus();
+});
+
+/* --- Actions on the whole gamelist (app bar ⋯ menu) ----------------------- */
+setupMenu("actions-menu", "btn-actions");
+function setGamelistActionsEnabled(on) {
+  ["btn-manual-backup", "btn-fill-arcade", "btn-purge-regions"].forEach(id => {
+    document.getElementById(id).disabled = !on;
+  });
+}
+
+/* --- This game (header ⋯ menu) and "Next incomplete" ---------------------- */
+setupMenu("game-menu", "btn-game-menu");
+
+/** Full path of the selected game's ROM, with the separators of the gamelist path. */
+function currentRomPath() {
+  const g = games.find(x => x.index === currentIndex);
+  if (!g) return "";
+  if (/^([a-zA-Z]:)?[\\/]/.test(g.path)) return g.path;     // already absolute
+  const xml = window.__gmeXmlPath || "";
+  const sep = xml.includes("\\") ? "\\" : "/";
+  const dir = xml.slice(0, Math.max(xml.lastIndexOf("/"), xml.lastIndexOf("\\")));
+  const rel = g.path.replace(/^\.[\\/]/, "").replace(/[\\/]/g, sep);
+  return dir ? dir + sep + rel : rel;
+}
+document.getElementById("btn-copy-path").addEventListener("click", async () => {
+  const path = currentRomPath();
+  if (!path) return;
+  try {
+    await navigator.clipboard.writeText(path);
+    toast(t("toast.path_copied", { path }));
+  } catch (_) {
+    toast(path, "info");
+  }
+});
+
+/** A game the "Next incomplete" button stops on: missing media (or matching the media filter). */
+function isIncomplete(g) {
+  return mediaFilter === "all" ? matchesMediaFilter(g, "any") : matchesMediaFilter(g);
+}
+function nextIncomplete() {
+  const visible = getVisibleListIndices();
+  if (!visible.length) return;
+  const pos = visible.indexOf(currentListIndex);
+  for (let step = 1; step <= visible.length; step++) {
+    const listIndex = visible[(pos + step + visible.length) % visible.length];
+    if (listIndex === currentListIndex) break;
+    if (isIncomplete(games[listIndex])) {
+      requestSelectGame(listIndex);
+      return;
+    }
+  }
+  toast(t("toast.no_incomplete"), "info");
+}
+document.getElementById("btn-next-incomplete").addEventListener("click", nextIncomplete);
 
 document.getElementById("btn-reload").addEventListener("click", async () => {
   if (!(await confirmLeaveEditor())) return;
@@ -1540,12 +1763,6 @@ document.getElementById("btn-quit").addEventListener("click", async () => {
   }, 300);
 });
 
-document.getElementById("tools-close").addEventListener("click", closeToolsPanel);
-document.getElementById("tools-close-2").addEventListener("click", closeToolsPanel);
-document.getElementById("tools-panel").addEventListener("click", e => {
-  if (e.target.id === "tools-panel") closeToolsPanel();
-});
-
 document.getElementById("btn-manual-backup").addEventListener("click", async () => {
   setStatus(t("status.backup_xml"));
   try {
@@ -1557,8 +1774,7 @@ document.getElementById("btn-manual-backup").addEventListener("click", async () 
   }
 });
 
-document.getElementById("btn-fill-arcade")?.addEventListener("click", async () => {
-  closeToolsPanel();
+document.getElementById("btn-fill-arcade").addEventListener("click", async () => {
   const choice = await askConfirm({
     title: t("confirm.arcade_sys_title"),
     bodyHtml: t("confirm.arcade_sys_body"),
@@ -1585,7 +1801,6 @@ document.getElementById("btn-fill-arcade")?.addEventListener("click", async () =
 });
 
 document.getElementById("btn-purge-regions").addEventListener("click", async () => {
-  closeToolsPanel();
   const choice = await askConfirm({
     title: t("confirm.purge_title"),
     bodyHtml: t("confirm.purge_body"),
@@ -2129,62 +2344,18 @@ function setScrapeEnabled(on) {
   if (!on) closeScrapeMenu(false);
 }
 
-function scrapeMenuItems() {
-  return [...document.querySelectorAll("#scrape-menu .menu-item, #scrape-menu-auto")].filter(el => !el.hidden);
-}
-function openScrapeMenu() {
-  const menu = document.getElementById("scrape-menu");
-  updateScrapeButton();
-  menu.hidden = false;
-  document.getElementById("btn-scrape-menu").setAttribute("aria-expanded", "true");
-  (menu.querySelector('.menu-item[aria-checked="true"]') || scrapeMenuItems()[0]).focus();
-  document.addEventListener("pointerdown", onScrapeMenuOutside, true);
-}
+setupMenu("scrape-menu", "btn-scrape-menu", updateScrapeButton);
 function closeScrapeMenu(focusButton) {
-  const menu = document.getElementById("scrape-menu");
-  if (!menu || menu.hidden) return;
-  menu.hidden = true;
-  document.getElementById("btn-scrape-menu").setAttribute("aria-expanded", "false");
-  document.removeEventListener("pointerdown", onScrapeMenuOutside, true);
-  if (focusButton) document.getElementById("btn-scrape-menu").focus();
+  closeMenu("scrape-menu", focusButton);
 }
-function onScrapeMenuOutside(e) {
-  if (!e.target.closest("#scrape-split")) closeScrapeMenu(false);
-}
-document.getElementById("btn-scrape-menu").addEventListener("click", () => {
-  if (document.getElementById("scrape-menu").hidden) openScrapeMenu();
-  else closeScrapeMenu(true);
-});
-document.getElementById("scrape-menu").addEventListener("keydown", e => {
-  e.stopPropagation();                         // arrows move in the menu, not in the game list
-  const items = scrapeMenuItems();
-  const i = items.indexOf(document.activeElement);
-  if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-    e.preventDefault();
-    const step = e.key === "ArrowDown" ? 1 : -1;
-    items[(i + step + items.length) % items.length].focus();
-  } else if (e.key === "Home" || e.key === "End") {
-    e.preventDefault();
-    items[e.key === "Home" ? 0 : items.length - 1].focus();
-  } else if (e.key === "Escape") {
-    e.preventDefault();
-    closeScrapeMenu(true);
-  } else if (e.key === "Tab") {
-    closeScrapeMenu(false);
-  }
-});
 document.querySelectorAll("#scrape-menu .menu-item[data-source]").forEach(item => {
   item.addEventListener("click", async () => {
     const source = item.dataset.source;
     rememberScraper(source);
-    closeScrapeMenu(true);
     if (await confirmLeaveEditor()) runScrape(source);
   });
 });
-document.getElementById("scrape-menu-auto").addEventListener("click", () => {
-  rememberScraper(null);
-  closeScrapeMenu(true);
-});
+document.getElementById("scrape-menu-auto").addEventListener("click", () => rememberScraper(null));
 document.getElementById("btn-scrape").addEventListener("click", async () => {
   if (await confirmLeaveEditor()) runScrape(chosenScraper());
 });

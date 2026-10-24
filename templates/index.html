@@ -44,8 +44,26 @@
       <button type="button" class="btn btn-ghost" id="btn-reload" data-i18n-title="header.reload_title" title="Recharger le gamelist.xml depuis le disque">
         {{ icon("refresh") }}<span class="btn-label" data-i18n="header.reload">Recharger</span>
       </button>
-      <button type="button" class="btn btn-ghost" id="btn-tools" data-i18n-title="header.tools_title" title="Outils et actions globales">
-        {{ icon("adjustments-horizontal") }}<span class="btn-label" data-i18n="header.tools">Outils</span>
+      <div class="menu-wrap">
+        <button type="button" class="btn btn-ghost" id="btn-actions" aria-haspopup="menu" aria-expanded="false" aria-controls="actions-menu" data-i18n-title="header.actions_title" title="Actions sur tout le gamelist">
+          {{ icon("dots") }}<span class="btn-label" data-i18n="header.actions">Actions</span>
+        </button>
+        <div class="menu menu-right" id="actions-menu" role="menu" aria-labelledby="btn-actions" hidden>
+          <div class="menu-label" data-i18n="actions.label">Tout le gamelist</div>
+          <button type="button" class="menu-item" role="menuitem" id="btn-manual-backup">
+            {{ icon("device-floppy") }}<span class="menu-item-text"><span class="menu-item-title" data-i18n="tools.backup_btn">Sauvegarder (.bak)</span><span class="menu-item-sub" data-i18n="actions.backup_sub">Copie gamelist.xml.bak à côté du fichier</span></span>
+          </button>
+          <button type="button" class="menu-item" role="menuitem" id="btn-fill-arcade">
+            {{ icon("cpu") }}<span class="menu-item-text"><span class="menu-item-title" data-i18n="tools.arcade_sys_title">Remplir les systèmes arcade</span><span class="menu-item-sub" data-i18n="actions.arcade_sub">Depuis mame.xml : CPS2, Neo-Geo…</span></span>
+          </button>
+          <div class="menu-sep" role="separator"></div>
+          <button type="button" class="menu-item is-danger" role="menuitem" id="btn-purge-regions">
+            {{ icon("eraser") }}<span class="menu-item-text"><span class="menu-item-title" data-i18n="tools.purge_title">Supprimer toutes les balises &lt;region&gt;</span><span class="menu-item-sub" data-i18n="actions.purge_sub">Dans tous les jeux, après confirmation</span></span>
+          </button>
+        </div>
+      </div>
+      <button type="button" class="btn btn-ghost" id="btn-settings" data-i18n-title="header.settings_title" title="Langue, ScreenScraper, sources, raccourcis">
+        {{ icon("settings") }}<span class="btn-label" data-i18n="header.settings">Réglages</span>
       </button>
       <span class="bar-divider" aria-hidden="true"></span>
       <button type="button" class="btn btn-quit" id="btn-quit" data-i18n-title="header.quit_title" title="Fermer l'application et arrêter le serveur">
@@ -114,9 +132,23 @@
                   </div>
                 </div>
               </div>
-              <button type="button" class="btn btn-ghost btn-ghost-danger" id="btn-delete-game" data-i18n-title="header.delete_game_title" title="Supprime le jeu sélectionné (ROM + médias + entrée XML)" disabled>
-                {{ icon("trash") }}<span data-i18n="header.delete_game">Supprimer ce jeu</span>
-              </button>
+              <div class="header-tools">
+                <button type="button" class="btn btn-ghost" id="btn-next-incomplete" data-i18n-title="editor.next_incomplete_title" title="Aller au prochain jeu de la liste auquel il manque des médias">
+                  {{ icon("player-skip-forward") }}<span data-i18n="editor.next_incomplete">Suivant incomplet</span><kbd aria-hidden="true">N</kbd>
+                </button>
+                <div class="menu-wrap">
+                  <button type="button" class="btn btn-ghost btn-icon" id="btn-game-menu" aria-haspopup="menu" aria-expanded="false" aria-controls="game-menu" data-i18n-aria="editor.game_menu" aria-label="Autres actions sur ce jeu" data-i18n-title="editor.game_menu" title="Autres actions sur ce jeu">{{ icon("dots") }}</button>
+                  <div class="menu menu-right" id="game-menu" role="menu" aria-labelledby="btn-game-menu" hidden>
+                    <button type="button" class="menu-item" role="menuitem" id="btn-copy-path">
+                      {{ icon("copy") }}<span class="menu-item-text"><span class="menu-item-title" data-i18n="editor.copy_path">Copier le chemin de la ROM</span></span>
+                    </button>
+                    <div class="menu-sep" role="separator"></div>
+                    <button type="button" class="menu-item is-danger" role="menuitem" id="btn-delete-game" disabled>
+                      {{ icon("trash") }}<span class="menu-item-text"><span class="menu-item-title" data-i18n="header.delete_game">Supprimer ce jeu…</span><span class="menu-item-sub" data-i18n="editor.delete_sub">ROM, médias et entrée du gamelist</span></span>
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -228,9 +260,11 @@
   <footer class="status-bar">
     <span class="status-text" id="status" data-i18n="status.ready_short">Prêt</span>
     <span class="kbd-hints">
-      <span><kbd>↑</kbd><kbd>↓</kbd> <span data-i18n="status.kbd_navigate">naviguer</span></span>
+      <span><kbd>J</kbd><kbd>K</kbd> <span data-i18n="status.kbd_navigate">naviguer</span></span>
+      <span><kbd>N</kbd> <span data-i18n="status.kbd_next_incomplete">incomplet suivant</span></span>
+      <span><kbd>S</kbd> <span data-i18n="status.kbd_scrape">scraper</span></span>
       <span><kbd>Ctrl</kbd><kbd>S</kbd> <span data-i18n="status.kbd_save">enregistrer</span></span>
-      <span><kbd>Ctrl</kbd><kbd>F</kbd> <span data-i18n="status.kbd_search">rechercher</span></span>
+      <button type="button" class="kbd-help" id="btn-kbd-help"><kbd>?</kbd> <span data-i18n="status.kbd_help">raccourcis</span></button>
     </span>
   </footer>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -375,53 +409,49 @@
     </div>
   </div>
 
-  <div class="modal-overlay" id="tools-panel" role="dialog" aria-modal="true" aria-labelledby="tools-title">
-    <div class="modal tools-modal">
+  <div class="modal-overlay" id="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="modal settings-modal">
       <div class="tools-header">
-        <h3 class="modal-title" id="tools-title">{{ icon("adjustments-horizontal") }}<span data-i18n="tools.title">Outils</span></h3>
-        <button type="button" class="btn btn-icon" id="tools-close" title="Fermer" data-i18n-title="tools.close">{{ icon("x") }}</button>
+        <h3 class="modal-title" id="settings-title">{{ icon("settings") }}<span data-i18n="settings.title">Réglages</span></h3>
+        <button type="button" class="btn btn-icon" id="settings-close" title="Fermer" data-i18n-title="tools.close">{{ icon("x") }}</button>
       </div>
-      <p class="tools-intro" data-i18n-html="tools.intro">Actions globales sur le fichier <code>gamelist.xml</code> (pas liées à un jeu précis).</p>
-
-      <div class="tools-list">
-        <div class="tool-card tool-card-form">
-          <div class="tool-card-info">
-            <div class="tool-card-title">{{ icon("language") }}<span data-i18n="tools.lang_title">Langue de l’interface</span></div>
-            <div class="tool-card-desc" data-i18n="tools.lang_desc">Change la langue de l’interface. Le choix est mémorisé sur ce navigateur.</div>
-            <div class="ss-form">
-              <div class="ss-form-row">
-                <label for="ui-lang" data-i18n="tools.lang_label">Langue</label>
-                <select id="ui-lang" aria-label="Language">
-                  <option value="fr">Français</option>
-                  <option value="en">English</option>
-                  <option value="es">Español</option>
-                  <option value="de">Deutsch</option>
-                  <option value="it">Italiano</option>
-                  <option value="pt">Português</option>
-                  <option value="nl">Nederlands</option>
-                  <option value="pl">Polski</option>
-                  <option value="tr">Türkçe</option>
-                  <option value="sv">Svenska</option>
-                  <option value="no">Norsk</option>
-                  <option value="da">Dansk</option>
-                  <option value="ru">Русский</option>
-                </select>
-              </div>
-              <div class="ss-form-actions">
-                <button type="button" class="btn" id="btn-lang-apply" data-i18n="tools.lang_apply">Appliquer la langue</button>
-              </div>
-            </div>
-          </div>
+      <div class="settings-layout">
+        <div class="settings-nav" role="tablist" aria-orientation="vertical" data-i18n-aria="settings.title" aria-label="Réglages">
+          <button type="button" class="settings-tab" role="tab" id="tab-general" aria-controls="pane-general" aria-selected="true" data-pane="general">{{ icon("language") }}<span data-i18n="settings.tab_general">Général</span></button>
+          <button type="button" class="settings-tab" role="tab" id="tab-ss" aria-controls="pane-ss" aria-selected="false" tabindex="-1" data-pane="ss">{{ icon("cloud-download") }}<span>ScreenScraper</span></button>
+          <button type="button" class="settings-tab" role="tab" id="tab-sources" aria-controls="pane-sources" aria-selected="false" tabindex="-1" data-pane="sources">{{ icon("plug-connected") }}<span data-i18n="settings.tab_sources">Sources de scrape</span></button>
+          <button type="button" class="settings-tab" role="tab" id="tab-keys" aria-controls="pane-keys" aria-selected="false" tabindex="-1" data-pane="keys">{{ icon("keyboard") }}<span data-i18n="settings.tab_keys">Raccourcis clavier</span></button>
         </div>
+        <div class="settings-panes">
+          <section class="settings-pane" role="tabpanel" id="pane-general" aria-labelledby="tab-general">
+            <h4 class="settings-h" id="settings-lang-title" data-i18n="tools.lang_title">Langue de l’interface</h4>
+            <p class="settings-desc" data-i18n="tools.lang_desc">Change la langue de l’interface. Le choix est mémorisé sur ce navigateur.</p>
+            <div class="settings-field">
+              <select id="ui-lang" aria-labelledby="settings-lang-title">
+                <option value="fr">Français</option>
+                <option value="en">English</option>
+                <option value="es">Español</option>
+                <option value="de">Deutsch</option>
+                <option value="it">Italiano</option>
+                <option value="pt">Português</option>
+                <option value="nl">Nederlands</option>
+                <option value="pl">Polski</option>
+                <option value="tr">Türkçe</option>
+                <option value="sv">Svenska</option>
+                <option value="no">Norsk</option>
+                <option value="da">Dansk</option>
+                <option value="ru">Русский</option>
+              </select>
+            </div>
+          </section>
 
-        <div class="tool-card tool-card-form tool-card-ss">
-          <div class="tool-card-info">
-            <div class="tool-card-title">{{ icon("cloud-download") }}<span data-i18n="tools.ss_title">ScreenScraper</span></div>
-            <div class="tool-card-desc" data-i18n-html="tools.ss_desc">
+          <section class="settings-pane" role="tabpanel" id="pane-ss" aria-labelledby="tab-ss" hidden>
+            <h4 class="settings-h">ScreenScraper</h4>
+            <p class="settings-desc" data-i18n-html="tools.ss_desc">
               Le scrape fonctionne <strong>immédiatement</strong> (identifiants logiciel intégrés).
               Optionnel : ton compte <strong>membre</strong> pour le <strong>boost</strong> de quotas.
               Stocké en local dans <code>screenscraper_config.json</code>.
-            </div>
+            </p>
             <div class="ss-form">
               <div class="ss-form-row">
                 <label for="ss-ssid" data-i18n="tools.ss_ssid">Identifiant membre (ssid) — optionnel</label>
@@ -470,46 +500,31 @@
                 <span class="ss-status" id="ss-status"></span>
               </div>
             </div>
-          </div>
-        </div>
+          </section>
 
-        <div class="tool-card">
-          <div class="tool-card-info">
-            <div class="tool-card-title">{{ icon("cpu") }}<span data-i18n="tools.arcade_sys_title">Remplir les systèmes arcade</span></div>
-            <div class="tool-card-desc" data-i18n-html="tools.arcade_sys_desc">
-              Lit un dump MAME <code>mame.xml</code> (<code>mame.exe -listxml</code>)
-              et écrit <code>&lt;arcadesystemname&gt;</code> (CPS2, Neo-Geo…).
-            </div>
-          </div>
-          <button type="button" class="btn" id="btn-fill-arcade" data-i18n="tools.arcade_sys_btn">Remplir depuis MAME</button>
-        </div>
+          <section class="settings-pane" role="tabpanel" id="pane-sources" aria-labelledby="tab-sources" hidden>
+            <h4 class="settings-h" data-i18n="settings.sources_title">Source de scrape par système</h4>
+            <p class="settings-desc" data-i18n="settings.sources_desc">Le bouton Scraper choisit la source selon le système : Arcade Database pour les dossiers arcade, Steam pour steam, ScreenScraper pour les autres. Un autre choix fait dans son menu est retenu ici, sur ce navigateur.</p>
+            <div class="sources-list" id="sources-list"></div>
+          </section>
 
-        <div class="tool-card">
-          <div class="tool-card-info">
-            <div class="tool-card-title">{{ icon("device-floppy") }}<span data-i18n="tools.backup_title">Sauvegarder le gamelist.xml</span></div>
-            <div class="tool-card-desc" data-i18n-html="tools.backup_desc">
-              Crée une copie <code>gamelist.xml.bak</code> à côté du fichier courant.
-              Écrase l’ancien <code>.bak</code> s’il existe.
-            </div>
-          </div>
-          <button type="button" class="btn" id="btn-manual-backup" data-i18n="tools.backup_btn">Sauvegarder (.bak)</button>
+          <section class="settings-pane" role="tabpanel" id="pane-keys" aria-labelledby="tab-keys" hidden>
+            <h4 class="settings-h" data-i18n="settings.tab_keys">Raccourcis clavier</h4>
+            <p class="settings-desc" data-i18n="settings.keys_desc">Les lettres ne font rien pendant la saisie dans un champ.</p>
+            <table class="keys-table">
+              <tr><td class="keys-combo"><kbd>J</kbd> <kbd>↓</kbd></td><td data-i18n="settings.key_next">Jeu suivant</td></tr>
+              <tr><td class="keys-combo"><kbd>K</kbd> <kbd>↑</kbd></td><td data-i18n="settings.key_prev">Jeu précédent</td></tr>
+              <tr><td class="keys-combo"><kbd data-i18n="settings.k_home">Début</kbd> <kbd data-i18n="settings.k_end">Fin</kbd></td><td data-i18n="settings.key_first_last">Premier / dernier jeu de la liste</td></tr>
+              <tr><td class="keys-combo"><kbd>N</kbd></td><td data-i18n="settings.key_next_incomplete">Jeu suivant auquel il manque des médias</td></tr>
+              <tr><td class="keys-combo"><kbd>S</kbd></td><td data-i18n="settings.key_scrape">Scraper le jeu</td></tr>
+              <tr><td class="keys-combo"><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td data-i18n="settings.key_save">Enregistrer les modifications</td></tr>
+              <tr><td class="keys-combo"><kbd>Ctrl</kbd>+<kbd>F</kbd> <kbd>/</kbd></td><td data-i18n="settings.key_search">Rechercher un jeu</td></tr>
+              <tr><td class="keys-combo"><kbd data-i18n="settings.k_enter">Entrée</kbd></td><td data-i18n="settings.key_apply">Appliquer le scrape (fenêtre de comparaison)</td></tr>
+              <tr><td class="keys-combo"><kbd data-i18n="settings.k_esc">Échap</kbd></td><td data-i18n="settings.key_close">Fermer une fenêtre ou un menu</td></tr>
+              <tr><td class="keys-combo"><kbd>?</kbd></td><td data-i18n="settings.key_help">Afficher cette liste</td></tr>
+            </table>
+          </section>
         </div>
-
-        <div class="tool-card tool-card-danger">
-          <div class="tool-card-info">
-            <div class="tool-card-title">{{ icon("eraser") }}<span data-i18n="tools.purge_title">Supprimer toutes les balises &lt;region&gt;</span></div>
-            <div class="tool-card-desc" data-i18n-html="tools.purge_desc">
-              Retire toutes les lignes <code>&lt;region&gt;…&lt;/region&gt;</code> de
-              <strong>tous</strong> les jeux. Confirmation demandée (sauvegarde .bak optionnelle).
-            </div>
-          </div>
-          <button type="button" class="btn btn-ghost-danger" id="btn-purge-regions" data-i18n="tools.purge_btn">Supprimer les &lt;region&gt;</button>
-        </div>
-      </div>
-
-      <div class="tools-footer">
-        <span class="tools-hint" data-i18n="tools.hints">Raccourcis : ↑↓ naviguer, Ctrl+S enregistrer, Ctrl+F rechercher</span>
-        <button type="button" class="btn" id="tools-close-2" data-i18n="tools.close">Fermer</button>
       </div>
     </div>
   </div>

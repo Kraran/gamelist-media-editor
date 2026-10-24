@@ -8,16 +8,17 @@
     "game_count_filtered": "{visible} / {total} games",
     "system_title": "System (gamelist.xml folder)",
     "system_unknown": "Unknown system",
-    "delete_game": "Delete this game",
-    "delete_game_title": "Delete the selected game (ROM + media + XML entry)",
+    "delete_game": "Delete this game…",
     "reload": "Reload",
     "reload_title": "Reload gamelist.xml from disk",
-    "tools": "Tools",
-    "tools_title": "Tools and global actions",
     "quit": "Quit",
     "quit_title": "Stop the server and close",
     "open_gamelist": "Gamelist…",
-    "open_gamelist_title": "Open another gamelist.xml without restarting"
+    "open_gamelist_title": "Open another gamelist.xml without restarting",
+    "actions": "Actions",
+    "actions_title": "Actions on the whole gamelist",
+    "settings": "Settings",
+    "settings_title": "Language, ScreenScraper, scrape sources, shortcuts"
   },
   "sidebar": {
     "search_placeholder": "Search games…",
@@ -90,7 +91,12 @@
     "scrape_steam_sub": "Trailer and store page",
     "scrape_auto": "Back to automatic choice",
     "scrape_note_auto": "Automatic choice for {system}",
-    "scrape_note_forced": "Your choice for {system}, remembered"
+    "scrape_note_forced": "Your choice for {system}, remembered",
+    "next_incomplete": "Next incomplete",
+    "next_incomplete_title": "Go to the next game in the list that is missing media",
+    "game_menu": "More actions for this game",
+    "copy_path": "Copy the ROM path",
+    "delete_sub": "ROM, media and gamelist entry"
   },
   "fields": {
     "image": "Image (screenshot)",
@@ -126,7 +132,6 @@
     "saving_desc": "Saving description…",
     "saving_meta": "Saving metadata…",
     "reloaded": "List reloaded",
-    "hints": "↑↓ navigate · Ctrl+S save · Ctrl+F search",
     "shutdown_title": "Server stopped",
     "shutdown_msg": "You can close this tab.<br>The console window should close on its own.",
     "backup_xml": "Backing up XML…",
@@ -142,7 +147,9 @@
     "unsaved": "Unsaved changes: {fields}",
     "kbd_navigate": "navigate",
     "kbd_save": "save",
-    "kbd_search": "search"
+    "kbd_next_incomplete": "next incomplete",
+    "kbd_scrape": "scrape",
+    "kbd_help": "shortcuts"
   },
   "toast": {
     "no_file_url": "No file or URL detected",
@@ -162,7 +169,9 @@
     "list_reloaded": "List reloaded",
     "gamelist_opened": "Gamelist opened: {name} ({n} games)",
     "arcade_sys_ok": "{n} filled · {skip} already set · {miss} not found",
-    "nothing_to_save": "Nothing to save"
+    "nothing_to_save": "Nothing to save",
+    "path_copied": "Path copied: {path}",
+    "no_incomplete": "No other incomplete game in the list"
   },
   "errors": {
     "offline": "No network connection.",
@@ -200,12 +209,9 @@
     "discard": "Don't save"
   },
   "tools": {
-    "title": "Tools",
-    "intro": "Global actions on the <code>gamelist.xml</code> file (not tied to a single game).",
     "close": "Close",
     "lang_title": "Interface language",
     "lang_desc": "Change the interface language. Your choice is remembered in this browser.",
-    "lang_label": "Language",
     "ss_title": "ScreenScraper",
     "ss_desc": "Scraping works <strong>out of the box</strong> (built-in software credentials). Optional: your <strong>member</strong> account for quota <strong>boost</strong>. Stored locally in <code>screenscraper_config.json</code>.",
     "ss_ssid": "Member id (ssid) — optional",
@@ -217,14 +223,8 @@
     "ss_boost_on": "Member boost active",
     "ss_boost_off": "Base quotas (optional boost above)",
     "ss_cfg_err": "Config load error",
-    "backup_title": "Back up gamelist.xml",
-    "backup_desc": "Creates a <code>gamelist.xml.bak</code> copy next to the current file. Overwrites an existing <code>.bak</code>.",
     "backup_btn": "Back up (.bak)",
     "purge_title": "Remove all <region> tags",
-    "purge_desc": "Removes every <code>&lt;region&gt;…&lt;/region&gt;</code> line from <strong>all</strong> games. Confirmation required (optional .bak).",
-    "purge_btn": "Remove <region> tags",
-    "hints": "Shortcuts: ↑↓ navigate · Ctrl+S save · Ctrl+F search",
-    "lang_apply": "Apply language",
     "lang_changed": "Language: English",
     "ss_pass_saved_ph": "(saved — leave blank to keep)",
     "ss_pass_optional_ph": "Member password (optional)",
@@ -238,7 +238,6 @@
     "ss_type_mix_v1": "Recalbox mix v1 (mixrbv1)",
     "ss_type_mix_v2": "Recalbox mix v2 (mixrbv2)",
     "arcade_sys_title": "Fill arcade systems",
-    "arcade_sys_desc": "Reads a MAME <code>mame.xml</code> dump and writes <code>&lt;arcadesystemname&gt;</code>.",
     "arcade_sys_btn": "Fill from MAME"
   },
   "scrape": {
@@ -416,5 +415,36 @@
     "author_page": "Kraran profile",
     "github": "GitHub repo",
     "close": "Close"
+  },
+  "actions": {
+    "label": "Whole gamelist",
+    "backup_sub": "Copy gamelist.xml.bak next to the file",
+    "arcade_sub": "From mame.xml: CPS2, Neo-Geo…",
+    "purge_sub": "In every game, after confirmation"
+  },
+  "settings": {
+    "title": "Settings",
+    "tab_general": "General",
+    "tab_sources": "Scrape sources",
+    "tab_keys": "Keyboard shortcuts",
+    "sources_title": "Scrape source per system",
+    "sources_desc": "The Scrape button picks the source for the system: Arcade Database for arcade folders, Steam for steam, ScreenScraper for the others. Another choice made in its menu is remembered here, in this browser.",
+    "sources_none": "No forced choice: the source is picked automatically for every system.",
+    "sources_reset_all": "Reset all to automatic",
+    "keys_desc": "Letters do nothing while typing in a field.",
+    "key_next": "Next game",
+    "key_prev": "Previous game",
+    "key_first_last": "First / last game of the list",
+    "key_next_incomplete": "Next game missing media",
+    "key_scrape": "Scrape the game",
+    "key_save": "Save the changes",
+    "key_search": "Search for a game",
+    "key_apply": "Apply the scrape (comparison window)",
+    "key_close": "Close a window or a menu",
+    "key_help": "Show this list",
+    "k_home": "Home",
+    "k_end": "End",
+    "k_enter": "Enter",
+    "k_esc": "Esc"
   }
 }
