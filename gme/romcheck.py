@@ -27,6 +27,7 @@ from gme import xml_store
 from gme.http import api_err
 from gme.i18n import st
 from gme.log import log
+from gme.systems import ARCADE_DB_FOLDERS, detect_system_id
 from gme.xml_store import MEDIA_DIRS, backup_xml, load_xml, require_gamelist, resolve_under_base, save_xml
 
 bp = Blueprint("romcheck", __name__)
@@ -136,8 +137,19 @@ def scan(tree=None):
                 "media": sum(1 for f in MEDIA_DIRS if (game.findtext(f, "") or "").strip()),
             })
 
+    # Arcade (MAME, FBNeo, Naomi…): a game is a romset at the top of the folder;
+    # its CHD disks sit in a sub-folder named after it and are never games.
+    _, folder_name = detect_system_id()
+    arcade = folder_name in ARCADE_DB_FOLDERS or folder_name.startswith("mame")
+    nested = any("/" in (g.findtext("path", "") or "").strip().lstrip("./").replace("\\", "/") for g in games)
     root_exts = ROM_EXTS | used_exts
     sub_exts = SUBFOLDER_EXTS | used_exts
+    max_depth = MAX_DEPTH
+    if arcade:
+        root_exts = (ROM_EXTS - {"chd"}) | used_exts
+        sub_exts = (SUBFOLDER_EXTS - {"chd"}) | used_exts
+        if not nested:
+            max_depth = 1
     found, parts = [], set()
     xml_key = _key(xml_store.XML_PATH or "")
 
@@ -147,6 +159,10 @@ def scan(tree=None):
             entries = sorted(os.scandir(folder), key=lambda e: e.name.lower())
         except OSError:
             return
+        # A sub-folder named like a ROM next to it ("kinst/" beside "kinst.zip")
+        # holds that game's data (MAME CHD disks, DLC…), not other games.
+        rom_stems = {os.path.splitext(e.name)[0].lower() for e in entries
+                     if _ext(e.name) in exts and not e.name.startswith(".")}
         for e in entries:
             if e.name.startswith("."):
                 continue
@@ -159,7 +175,7 @@ def scan(tree=None):
                     continue
                 if _ext(e.name) in exts or _key(e.path) in by_key:
                     found.append(e.path)             # a folder that is one game
-                elif depth < MAX_DEPTH:
+                elif depth < max_depth and e.name.lower() not in rom_stems:
                     walk(e.path, depth + 1)
             elif _ext(e.name) in exts and _key(e.path) != xml_key:
                 found.append(e.path)
@@ -194,6 +210,7 @@ def scan(tree=None):
         "missing": missing,
         "duplicates": duplicates,
         "non_file": non_file,
+        "arcade": arcade,
     }
 
 

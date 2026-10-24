@@ -480,6 +480,7 @@
     "done": "Gamelist bijgewerkt: {added} toegevoegd, {removed} verwijderd, {merged} samengevoegd",
     "report_gamelist": "Gamelist",
     "report_date": "Datum",
-    "size_units": "B,KB,MB,GB"
+    "size_units": "B,KB,MB,GB",
+    "arcade_note": "Arcadesysteem: .chd-schijven en de map van een romset (kinst/ naast kinst.zip) tellen niet als spellen."
   }
 }

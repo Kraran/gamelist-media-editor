@@ -78,6 +78,7 @@ Pour tout le gamelist :
   - les **jeux en double** (même ROM listée plusieurs fois : fusion dans l’entrée la plus complète).
 
   Coche ce que tu veux changer puis **Mettre à jour le gamelist** (sauvegarde `.bak` avant, cochée par défaut). **Exporter le rapport** l’enregistre en texte. Si plus de la moitié des jeux n’ont pas leur ROM (mauvais dossier, disque débranché), rien n’est coché.
+  Pour l’arcade (MAME, FBNeo, Naomi…), les disques `.chd` et le dossier d’un romset (`kinst\` à côté de `kinst.zip`) ne sont jamais proposés comme jeux.
 - **Remplir les systèmes arcade** depuis un dump MAME `mame.xml` (`mame.exe -listxml`) ; les jeux qui ont déjà une valeur sont laissés tels quels
 - **Supprimer toutes les balises `<region>`** (confirmation, sauvegarde optionnelle)
 

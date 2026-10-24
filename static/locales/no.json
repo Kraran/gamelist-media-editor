@@ -480,6 +480,7 @@
     "done": "Gamelisten oppdatert: {added} lagt til, {removed} fjernet, {merged} slått sammen",
     "report_gamelist": "Gamelist",
     "report_date": "Dato",
-    "size_units": "B,KB,MB,GB"
+    "size_units": "B,KB,MB,GB",
+    "arcade_note": "Arkadesystem: .chd-disker og mappen til et romsett (kinst/ ved siden av kinst.zip) regnes ikke som spill."
   }
 }
