@@ -1368,6 +1368,14 @@ document.addEventListener("keydown", e => {
     }
     return;
   }
+  const romcheck = document.getElementById("romcheck-modal");
+  if (romcheck && romcheck.classList.contains("open")) {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      closeRomCheck();
+    }
+    return;
+  }
   const settings = document.getElementById("settings-modal");
   if (settings && settings.classList.contains("open")) {
     if (e.key === "Escape") {
@@ -1673,10 +1681,225 @@ document.getElementById("sources-list").addEventListener("click", e => {
 /* --- Actions on the whole gamelist (app bar ⋯ menu) ----------------------- */
 setupMenu("actions-menu", "btn-actions");
 function setGamelistActionsEnabled(on) {
-  ["btn-manual-backup", "btn-fill-arcade", "btn-purge-regions"].forEach(id => {
+  ["btn-manual-backup", "btn-fill-arcade", "btn-rom-check", "btn-purge-regions"].forEach(id => {
     document.getElementById(id).disabled = !on;
   });
 }
+
+/* --- ROM check (Actions › Check ROMs) -------------------------------------
+ * Compares the gamelist with the files of its folder (gme/romcheck.py) and
+ * applies what the user ticks: add the ROMs missing from the gamelist, remove
+ * the entries whose ROM is gone, merge entries listed twice. Long lists show
+ * their first rows; the others follow the section's checkbox.
+ */
+const RC_MAX_ROWS = 400;
+const RC_SECTIONS = ["add", "remove", "merge"];
+let rcReport = null;
+let rcSelected = { add: new Set(), remove: new Set(), merge: new Set() };
+
+function rcItems(kind) {
+  if (!rcReport) return [];
+  if (kind === "add") return rcReport.unlisted.map(u => u.path);
+  if (kind === "remove") return rcReport.missing.map(m => m.path);
+  return rcReport.duplicates.map(d => d.path);
+}
+/** More than half the games without their ROM: probably the wrong folder or a drive missing. */
+function rcSuspicious() {
+  return rcReport && rcReport.missing.length > 5 && rcReport.missing.length > rcReport.games / 2;
+}
+function fmtSize(bytes) {
+  if (bytes == null) return "";
+  const units = t("romcheck.size_units").split(",");
+  let v = bytes, u = 0;
+  while (v >= 1024 && u < units.length - 1) { v /= 1024; u++; }
+  return (u ? v.toLocaleString(currentLocale || "fr", { maximumFractionDigits: 1 }) : v) + " " + units[u];
+}
+
+async function openRomCheck() {
+  closeMenu(null, false);
+  if (!(await confirmLeaveEditor())) return;
+  const modal = document.getElementById("romcheck-modal");
+  document.getElementById("romcheck-intro").textContent = t("romcheck.scanning");
+  document.getElementById("romcheck-stats").innerHTML = "";
+  document.getElementById("romcheck-body").innerHTML = "";
+  document.getElementById("romcheck-apply").disabled = true;
+  modal.classList.add("open");
+  setStatus(t("romcheck.scanning"));
+  try {
+    setRomCheckReport(await apiFetch("/api/check-roms"));
+    setStatus(t("status.done"));
+  } catch (e) {
+    closeRomCheck();
+    handleError(e);
+  }
+}
+function closeRomCheck() {
+  const modal = document.getElementById("romcheck-modal");
+  if (!modal.classList.contains("open")) return;
+  modal.classList.remove("open");
+  rcReport = null;
+  document.getElementById("btn-actions").focus();
+}
+
+function setRomCheckReport(report) {
+  rcReport = report;
+  rcSelected = {
+    add: new Set(rcItems("add")),
+    remove: new Set(rcSuspicious() ? [] : rcItems("remove")),
+    merge: new Set(rcItems("merge")),
+  };
+  renderRomCheck();
+}
+
+function renderRomCheck() {
+  const r = rcReport;
+  document.getElementById("romcheck-intro").innerHTML =
+    escapeHtml(t("romcheck.intro")) + ` <code>${escapeHtml(r.base_dir)}</code>`;
+  const stat = (label, n, kind) =>
+    `<div class="rc-stat${kind ? " is-" + kind : ""}"><span class="rc-stat-n">${n.toLocaleString(currentLocale || "fr")}</span>` +
+    `<span class="rc-stat-label">${escapeHtml(label)}</span></div>`;
+  const state = n => (n ? "warn" : "ok");
+  document.getElementById("romcheck-stats").innerHTML =
+    stat(t("romcheck.stat_games"), r.games) + stat(t("romcheck.stat_roms"), r.roms) +
+    stat(t("romcheck.stat_unlisted"), r.unlisted.length, state(r.unlisted.length)) +
+    stat(t("romcheck.stat_missing"), r.missing.length, state(r.missing.length)) +
+    stat(t("romcheck.stat_duplicates"), r.duplicates.length, state(r.duplicates.length));
+
+  let html = "";
+  if (!r.unlisted.length && !r.missing.length && !r.duplicates.length) {
+    html += `<div class="rc-all-good">${icon("circle-check")}<p>${escapeHtml(t("romcheck.all_good"))}</p></div>`;
+  }
+  html += rcSectionHtml("add", t("romcheck.unlisted_title"), t("romcheck.unlisted_desc"),
+    r.unlisted.map(u => ({ key: u.path, name: u.name, path: u.path, meta: fmtSize(u.size) })));
+  let extra = "";
+  if (r.missing.length) {
+    if (rcSuspicious()) extra += `<p class="rc-warning">${icon("alert-triangle")}<span>${escapeHtml(t("romcheck.missing_warning"))}</span></p>`;
+    extra += `<label class="rc-option"><input type="checkbox" id="romcheck-delete-media" />` +
+      `<span>${escapeHtml(t("romcheck.delete_media"))}</span></label>`;
+  }
+  html += rcSectionHtml("remove", t("romcheck.missing_title"), t("romcheck.missing_desc"),
+    r.missing.map(m => ({ key: m.path, name: m.name, path: m.path, meta: m.media ? t("romcheck.media_n", { n: m.media }) : "" })), extra);
+  html += rcSectionHtml("merge", t("romcheck.duplicates_title"), t("romcheck.duplicates_desc"),
+    r.duplicates.map(d => ({ key: d.path, name: d.entries.map(e => e.name || "—").join(" · "), path: d.path,
+      meta: t("romcheck.copies_n", { n: d.entries.length }) })));
+  if (r.non_file) html += `<p class="rc-note">${escapeHtml(t("romcheck.non_file", { n: r.non_file }))}</p>`;
+  document.getElementById("romcheck-body").innerHTML = html;
+  updateRomCheckSelection();
+}
+
+function rcSectionHtml(kind, title, desc, rows, extra = "") {
+  if (!rows.length) return "";
+  const shown = rows.slice(0, RC_MAX_ROWS);
+  const sel = rcSelected[kind];
+  return `<section class="rc-section" data-kind="${kind}">` +
+    `<label class="rc-head"><input type="checkbox" data-rc-all="${kind}" />` +
+    `<span class="rc-title">${escapeHtml(title)}</span><span class="rc-count">${rows.length.toLocaleString(currentLocale || "fr")}</span></label>` +
+    `<p class="rc-desc">${escapeHtml(desc)}</p>${extra}` +
+    `<div class="rc-list">` + shown.map(row =>
+      `<label class="rc-row"><input type="checkbox" data-rc="${kind}" value="${escapeHtml(row.key)}"${sel.has(row.key) ? " checked" : ""} />` +
+      `<span class="rc-name">${escapeHtml(row.name)}</span><code class="rc-path" title="${escapeHtml(row.path)}">${escapeHtml(row.path)}</code>` +
+      `<span class="rc-meta">${escapeHtml(row.meta || "")}</span></label>`).join("") +
+    (rows.length > shown.length
+      ? `<p class="rc-more">${escapeHtml(t("romcheck.more", { n: (rows.length - shown.length).toLocaleString(currentLocale || "fr") }))}</p>` : "") +
+    `</div></section>`;
+}
+
+function updateRomCheckSelection() {
+  let total = 0;
+  RC_SECTIONS.forEach(kind => {
+    const all = document.querySelector(`[data-rc-all="${kind}"]`);
+    const n = rcSelected[kind].size;
+    total += n;
+    if (!all) return;
+    const count = rcItems(kind).length;
+    all.checked = n > 0 && n === count;
+    all.indeterminate = n > 0 && n < count;
+  });
+  const apply = document.getElementById("romcheck-apply");
+  apply.disabled = !total;
+  document.getElementById("romcheck-apply-label").textContent =
+    total ? t("romcheck.apply_n", { n: total.toLocaleString(currentLocale || "fr") }) : t("romcheck.apply");
+}
+document.getElementById("romcheck-body").addEventListener("change", e => {
+  const all = e.target.dataset && e.target.dataset.rcAll;
+  if (all) {
+    rcSelected[all] = new Set(e.target.checked ? rcItems(all) : []);
+    document.querySelectorAll(`[data-rc="${all}"]`).forEach(cb => { cb.checked = e.target.checked; });
+  } else if (e.target.dataset && e.target.dataset.rc) {
+    const set = rcSelected[e.target.dataset.rc];
+    if (e.target.checked) set.add(e.target.value);
+    else set.delete(e.target.value);
+  }
+  updateRomCheckSelection();
+});
+
+async function applyRomCheck() {
+  const body = {
+    add: [...rcSelected.add],
+    remove: [...rcSelected.remove],
+    merge: [...rcSelected.merge],
+    backup: document.getElementById("romcheck-backup").checked,
+    delete_media: !!(document.getElementById("romcheck-delete-media") || {}).checked,
+  };
+  const apply = document.getElementById("romcheck-apply");
+  apply.disabled = true;
+  setStatus(t("romcheck.applying"));
+  try {
+    const data = await apiFetch("/api/check-roms/apply", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    let msg = t("romcheck.done", { added: data.added, removed: data.removed, merged: data.merged });
+    if (data.backup) msg += t("toast.purge_bak");
+    toast(msg);
+    await loadGames();
+    setRomCheckReport(data.report);
+    setStatus(t("status.done"));
+  } catch (e) {
+    handleError(e);
+    updateRomCheckSelection();
+  }
+}
+
+/** Plain-text report, saved as a file (Downloads folder). */
+function exportRomCheck() {
+  const r = rcReport;
+  if (!r) return;
+  const lines = [
+    t("romcheck.title") + " — Gamelist Media Editor",
+    `${t("romcheck.report_gamelist")} : ${window.__gmeXmlPath || r.base_dir}`,
+    `${t("romcheck.report_date")} : ${new Date().toLocaleString(currentLocale || "fr")}`,
+    `${t("romcheck.stat_games")} : ${r.games} · ${t("romcheck.stat_roms")} : ${r.roms}`,
+    "",
+  ];
+  const block = (title, rows) => {
+    lines.push(`${title} (${rows.length})`);
+    rows.forEach(x => lines.push("  " + x));
+    lines.push("");
+  };
+  block(t("romcheck.unlisted_title"), r.unlisted.map(u => u.path));
+  block(t("romcheck.missing_title"), r.missing.map(m => `${m.path}  —  ${m.name}`));
+  block(t("romcheck.duplicates_title"), r.duplicates.map(d => `${d.path}  —  ${d.entries.map(e => e.name || "—").join(" / ")}`));
+  const blob = new Blob(["﻿" + lines.join("\r\n")], { type: "text/plain;charset=utf-8" });
+  const a = document.createElement("a");
+  const system = (currentSystem && currentSystem.folder) || "gamelist";
+  a.href = URL.createObjectURL(blob);
+  a.download = `rom-check-${system}-${new Date().toISOString().slice(0, 10)}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+document.getElementById("btn-rom-check").addEventListener("click", openRomCheck);
+document.getElementById("romcheck-close").addEventListener("click", closeRomCheck);
+document.getElementById("romcheck-cancel").addEventListener("click", closeRomCheck);
+document.getElementById("romcheck-apply").addEventListener("click", applyRomCheck);
+document.getElementById("romcheck-export").addEventListener("click", exportRomCheck);
+document.getElementById("romcheck-modal").addEventListener("click", e => {
+  if (e.target.id === "romcheck-modal") closeRomCheck();
+});
 
 /* --- This game (header ⋯ menu) and "Next incomplete" ---------------------- */
 setupMenu("game-menu", "btn-game-menu");

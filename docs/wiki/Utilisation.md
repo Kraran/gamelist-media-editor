@@ -72,6 +72,12 @@ Le bouton **Suivant incomplet** (ou `N`) passe au prochain jeu de la liste auque
 Pour tout le gamelist :
 
 - **Sauvegarder (.bak)** : copie `gamelist.xml.bak` à côté du fichier
+- **Vérifier les ROMs** : compare le gamelist aux fichiers du dossier et liste
+  - les **ROMs absentes du gamelist** (à ajouter : nom du fichier, prêtes à scraper avec `S` puis `N`),
+  - les **entrées sans ROM** (le fichier de `<path>` n’existe plus : à retirer, avec leurs médias si tu le coches),
+  - les **jeux en double** (même ROM listée plusieurs fois : fusion dans l’entrée la plus complète).
+
+  Coche ce que tu veux changer puis **Mettre à jour le gamelist** (sauvegarde `.bak` avant, cochée par défaut). **Exporter le rapport** l’enregistre en texte. Si plus de la moitié des jeux n’ont pas leur ROM (mauvais dossier, disque débranché), rien n’est coché.
 - **Remplir les systèmes arcade** depuis un dump MAME `mame.xml` (`mame.exe -listxml`) ; les jeux qui ont déjà une valeur sont laissés tels quels
 - **Supprimer toutes les balises `<region>`** (confirmation, sauvegarde optionnelle)
 
