@@ -595,6 +595,7 @@ input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px;
 .tile-actions .btn:hover:not(:disabled) { background: var(--raised); color: var(--text); }
 .tile-actions .tile-delete:hover:not(:disabled) { background: var(--danger-soft); color: var(--danger); }
 .tile-media {
+  position: relative;
   display: grid;
   place-items: center;
   aspect-ratio: var(--ar, 4 / 3);
@@ -609,7 +610,8 @@ input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px;
   background-size: 16px 16px;
   background-position: 0 0, 8px 8px;
 }
-.tile-media img, .tile-media video { width: 100%; height: 100%; object-fit: contain; }
+/* Out of the flow: the frame keeps its shape and the media always fits inside */
+.tile-media img, .tile-media video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
 .tile-media img { cursor: zoom-in; }
 .tile-media video { background: #000; }
 .tile-doc, .tile-broken {

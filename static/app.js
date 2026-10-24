@@ -1099,10 +1099,19 @@ async function loadGameDetail(g) {
  * upload button of a tile) opens a file picker.
  */
 const MEDIA_SHAPE = {
-  image: "4 / 3", video: "4 / 3", marquee: "3 / 1", manual: "3 / 4", boxart: "3 / 4",
+  image: "4 / 3", video: "4 / 3", marquee: "3 / 1", manual: "16 / 10", boxart: "3 / 4",
   boxback: "3 / 4", cartridge: "1 / 1", fanart: "16 / 9", mix: "4 / 3", map: "1 / 1",
 };
 const MEDIA_ACCEPT = { video: "video/*", manual: "application/pdf,.pdf" };
+
+/** Once the real size is known, the tile takes the media's own shape (within
+ * limits, so a very tall or very wide image stays readable): nothing is cut,
+ * no large empty band. MEDIA_SHAPE is only the shape while loading. */
+function fitTileToMedia(tile, width, height) {
+  if (!width || !height) return;
+  const ratio = Math.min(4, Math.max(0.45, width / height));
+  tile.style.setProperty("--ar", String(Math.round(ratio * 1000) / 1000));
+}
 
 function fieldLabel(key) {
   const f = getFields().find(x => x.key === key);
@@ -1156,7 +1165,10 @@ function renderZones(g) {
     const img = tile.querySelector("img");
     const dims = tile.querySelector(".tile-dims");
     if (img) {
-      img.addEventListener("load", () => { dims.textContent = `${img.naturalWidth} × ${img.naturalHeight}`; });
+      img.addEventListener("load", () => {
+        dims.textContent = `${img.naturalWidth} × ${img.naturalHeight}`;
+        fitTileToMedia(tile, img.naturalWidth, img.naturalHeight);
+      });
       img.addEventListener("error", () => {
         tile.querySelector(".tile-media").innerHTML =
           `<div class="tile-broken">${icon("alert-triangle")}<span>${t("zone.preview_unavailable")}</span></div>`;
@@ -1166,6 +1178,7 @@ function renderZones(g) {
     const video = tile.querySelector("video");
     if (video) {
       video.addEventListener("loadedmetadata", () => {
+        fitTileToMedia(tile, video.videoWidth, video.videoHeight);
         const s = Math.round(video.duration || 0);
         dims.textContent = `${video.videoWidth} × ${video.videoHeight}` + (s ? ` · ${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}` : "");
       });
