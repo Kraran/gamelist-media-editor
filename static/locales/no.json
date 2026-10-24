@@ -8,16 +8,17 @@
     "game_count_filtered": "{visible} / {total} spel",
     "system_title": "System (mappen för gamelist.xml)",
     "system_unknown": "Ukjent system",
-    "delete_game": "Slett dette spillet",
-    "delete_game_title": "Slett det valgte spillet (ROM + media + XML-oppføring)",
+    "delete_game": "Slett dette spillet…",
     "reload": "Last på nytt",
     "reload_title": "Last gamelist.xml på nytt fra disken",
-    "tools": "Verktøy",
-    "tools_title": "Verktøy og globale handlinger",
     "quit": "Avslutt",
     "quit_title": "Stopp serveren og lukk",
     "open_gamelist": "Gamelist…",
-    "open_gamelist_title": "Åpne en annen gamelist.xml uten omstart"
+    "open_gamelist_title": "Åpne en annen gamelist.xml uten omstart",
+    "actions": "Handlinger",
+    "actions_title": "Handlinger for hele gamelisten",
+    "settings": "Innstillinger",
+    "settings_title": "Språk, ScreenScraper, skrapekilder, hurtigtaster"
   },
   "sidebar": {
     "search_placeholder": "Søk spill…",
@@ -90,7 +91,12 @@
     "scrape_steam_sub": "Trailer og butikkside",
     "scrape_auto": "Tilbake til automatisk valg",
     "scrape_note_auto": "Automatisk valg for {system}",
-    "scrape_note_forced": "Ditt valg for {system}, lagret"
+    "scrape_note_forced": "Ditt valg for {system}, lagret",
+    "next_incomplete": "Neste ufullstendige",
+    "next_incomplete_title": "Gå til neste spill i listen som mangler media",
+    "game_menu": "Flere handlinger for spillet",
+    "copy_path": "Kopier ROM-banen",
+    "delete_sub": "ROM, media og oppføring i gamelisten"
   },
   "fields": {
     "image": "Bilde (screenshot)",
@@ -126,7 +132,6 @@
     "saving_desc": "Lagrer beskrivelse…",
     "saving_meta": "Lagrer metadata…",
     "reloaded": "Liste lastet på nytt",
-    "hints": "↑↓ naviger · Ctrl+S lagre · Ctrl+F søk",
     "shutdown_title": "Server stoppet",
     "shutdown_msg": "Du kan lukke denne fanen.<br>Konsollvinduet bør lukke seg selv.",
     "backup_xml": "Sikkerhetskopierer XML…",
@@ -142,7 +147,9 @@
     "unsaved": "Ulagrede endringer: {fields}",
     "kbd_navigate": "naviger",
     "kbd_save": "lagre",
-    "kbd_search": "søk"
+    "kbd_next_incomplete": "neste ufullstendige",
+    "kbd_scrape": "skrap",
+    "kbd_help": "hurtigtaster"
   },
   "toast": {
     "no_file_url": "Ingen fil eller URL oppdaget",
@@ -162,7 +169,9 @@
     "list_reloaded": "Liste lastet på nytt",
     "gamelist_opened": "Gamelist åpnet: {name} ({n} spill)",
     "arcade_sys_ok": "{n} filled · {skip} already set · {miss} not found",
-    "nothing_to_save": "Ingenting å lagre"
+    "nothing_to_save": "Ingenting å lagre",
+    "path_copied": "Bane kopiert: {path}",
+    "no_incomplete": "Ingen andre ufullstendige spill i listen"
   },
   "errors": {
     "offline": "Ingen nettverkstilkobling.",
@@ -200,12 +209,9 @@
     "discard": "Ikke lagre"
   },
   "tools": {
-    "title": "Verktøy",
-    "intro": "Globale handlinger på filen <code>gamelist.xml</code> (ikke knyttet til ett enkelt spill).",
     "close": "Lukk",
     "lang_title": "Grensesnittspråk",
     "lang_desc": "Endre grensesnittspråket. Valget huskes i denne nettleseren.",
-    "lang_label": "Språk",
     "ss_title": "ScreenScraper",
     "ss_desc": "Scraping fungerer <strong>med en gang</strong> (innebygde programvareopplysninger). Valgfritt: <strong>medlemskonto</strong> for kvote-<strong>boost</strong>. Lagres lokalt i <code>screenscraper_config.json</code>.",
     "ss_ssid": "Medlems-id (ssid) — valgfritt",
@@ -217,14 +223,8 @@
     "ss_boost_on": "Medlemsboost aktiv",
     "ss_boost_off": "Grunnkvoter (valgfri boost ovenfor)",
     "ss_cfg_err": "Feil ved lasting av config",
-    "backup_title": "Sikkerhetskopier gamelist.xml",
-    "backup_desc": "Oppretter en kopi <code>gamelist.xml.bak</code> ved siden av gjeldende fil. Overskriver eksisterende .bak.",
     "backup_btn": "Sikkerhetskopier (.bak)",
     "purge_title": "Fjern alle <region>-tagger",
-    "purge_desc": "Fjerner hver <code>&lt;region&gt;…&lt;/region&gt;</code>-linje fra <strong>alle</strong> spill. Bekreftelse kreves (valgfri .bak).",
-    "purge_btn": "Fjern <region>-tagger",
-    "hints": "Snarveier: ↑↓ naviger · Ctrl+S lagre · Ctrl+F søk",
-    "lang_apply": "Bruk språk",
     "lang_changed": "Språk: Norsk",
     "ss_pass_saved_ph": "(lagret — la stå tom for å beholde)",
     "ss_pass_optional_ph": "Medlems-passord (valgfritt)",
@@ -238,7 +238,6 @@
     "ss_type_mix_v1": "Recalbox mix v1 (mixrbv1)",
     "ss_type_mix_v2": "Recalbox mix v2 (mixrbv2)",
     "arcade_sys_title": "Fill arcade systems",
-    "arcade_sys_desc": "Reads a MAME <code>mame.xml</code> dump and writes <code>&lt;arcadesystemname&gt;</code>.",
     "arcade_sys_btn": "Fill from MAME"
   },
   "scrape": {
@@ -416,5 +415,36 @@
     "author_page": "Kraran-profil",
     "github": "GitHub-depot",
     "close": "Lukk"
+  },
+  "actions": {
+    "label": "Hele gamelisten",
+    "backup_sub": "Kopi gamelist.xml.bak ved siden av filen",
+    "arcade_sub": "Fra mame.xml: CPS2, Neo-Geo…",
+    "purge_sub": "I alle spill, etter bekreftelse"
+  },
+  "settings": {
+    "title": "Innstillinger",
+    "tab_general": "Generelt",
+    "tab_sources": "Skrapekilder",
+    "tab_keys": "Hurtigtaster",
+    "sources_title": "Skrapekilde per system",
+    "sources_desc": "Skrap-knappen velger kilde etter system: Arcade Database for arkademapper, Steam for steam, ScreenScraper for resten. Et annet valg i menyen lagres her, i denne nettleseren.",
+    "sources_none": "Ingen tvungne valg: kilden velges automatisk for hvert system.",
+    "sources_reset_all": "Tilbakestill alt til automatisk",
+    "keys_desc": "Bokstavene gjør ingenting mens du skriver i et felt.",
+    "key_next": "Neste spill",
+    "key_prev": "Forrige spill",
+    "key_first_last": "Første / siste spill i listen",
+    "key_next_incomplete": "Neste spill som mangler media",
+    "key_scrape": "Skrap spillet",
+    "key_save": "Lagre endringene",
+    "key_search": "Søk etter et spill",
+    "key_apply": "Bruk skrapingen (sammenligningsvinduet)",
+    "key_close": "Lukk et vindu eller en meny",
+    "key_help": "Vis denne listen",
+    "k_home": "Home",
+    "k_end": "End",
+    "k_enter": "Enter",
+    "k_esc": "Esc"
   }
 }

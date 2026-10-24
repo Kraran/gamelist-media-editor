@@ -8,16 +8,17 @@
     "game_count_filtered": "{visible} / {total} Spiele",
     "system_title": "System (Ordner der gamelist.xml)",
     "system_unknown": "Unbekanntes System",
-    "delete_game": "Dieses Spiel löschen",
-    "delete_game_title": "Ausgewähltes Spiel löschen (ROM + Medien + XML-Eintrag)",
+    "delete_game": "Dieses Spiel löschen…",
     "reload": "Neu laden",
     "reload_title": "gamelist.xml von der Festplatte neu laden",
-    "tools": "Werkzeuge",
-    "tools_title": "Werkzeuge und globale Aktionen",
     "quit": "Beenden",
     "quit_title": "Server stoppen und schließen",
     "open_gamelist": "Gamelist…",
-    "open_gamelist_title": "Andere gamelist.xml öffnen ohne Neustart"
+    "open_gamelist_title": "Andere gamelist.xml öffnen ohne Neustart",
+    "actions": "Aktionen",
+    "actions_title": "Aktionen für die ganze Gamelist",
+    "settings": "Einstellungen",
+    "settings_title": "Sprache, ScreenScraper, Scrape-Quellen, Tastenkürzel"
   },
   "sidebar": {
     "search_placeholder": "Spiele suchen…",
@@ -90,7 +91,12 @@
     "scrape_steam_sub": "Trailer und Store-Seite",
     "scrape_auto": "Zurück zur automatischen Wahl",
     "scrape_note_auto": "Automatische Wahl für {system}",
-    "scrape_note_forced": "Deine Wahl für {system}, gespeichert"
+    "scrape_note_forced": "Deine Wahl für {system}, gespeichert",
+    "next_incomplete": "Nächstes unvollständiges",
+    "next_incomplete_title": "Zum nächsten Spiel der Liste, dem Medien fehlen",
+    "game_menu": "Weitere Aktionen für dieses Spiel",
+    "copy_path": "ROM-Pfad kopieren",
+    "delete_sub": "ROM, Medien und Gamelist-Eintrag"
   },
   "fields": {
     "image": "Bild (Screenshot)",
@@ -126,7 +132,6 @@
     "saving_desc": "Beschreibung wird gespeichert…",
     "saving_meta": "Metadaten werden gespeichert…",
     "reloaded": "Liste neu geladen",
-    "hints": "↑↓ navigieren · Ctrl+S speichern · Ctrl+F suchen",
     "shutdown_title": "Server gestoppt",
     "shutdown_msg": "Du kannst diesen Tab schließen.<br>Das Konsolenfenster sollte sich von selbst schließen.",
     "backup_xml": "XML wird gesichert…",
@@ -142,7 +147,9 @@
     "unsaved": "Ungespeicherte Änderungen: {fields}",
     "kbd_navigate": "navigieren",
     "kbd_save": "speichern",
-    "kbd_search": "suchen"
+    "kbd_next_incomplete": "nächstes unvollständiges",
+    "kbd_scrape": "scrapen",
+    "kbd_help": "Tastenkürzel"
   },
   "toast": {
     "no_file_url": "Keine Datei oder URL erkannt",
@@ -162,7 +169,9 @@
     "list_reloaded": "Liste neu geladen",
     "gamelist_opened": "Gamelist geöffnet: {name} ({n} Spiele)",
     "arcade_sys_ok": "{n} filled · {skip} already set · {miss} not found",
-    "nothing_to_save": "Nichts zu speichern"
+    "nothing_to_save": "Nichts zu speichern",
+    "path_copied": "Pfad kopiert: {path}",
+    "no_incomplete": "Kein weiteres unvollständiges Spiel in der Liste"
   },
   "errors": {
     "offline": "Keine Netzwerkverbindung.",
@@ -200,12 +209,9 @@
     "discard": "Nicht speichern"
   },
   "tools": {
-    "title": "Werkzeuge",
-    "intro": "Globale Aktionen auf die Datei <code>gamelist.xml</code> (nicht an ein einzelnes Spiel gebunden).",
     "close": "Schließen",
     "lang_title": "Sprache der Oberfläche",
     "lang_desc": "Ändert die Sprache der Oberfläche. Die Wahl wird in diesem Browser gespeichert.",
-    "lang_label": "Sprache",
     "ss_title": "ScreenScraper",
     "ss_desc": "Scraping funktioniert <strong>sofort</strong> (integrierte Software-Zugangsdaten). Optional: <strong>Mitgliedskonto</strong> für Quota-<strong>Boost</strong>. Lokal in <code>screenscraper_config.json</code> gespeichert.",
     "ss_ssid": "Mitglieds-ID (ssid) — optional",
@@ -217,14 +223,8 @@
     "ss_boost_on": "Mitglieder-Boost aktiv",
     "ss_boost_off": "Basis-Quotas (optionaler Boost oben)",
     "ss_cfg_err": "Fehler beim Laden der Config",
-    "backup_title": "gamelist.xml sichern",
-    "backup_desc": "Erstellt eine Kopie <code>gamelist.xml.bak</code> neben der aktuellen Datei. Überschreibt ein vorhandenes .bak.",
     "backup_btn": "Sichern (.bak)",
     "purge_title": "Alle <region>-Tags entfernen",
-    "purge_desc": "Entfernt jede <code>&lt;region&gt;…&lt;/region&gt;</code>-Zeile von <strong>allen</strong> Spielen. Bestätigung erforderlich (optionales .bak).",
-    "purge_btn": "<region>-Tags entfernen",
-    "hints": "Tastenkürzel: ↑↓ navigieren · Ctrl+S speichern · Ctrl+F suchen",
-    "lang_apply": "Sprache anwenden",
     "lang_changed": "Sprache: Deutsch",
     "ss_pass_saved_ph": "(gespeichert — leer lassen zum Behalten)",
     "ss_pass_optional_ph": "Mitgliedspasswort (optional)",
@@ -238,7 +238,6 @@
     "ss_type_mix_v1": "Recalbox Mix v1 (mixrbv1)",
     "ss_type_mix_v2": "Recalbox Mix v2 (mixrbv2)",
     "arcade_sys_title": "Fill arcade systems",
-    "arcade_sys_desc": "Reads a MAME <code>mame.xml</code> dump and writes <code>&lt;arcadesystemname&gt;</code>.",
     "arcade_sys_btn": "Fill from MAME"
   },
   "scrape": {
@@ -416,5 +415,36 @@
     "author_page": "Profil Kraran",
     "github": "GitHub-Repository",
     "close": "Schließen"
+  },
+  "actions": {
+    "label": "Ganze Gamelist",
+    "backup_sub": "Kopie gamelist.xml.bak neben der Datei",
+    "arcade_sub": "Aus mame.xml: CPS2, Neo-Geo…",
+    "purge_sub": "In allen Spielen, nach Bestätigung"
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "tab_general": "Allgemein",
+    "tab_sources": "Scrape-Quellen",
+    "tab_keys": "Tastenkürzel",
+    "sources_title": "Scrape-Quelle pro System",
+    "sources_desc": "Die Schaltfläche Scrapen wählt die Quelle je nach System: Arcade Database für Arcade-Ordner, Steam für steam, ScreenScraper für alle anderen. Eine andere Wahl in ihrem Menü wird hier in diesem Browser gespeichert.",
+    "sources_none": "Keine erzwungene Wahl: Die Quelle wird für jedes System automatisch gewählt.",
+    "sources_reset_all": "Alles auf automatisch zurücksetzen",
+    "keys_desc": "Buchstaben wirken nicht, während du in ein Feld tippst.",
+    "key_next": "Nächstes Spiel",
+    "key_prev": "Vorheriges Spiel",
+    "key_first_last": "Erstes / letztes Spiel der Liste",
+    "key_next_incomplete": "Nächstes Spiel, dem Medien fehlen",
+    "key_scrape": "Spiel scrapen",
+    "key_save": "Änderungen speichern",
+    "key_search": "Spiel suchen",
+    "key_apply": "Scrape übernehmen (Vergleichsfenster)",
+    "key_close": "Fenster oder Menü schließen",
+    "key_help": "Diese Liste anzeigen",
+    "k_home": "Pos1",
+    "k_end": "Ende",
+    "k_enter": "Eingabe",
+    "k_esc": "Esc"
   }
 }

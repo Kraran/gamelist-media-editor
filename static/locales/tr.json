@@ -8,16 +8,17 @@
     "game_count_filtered": "{visible} / {total} oyun",
     "system_title": "Sistem (gamelist.xml klasörü)",
     "system_unknown": "Bilinmeyen sistem",
-    "delete_game": "Bu oyunu sil",
-    "delete_game_title": "Seçili oyunu sil (ROM + medya + XML kaydı)",
+    "delete_game": "Bu oyunu sil…",
     "reload": "Yenile",
     "reload_title": "gamelist.xml dosyasını diskten yeniden yükle",
-    "tools": "Araçlar",
-    "tools_title": "Araçlar ve genel işlemler",
     "quit": "Çıkış",
     "quit_title": "Sunucuyu durdur ve kapat",
     "open_gamelist": "Gamelist…",
-    "open_gamelist_title": "Yeniden başlatmadan başka bir gamelist.xml aç"
+    "open_gamelist_title": "Yeniden başlatmadan başka bir gamelist.xml aç",
+    "actions": "İşlemler",
+    "actions_title": "Tüm gamelist için işlemler",
+    "settings": "Ayarlar",
+    "settings_title": "Dil, ScreenScraper, tarama kaynakları, kısayollar"
   },
   "sidebar": {
     "search_placeholder": "Oyun ara…",
@@ -90,7 +91,12 @@
     "scrape_steam_sub": "Fragman ve mağaza sayfası",
     "scrape_auto": "Otomatik seçime dön",
     "scrape_note_auto": "{system} için otomatik seçim",
-    "scrape_note_forced": "{system} için seçimin hatırlandı"
+    "scrape_note_forced": "{system} için seçimin hatırlandı",
+    "next_incomplete": "Sonraki eksik",
+    "next_incomplete_title": "Listede medyası eksik olan sonraki oyuna git",
+    "game_menu": "Bu oyun için diğer işlemler",
+    "copy_path": "ROM yolunu kopyala",
+    "delete_sub": "ROM, medya ve gamelist kaydı"
   },
   "fields": {
     "image": "Görsel (ekran görüntüsü)",
@@ -126,7 +132,6 @@
     "saving_desc": "Açıklama kaydediliyor…",
     "saving_meta": "Meta veriler kaydediliyor…",
     "reloaded": "Liste yenilendi",
-    "hints": "↑↓ gezin · Ctrl+S kaydet · Ctrl+F ara",
     "shutdown_title": "Sunucu durduruldu",
     "shutdown_msg": "Bu sekmeyi kapatabilirsin.<br>Konsol penceresi kendiliğinden kapanmalı.",
     "backup_xml": "XML yedekleniyor…",
@@ -142,7 +147,9 @@
     "unsaved": "Kaydedilmemiş değişiklikler: {fields}",
     "kbd_navigate": "gezin",
     "kbd_save": "kaydet",
-    "kbd_search": "ara"
+    "kbd_next_incomplete": "sonraki eksik",
+    "kbd_scrape": "tara",
+    "kbd_help": "kısayollar"
   },
   "toast": {
     "no_file_url": "Dosya veya URL algılanmadı",
@@ -162,7 +169,9 @@
     "list_reloaded": "Liste yenilendi",
     "gamelist_opened": "Gamelist açıldı: {name} ({n} oyun)",
     "arcade_sys_ok": "{n} filled · {skip} already set · {miss} not found",
-    "nothing_to_save": "Kaydedilecek değişiklik yok"
+    "nothing_to_save": "Kaydedilecek değişiklik yok",
+    "path_copied": "Yol kopyalandı: {path}",
+    "no_incomplete": "Listede başka eksik oyun yok"
   },
   "errors": {
     "offline": "Ağ bağlantısı yok.",
@@ -200,12 +209,9 @@
     "discard": "Kaydetme"
   },
   "tools": {
-    "title": "Araçlar",
-    "intro": "<code>gamelist.xml</code> dosyası üzerinde genel işlemler (tek bir oyuna bağlı değil).",
     "close": "Kapat",
     "lang_title": "Arayüz dili",
     "lang_desc": "Arayüz dilini değiştir. Seçim bu tarayıcıda hatırlanır.",
-    "lang_label": "Dil",
     "ss_title": "ScreenScraper",
     "ss_desc": "Scrape <strong>hemen</strong> çalışır (gömülü yazılım kimlik bilgileri). İsteğe bağlı: kota <strong>boost</strong> için <strong>üye</strong> hesabı. Yerel olarak <code>screenscraper_config.json</code> içinde saklanır.",
     "ss_ssid": "Üye kimliği (ssid) — isteğe bağlı",
@@ -217,14 +223,8 @@
     "ss_boost_on": "Üye boost aktif",
     "ss_boost_off": "Temel kotalar (yukarıda isteğe bağlı boost)",
     "ss_cfg_err": "Yapılandırma yükleme hatası",
-    "backup_title": "gamelist.xml yedeği",
-    "backup_desc": "Mevcut dosyanın yanına <code>gamelist.xml.bak</code> kopyası oluşturur. Var olan .bak üzerine yazar.",
     "backup_btn": "Yedekle (.bak)",
     "purge_title": "Tüm <region> etiketlerini sil",
-    "purge_desc": "<strong>Tüm</strong> oyunlardan her <code>&lt;region&gt;…&lt;/region&gt;</code> satırını kaldırır. Onay gerekir (isteğe bağlı .bak).",
-    "purge_btn": "<region> etiketlerini sil",
-    "hints": "Kısayollar: ↑↓ gezin · Ctrl+S kaydet · Ctrl+F ara",
-    "lang_apply": "Dili uygula",
     "lang_changed": "Dil: Türkçe",
     "ss_pass_saved_ph": "(kayıtlı — değiştirmek için boş bırak)",
     "ss_pass_optional_ph": "Üye şifresi (isteğe bağlı)",
@@ -238,7 +238,6 @@
     "ss_type_mix_v1": "Recalbox mix v1 (mixrbv1)",
     "ss_type_mix_v2": "Recalbox mix v2 (mixrbv2)",
     "arcade_sys_title": "Fill arcade systems",
-    "arcade_sys_desc": "Reads a MAME <code>mame.xml</code> dump and writes <code>&lt;arcadesystemname&gt;</code>.",
     "arcade_sys_btn": "Fill from MAME"
   },
   "scrape": {
@@ -416,5 +415,36 @@
     "author_page": "Kraran profili",
     "github": "GitHub deposu",
     "close": "Kapat"
+  },
+  "actions": {
+    "label": "Tüm gamelist",
+    "backup_sub": "Dosyanın yanına gamelist.xml.bak kopyası",
+    "arcade_sub": "mame.xml'den: CPS2, Neo-Geo…",
+    "purge_sub": "Tüm oyunlarda, onaydan sonra"
+  },
+  "settings": {
+    "title": "Ayarlar",
+    "tab_general": "Genel",
+    "tab_sources": "Tarama kaynakları",
+    "tab_keys": "Klavye kısayolları",
+    "sources_title": "Sisteme göre tarama kaynağı",
+    "sources_desc": "Tara düğmesi kaynağı sisteme göre seçer: arcade klasörleri için Arcade Database, steam için Steam, diğerleri için ScreenScraper. Menüsünde yapılan başka bir seçim burada, bu tarayıcıda hatırlanır.",
+    "sources_none": "Zorunlu seçim yok: kaynak her sistem için otomatik seçilir.",
+    "sources_reset_all": "Tümünü otomatiğe döndür",
+    "keys_desc": "Bir alana yazarken harfler bir şey yapmaz.",
+    "key_next": "Sonraki oyun",
+    "key_prev": "Önceki oyun",
+    "key_first_last": "Listedeki ilk / son oyun",
+    "key_next_incomplete": "Medyası eksik sonraki oyun",
+    "key_scrape": "Oyunu tara",
+    "key_save": "Değişiklikleri kaydet",
+    "key_search": "Oyun ara",
+    "key_apply": "Taramayı uygula (karşılaştırma penceresi)",
+    "key_close": "Pencereyi veya menüyü kapat",
+    "key_help": "Bu listeyi göster",
+    "k_home": "Home",
+    "k_end": "End",
+    "k_enter": "Enter",
+    "k_esc": "Esc"
   }
 }
