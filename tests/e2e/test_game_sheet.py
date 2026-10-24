@@ -161,3 +161,27 @@ def test_suggestions_come_from_the_gamelist(page):
     select(page, "Bravo")
     page.focus("#meta-developer")
     assert "Capcom" in page.eval_on_selector_all("#dl-developer option", "os => os.map(o => o.value)")
+
+
+def test_tiles_take_the_shape_of_their_media(page, gamelist):
+    """A media whose shape differs from the usual one is shown whole (here, a round
+    logo marquee in 16:9 and a tall cabinet photo as boxart), never cut."""
+    images = gamelist.parent / "images"
+    Image.new("RGB", (400, 225), (30, 40, 140)).save(images / "alpha-marquee.png")
+    Image.new("RGB", (314, 650), (90, 110, 200)).save(images / "alpha-boxart.png")
+    xml = gamelist.read_text(encoding="utf-8").replace(
+        "<marquee>", "<boxart>./images/alpha-boxart.png</boxart><marquee>", 1)
+    gamelist.write_text(xml, encoding="utf-8")
+    page.reload()
+    page.wait_for_selector("#game-list .game-item")
+    select(page, "Alpha")
+    page.wait_for_function("[...document.querySelectorAll('.media-tile .tile-dims')].every(d => d.textContent)")
+    boxes = page.evaluate("""[...document.querySelectorAll('.media-tile')].filter(t => t.querySelector('img')).map(t => {
+        const frame = t.querySelector('.tile-media').getBoundingClientRect();
+        const img = t.querySelector('img');
+        return {field: t.dataset.field, fw: frame.width, fh: frame.height,
+                ratio: img.naturalWidth / img.naturalHeight};
+    })""")
+    assert {b["field"] for b in boxes} == {"image", "marquee", "boxart"}
+    for b in boxes:
+        assert abs(b["fw"] / b["fh"] - b["ratio"]) < 0.03, b      # the frame has the image's shape
