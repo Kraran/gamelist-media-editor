@@ -39,7 +39,10 @@
     "filter_boxart": "Без обложки",
     "filter_fanart": "Без фанарта",
     "filter_mix": "Без микса",
-    "filter_map": "Без карты"
+    "filter_map": "Без карты",
+    "list_aria": "Список игр",
+    "media_missing": "Отсутствуют: {list}",
+    "media_complete": "Все медиафайлы на месте"
   },
   "editor": {
     "save_name": "Сохранить",

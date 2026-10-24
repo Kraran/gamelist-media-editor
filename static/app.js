@@ -409,17 +409,18 @@ function matchesSearch(g, query) {
   return g.name.toLowerCase().includes(q) || g.path.toLowerCase().includes(q);
 }
 
-/** Visible games under current search + media filter. Returns { game, listIndex }[] */
+/** List indexes of the games shown under the current search + media filter. */
 function getFilteredGames(searchQuery) {
   const q = (searchQuery !== undefined
     ? searchQuery
     : document.getElementById("search").value).toLowerCase().trim();
   const out = [];
-  games.forEach((g, i) => {
-    if (!matchesSearch(g, q)) return;
-    if (!matchesMediaFilter(g)) return;
-    out.push({ game: g, listIndex: i });
-  });
+  for (let i = 0; i < games.length; i++) {
+    const g = games[i];
+    if (q && !matchesSearch(g, q)) continue;
+    if (mediaFilter !== "all" && !matchesMediaFilter(g)) continue;
+    out.push(i);
+  }
   return out;
 }
 
@@ -432,23 +433,31 @@ function updateGameCount(visibleCount) {
   }
 }
 
+/** Filter menu: one option per media, each with the number of games missing it. */
 function updateFilterCounts(q) {
   const query = (q || "").toLowerCase().trim();
+  const keys = FIELD_DEFS.map(f => f.key);
   const counts = { all: 0, any: 0 };
-  getFields().forEach(f => { counts[f.key] = 0; });
-  games.forEach(g => {
-    if (!matchesSearch(g, query)) return;
+  keys.forEach(k => { counts[k] = 0; });
+  for (const g of games) {
+    if (query && !matchesSearch(g, query)) continue;
     counts.all++;
-    getFields().forEach(f => {
-      if (!hasMedia(g, f.key)) counts[f.key]++;
-    });
-    if (getFields().some(f => !hasMedia(g, f.key))) counts.any++;
-  });
-  document.querySelectorAll(".filter-chip").forEach(btn => {
-    const key = btn.dataset.filter;
-    const el = btn.querySelector(".filter-count");
-    if (el && key in counts) el.textContent = counts[key];
-  });
+    let missing = false;
+    for (const k of keys) {
+      if (!hasMedia(g, k)) { counts[k]++; missing = true; }
+    }
+    if (missing) counts.any++;
+  }
+  const sel = document.getElementById("media-filter");
+  if (!sel) return;
+  const labels = { all: t("sidebar.filter_all"), any: t("sidebar.filter_any") };
+  keys.forEach(k => { labels[k] = t("sidebar.filter_" + k); });
+  const order = ["all", "any", ...keys];
+  if (sel.options.length !== order.length) {
+    sel.innerHTML = order.map(k => `<option value="${k}"></option>`).join("");
+  }
+  order.forEach((k, i) => { sel.options[i].textContent = `${labels[k]} (${counts[k]})`; });
+  sel.value = mediaFilter;
 }
 
 function updateSystemBadge(system) {
@@ -587,52 +596,113 @@ async function loadGames() {
     handleError(e, t("errors.load"));
   }
 }
-function renderList(filter) {
+/* --- Game list (virtualized) ---------------------------------------------
+ * Only the rows in view exist in the page (about 40), whatever the size of the
+ * gamelist: 30 000 MAME games scroll, filter and select instantly.
+ * `viewIndices` holds the list indexes shown under the search + filter.
+ */
+const ROW_H = 56;            // px, keep in sync with .game-item height in style.css
+const ROW_OVERSCAN = 8;
+let viewIndices = [];
+let winFirst = -1, winLast = -1;
+
+function listEls() {
   const list = document.getElementById("game-list");
-  const q = (filter !== undefined ? filter : document.getElementById("search").value).toLowerCase().trim();
-  const filtered = getFilteredGames(q);
-  const frag = document.createDocumentFragment();
-
-  filtered.forEach(({ game: g, listIndex: i }) => {
-    const div = document.createElement("div");
-    div.className = "game-item" + (currentListIndex === i ? " active" : "");
-    div.dataset.listIndex = i;
-    div.setAttribute("role", "option");
-    div.setAttribute("aria-selected", currentListIndex === i ? "true" : "false");
-    div.tabIndex = -1;
-    const dots = getFields().map(f =>
-      `<span class="dot ${hasMedia(g, f.key) ? "filled" : ""}" title="${f.label}"></span>`
-    ).join("");
-    div.innerHTML =
-      `<div class="name">${escapeHtml(g.name)}</div>` +
-      `<div class="path">${escapeHtml(g.path)}</div>` +
-      `<div class="media-dots">${dots}</div>`;
-    div.addEventListener("click", () => requestSelectGame(i));
-    frag.appendChild(div);
-  });
-
-  list.innerHTML = "";
-  if (filtered.length === 0) {
-    const empty = document.createElement("div");
-    empty.className = "filter-empty";
-    empty.innerHTML = games.length
-      ? t("sidebar.empty_no_match")
-      : t("sidebar.empty_no_games");
-    list.appendChild(empty);
-  } else {
-    list.appendChild(frag);
+  if (!list.querySelector(".vlist-spacer")) {
+    list.innerHTML =
+      '<div class="vlist-spacer"><div class="vlist-window"></div></div>' +
+      '<div class="filter-empty" hidden></div>';
   }
-  updateGameCount(filtered.length);
+  return {
+    list,
+    spacer: list.querySelector(".vlist-spacer"),
+    win: list.querySelector(".vlist-window"),
+    empty: list.querySelector(".filter-empty"),
+  };
+}
+
+/** Recompute which games are shown (search, filter, data change) and redraw. */
+function renderList(filter) {
+  const q = (filter !== undefined ? filter : document.getElementById("search").value).toLowerCase().trim();
+  viewIndices = getFilteredGames(q);
+  const { spacer, empty } = listEls();
+  spacer.style.height = viewIndices.length * ROW_H + "px";
+  empty.hidden = viewIndices.length > 0;
+  if (!viewIndices.length) {
+    empty.innerHTML = games.length ? t("sidebar.empty_no_match") : t("sidebar.empty_no_games");
+  }
+  renderListWindow(true);
+  updateGameCount(viewIndices.length);
   updateFilterCounts(q);
 }
 
-function getVisibleListIndices() {
-  return getFilteredGames().map(x => x.listIndex);
+/** Thumbnail source for the list: screenshot, else box, else mix, else logo. */
+function thumbPath(g) {
+  return g.image || g.boxart || g.mix || g.marquee || "";
 }
 
+function gameRowHtml(g, listIndex, pos) {
+  const active = listIndex === currentListIndex;
+  const fields = getFields();
+  const missing = fields.filter(f => !hasMedia(g, f.key));
+  const present = fields.length - missing.length;
+  const title = missing.length
+    ? t("sidebar.media_missing", { list: missing.map(f => f.label).join(", ") })
+    : t("sidebar.media_complete");
+  const tp = thumbPath(g);
+  const thumb = tp
+    ? `<img src="/api/thumb?path=${encodeURIComponent(tp)}" alt="" loading="lazy" decoding="async" />`
+    : icon("device-gamepad-2");
+  const countCls = present === fields.length ? " is-complete" : present === 0 ? " is-empty" : "";
+  return `<div class="game-item${active ? " active" : ""}" role="option" id="gi-${listIndex}"` +
+    ` data-list-index="${listIndex}" aria-selected="${active}" aria-setsize="${viewIndices.length}" aria-posinset="${pos + 1}">` +
+    `<span class="gi-thumb">${thumb}</span>` +
+    `<span class="gi-text"><span class="name">${escapeHtml(g.name)}</span><span class="path">${escapeHtml(g.path)}</span></span>` +
+    `<span class="gi-count${countCls}" title="${escapeHtml(title)}">${present}/${fields.length}</span>` +
+    `</div>`;
+}
+
+/** Draw the rows in view (cheap: about 40 rows). `force` redraws even if the range is unchanged. */
+function renderListWindow(force) {
+  const { list, win } = listEls();
+  const height = list.clientHeight || 600;
+  const first = Math.max(0, Math.floor(list.scrollTop / ROW_H) - ROW_OVERSCAN);
+  const last = Math.min(viewIndices.length, Math.ceil((list.scrollTop + height) / ROW_H) + ROW_OVERSCAN);
+  if (!force && first === winFirst && last === winLast) return;
+  winFirst = first; winLast = last;
+  let html = "";
+  for (let pos = first; pos < last; pos++) {
+    const i = viewIndices[pos];
+    html += gameRowHtml(games[i], i, pos);
+  }
+  win.style.transform = `translateY(${first * ROW_H}px)`;
+  win.innerHTML = html;
+  const activeRow = currentListIndex !== null ? document.getElementById("gi-" + currentListIndex) : null;
+  if (activeRow) list.setAttribute("aria-activedescendant", activeRow.id);
+  else list.removeAttribute("aria-activedescendant");
+}
+
+function getVisibleListIndices() {
+  return viewIndices;
+}
+
+/** Scroll the list just enough to show the selected game, then redraw. */
 function scrollActiveIntoView() {
-  const active = document.querySelector(".game-item.active");
-  if (active) active.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  const { list } = listEls();
+  const pos = viewIndices.indexOf(currentListIndex);
+  if (pos >= 0) {
+    const top = pos * ROW_H;
+    const height = list.clientHeight;
+    if (top < list.scrollTop) list.scrollTop = top;
+    else if (top + ROW_H > list.scrollTop + height) list.scrollTop = top + ROW_H - height;
+  }
+  renderListWindow(true);
+}
+
+let _listScrollFrame = 0;
+function onListScroll() {
+  if (_listScrollFrame) return;
+  _listScrollFrame = requestAnimationFrame(() => { _listScrollFrame = 0; renderListWindow(false); });
 }
 
 function navigateGame(delta) {
@@ -806,14 +876,39 @@ document.getElementById("meta-hidden").checked = String(g.hidden || "").toLowerC
 document.getElementById("meta-kidgame").checked = String(g.kidgame || "").toLowerCase() === "true";
 updateLangFlag(g.lang || "");
 setGenreUI(g.genre || "");
-document.querySelectorAll(".game-item").forEach(el => {
-  const on = parseInt(el.dataset.listIndex, 10) === listIndex;
-  el.classList.toggle("active", on);
-  el.setAttribute("aria-selected", on ? "true" : "false");
-});
 renderZones(g);
 scrollActiveIntoView();
 snapshotEditor();
+if (!g._detail) loadGameDetail(g);
+}
+
+/**
+ * The game list has no descriptions (they are most of a large gamelist):
+ * fetch the opened game's description. The field stays read-only until it
+ * arrives, so nothing typed can be overwritten.
+ */
+let _detailToken = 0;
+async function loadGameDetail(g) {
+  const ta = document.getElementById("desc-textarea");
+  const token = ++_detailToken;
+  ta.readOnly = true;
+  ta.classList.add("is-loading");
+  let data;
+  try {
+    data = await apiFetch(`/api/game/${g.index}?path=${encodeURIComponent(g.path)}`);
+  } catch (e) {
+    if (token === _detailToken) handleError(e);
+    return;
+  }
+  g.desc = data.desc || "";
+  g._detail = true;
+  if (data.index !== g.index) queueGameListReload();     // gamelist.xml changed meanwhile
+  if (token !== _detailToken || currentIndex !== g.index) return;
+  ta.value = g.desc;
+  ta.readOnly = false;
+  ta.classList.remove("is-loading");
+  if (editorSnapshot) editorSnapshot.desc = ta.value;
+  updateUnsavedUi();
 }
 function updateLangFlag(code) {
   const key = (code || "").toLowerCase().trim();
@@ -1046,17 +1141,24 @@ document.getElementById("search").addEventListener("input", e => {
 });
 document.getElementById("meta-genre-main").addEventListener("change", e => fillSubGenres(e.target.value));
 
-document.getElementById("media-filters").addEventListener("click", e => {
-  const btn = e.target.closest(".filter-chip");
-  if (!btn) return;
-  mediaFilter = btn.dataset.filter || "all";
-  document.querySelectorAll(".filter-chip").forEach(c => {
-    const on = c === btn;
-    c.classList.toggle("active", on);
-    c.setAttribute("aria-pressed", on ? "true" : "false");
-  });
+document.getElementById("media-filter").addEventListener("change", e => {
+  mediaFilter = e.target.value || "all";
+  listEls().list.scrollTop = 0;
   renderList();
 });
+(() => {
+  const list = document.getElementById("game-list");
+  list.addEventListener("click", e => {
+    const row = e.target.closest(".game-item");
+    if (row) requestSelectGame(parseInt(row.dataset.listIndex, 10));
+  });
+  list.addEventListener("scroll", onListScroll, { passive: true });
+  // Broken or missing thumbnail: show the placeholder icon instead
+  list.addEventListener("error", e => {
+    if (e.target.tagName === "IMG") e.target.outerHTML = icon("device-gamepad-2");
+  }, true);
+  if (window.ResizeObserver) new ResizeObserver(() => renderListWindow(false)).observe(list);
+})();
 
 function openLightbox(src, label) {
   const overlay = document.getElementById("media-lightbox");

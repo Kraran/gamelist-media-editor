@@ -39,7 +39,10 @@
     "filter_boxart": "Ohne Boxart",
     "filter_fanart": "Ohne Fanart",
     "filter_mix": "Ohne Mix",
-    "filter_map": "Ohne Map"
+    "filter_map": "Ohne Map",
+    "list_aria": "Spieleliste",
+    "media_missing": "Fehlt: {list}",
+    "media_complete": "Alle Medien vorhanden"
   },
   "editor": {
     "save_name": "Speichern",

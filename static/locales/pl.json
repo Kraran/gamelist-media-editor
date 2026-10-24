@@ -39,7 +39,10 @@
     "filter_boxart": "Bez okładki",
     "filter_fanart": "Bez fanartu",
     "filter_mix": "Bez miksu",
-    "filter_map": "Bez mapy"
+    "filter_map": "Bez mapy",
+    "list_aria": "Lista gier",
+    "media_missing": "Brakuje: {list}",
+    "media_complete": "Wszystkie media są obecne"
   },
   "editor": {
     "save_name": "Zapisz",

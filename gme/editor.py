@@ -19,7 +19,7 @@ from gme.paths import resource_path
 from gme.systems import get_system_info
 from gme.version import APP_RELEASE_DATE, APP_VERSION
 from gme.window import close_ui_window
-from gme.xml_store import BOOL_META_FIELDS, MEDIA_DIRS, META_FIELDS, backup_xml, get_base_name, get_game_elem, get_games, has_gamelist, load_xml, require_gamelist, resolve_under_base, save_xml, set_gamelist_path
+from gme.xml_store import BOOL_META_FIELDS, MEDIA_DIRS, META_FIELDS, backup_xml, get_base_name, get_game_elem, find_game_index_by_path, game_fields, get_games, has_gamelist, LIST_FIELDS, load_xml, require_gamelist, resolve_under_base, save_xml, set_gamelist_path
 
 bp = Blueprint("editor", __name__)
 
@@ -62,6 +62,28 @@ def api_games():
     except Exception as e:
         log.exception("api_games failed")
         return api_err(st("server.xml_read", detail=e), 500, code="xml_read")
+
+
+@bp.route("/api/game/<int:index>")
+def api_game(index):
+    """Everything about one game, description included (not sent with the list).
+
+    ``?path=`` identifies the game: if gamelist.xml changed and the game moved,
+    the right one is returned (with its new index); if it is gone, 409.
+    """
+    err = require_gamelist()
+    if err:
+        return err
+    games = load_xml().getroot().findall("game")
+    expected = request.args.get("path")
+    if expected is not None and not (0 <= index < len(games) and (games[index].findtext("path", "") or "") == expected):
+        matches = find_game_index_by_path(expected)
+        if len(matches) != 1:
+            return api_err(st("server.stale_game"), 409, code="stale_game", path=expected)
+        index = matches[0]
+    if not (0 <= index < len(games)):
+        return api_err(st("server.invalid_index"), 404, code="invalid_index")
+    return jsonify(game_fields(games[index], index, LIST_FIELDS | {"desc"}))
 
 
 @bp.route("/api/session")

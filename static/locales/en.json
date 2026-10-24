@@ -39,7 +39,10 @@
     "filter_boxart": "No box art",
     "filter_fanart": "No fanart",
     "filter_mix": "No mix",
-    "filter_map": "No map"
+    "filter_map": "No map",
+    "list_aria": "Game list",
+    "media_missing": "Missing: {list}",
+    "media_complete": "All media present"
   },
   "editor": {
     "save_name": "Save",

@@ -39,7 +39,10 @@
     "filter_boxart": "Uden cover",
     "filter_fanart": "Uden fanart",
     "filter_mix": "Uden mix",
-    "filter_map": "Uden kort"
+    "filter_map": "Uden kort",
+    "list_aria": "Spilliste",
+    "media_missing": "Mangler: {list}",
+    "media_complete": "Alle medier findes"
   },
   "editor": {
     "save_name": "Gem",

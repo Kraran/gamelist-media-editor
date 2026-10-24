@@ -39,7 +39,10 @@
     "filter_boxart": "Utan omslag",
     "filter_fanart": "Utan fanart",
     "filter_mix": "Utan mix",
-    "filter_map": "Utan karta"
+    "filter_map": "Utan karta",
+    "list_aria": "Spellista",
+    "media_missing": "Saknas: {list}",
+    "media_complete": "All media finns"
   },
   "editor": {
     "save_name": "Spara",

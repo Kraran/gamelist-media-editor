@@ -337,38 +337,43 @@ input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px;
 }
 .search-box input { padding-left: 34px; }
 
-.media-filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 0 var(--s3) var(--s3);
-  border-bottom: 1px solid var(--line);
+.list-filter {
+  position: relative;
+  display: block;
+  margin: 0 var(--s3) var(--s3);
 }
-.filter-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 24px;
-  padding: 0 var(--s2);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--text-2);
-  font: 500 var(--fs-xs)/1 var(--font-ui);
-  cursor: pointer;
-  transition: background var(--dur), border-color var(--dur), color var(--dur);
+.list-filter .icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-3);
+  pointer-events: none;
 }
-.filter-chip:hover { border-color: var(--line-field); color: var(--text); }
-.filter-chip.active { border-color: var(--accent-text); background: var(--accent-soft); color: var(--text); }
-.filter-count { color: var(--text-3); font-variant-numeric: tabular-nums; }
-.filter-chip.active .filter-count { color: var(--accent-text); }
+.list-filter select { padding-left: 34px; color: var(--text-2); }
 
-.game-list { flex: 1; min-height: 0; overflow-y: auto; padding: var(--s2) 0 var(--s4); }
+/* Virtualized list: the spacer has the full height, the window holds the
+   rendered rows and is moved into place with a transform. */
+.game-list {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  border-top: 1px solid var(--line);
+  contain: strict;
+}
+.game-list:focus-visible { outline-offset: -2px; }
+.vlist-spacer { position: relative; }
+.vlist-window { position: absolute; inset: 0 0 auto; will-change: transform; }
 .game-item {
   position: relative;
-  padding: 7px var(--s4) 8px;
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--s3);
+  height: 56px;               /* = ROW_H in app.js */
+  padding: 0 var(--s3) 0 var(--s4);
   cursor: pointer;
-  border-radius: 0;
 }
 .game-item:hover { background: var(--surface); }
 .game-item.active { background: var(--accent-soft); }
@@ -376,13 +381,25 @@ input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px;
   content: "";
   position: absolute;
   left: 4px;
-  top: 8px;
-  bottom: 8px;
+  top: 10px;
+  bottom: 10px;
   width: 3px;
   border-radius: 3px;
   background: var(--accent-text);
 }
-.game-item:focus-visible { outline-offset: -2px; }
+.gi-thumb {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 42px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--surface);
+  color: var(--line-soft);
+}
+.gi-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.gi-thumb .icon { width: 20px; height: 20px; }
+.gi-text { display: grid; min-width: 0; }
 .game-item .name {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -396,9 +413,13 @@ input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px;
   color: var(--text-3);
   font-size: var(--fs-xs);
 }
-.media-dots { display: flex; gap: 3px; margin-top: 5px; }
-.dot { width: 6px; height: 6px; border-radius: 50%; background: var(--line-soft); }
-.dot.filled { background: var(--ok); opacity: 1; }
+.gi-count {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+}
+.gi-count.is-complete { color: var(--ok); font-weight: 600; }
+.gi-count.is-empty { color: var(--warn); }
 .filter-empty { padding: var(--s5) var(--s4); color: var(--text-3); text-align: center; }
 
 /* 6. Stage --------------------------------------------------------------- */
@@ -551,6 +572,7 @@ input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px;
 }
 .insp-title .icon { color: var(--text-3); }
 #desc-textarea { min-height: 150px; }
+#desc-textarea.is-loading { color: var(--text-3); }
 
 .meta-grid {
   display: grid;

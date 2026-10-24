@@ -20,3 +20,6 @@ app-window/
 build/
 dist/
 *.spec.bak
+
+# Thumbnail cache (regenerated on demand)
+cache/

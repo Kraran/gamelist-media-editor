@@ -100,7 +100,8 @@ jobs:
           $dir = Join-Path $env:RUNNER_TEMP "roms\snes"
           New-Item -ItemType Directory -Force $dir | Out-Null
           $xml = Join-Path $dir "gamelist.xml"
-          Set-Content -Path $xml -Encoding utf8 -Value '<?xml version="1.0"?><gameList><game><path>./a.zip</path><name>Alpha</name></game></gameList>'
+          Set-Content -Path $xml -Encoding utf8 -Value '<?xml version="1.0"?><gameList><game><path>./a.zip</path><name>Alpha</name><image>./images/a.png</image></game></gameList>'
+          python -c "import os,sys; from PIL import Image; d=os.path.join(sys.argv[1],'images'); os.makedirs(d,exist_ok=True); Image.new('RGB',(320,240),(60,140,220)).save(os.path.join(d,'a.png'))" $dir
           $exe = Start-Process -FilePath "dist\GamelistMediaEditor.exe" `
             -ArgumentList "--no-browser", "`"$xml`"" -PassThru `
             -RedirectStandardOutput exe-out.log -RedirectStandardError exe-err.log
@@ -124,7 +125,11 @@ jobs:
             }
             $games = Invoke-RestMethod "$base/api/games"
             if ($games.games.Count -ne 1) { throw "expected 1 game" }
-            Write-Host "OK: frozen exe serves UI, assets and API (v$($s.version), system $($s.system.folder)=$($s.system.id))"
+            $thumb = Invoke-WebRequest "$base/api/thumb?path=./images/a.png" -UseBasicParsing
+            if ($thumb.Headers["Content-Type"] -notmatch "image/webp") { throw "thumbnail not WebP: $($thumb.Headers['Content-Type'])" }
+            $detail = Invoke-RestMethod "$base/api/game/0?path=./a.zip"
+            if ($detail.name -ne "Alpha") { throw "game detail failed" }
+            Write-Host "OK: frozen exe serves UI, assets, API and thumbnails (v$($s.version), system $($s.system.folder)=$($s.system.id))"
           } finally {
             try { Invoke-RestMethod -Method Post "$base/api/shutdown" -Headers @{ Origin = $base } | Out-Null } catch {}
             if (-not $exe.WaitForExit(10000)) { Stop-Process -Id $exe.Id -Force }
