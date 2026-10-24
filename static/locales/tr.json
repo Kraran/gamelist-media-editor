@@ -482,5 +482,25 @@
     "report_date": "Tarih",
     "size_units": "B,KB,MB,GB",
     "arcade_note": "Arcade sistemi: .chd diskleri ve bir romset klasörü (kinst.zip yanındaki kinst/) oyun sayılmaz."
+  },
+  "mediacheck": {
+    "title": "Medyaları denetle",
+    "action_sub": "Kullanılmayan medyalar, eksik dosyalara bağlantılar",
+    "stat_files": "Medya dosyaları",
+    "stat_orphans": "Kullanılmayan",
+    "stat_size": "Boşaltılacak",
+    "stat_broken": "Kırık bağlantılar",
+    "all_good": "Her medya kullanılıyor ve her bağlantı bir dosyayı gösteriyor.",
+    "orphans_title": "Kullanılmayan medyalar",
+    "orphans_desc": "{folders} klasörlerinde gamelist'teki hiçbir oyunun kullanmadığı dosyalar.",
+    "orphans_warning": "Medyaların yarısından fazlası kullanılmıyor görünüyor: bu klasör başka bir gamelist ile paylaşılıyor mu? Hiçbir şey işaretli değil.",
+    "broken_title": "Eksik medyalara bağlantılar",
+    "broken_desc": "Oyunun etiketi artık var olmayan bir dosyayı gösteriyor. Etiketi kaldırmak hiçbir dosyaya dokunmaz.",
+    "trash": "Geri Dönüşüm Kutusu'na taşı (geri alınabilir)",
+    "done": "{deleted} medya silindi ({size} boşaldı), {unlinked} bağlantı kaldırıldı",
+    "done_trash": " — Geri Dönüşüm Kutusu'nda",
+    "done_failed": " · {n} dosya silinmedi (kilitli veya Geri Dönüşüm Kutusu yok)",
+    "apply": "Temizle",
+    "apply_n": "Temizle ({n})"
   }
 }

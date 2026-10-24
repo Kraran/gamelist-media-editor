@@ -39,7 +39,7 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
 - **Next incomplete** (`N`): jumps to the next game in the list that is missing media (or that matches the media filter)
 - **Keyboard**: `J`/`K` next/previous game, `N` next incomplete, `S` scrape, `Ctrl+S` save, `Ctrl+F` or `/` search, `?` shows the list
 - **Open another `gamelist.xml`** at any time (file browser, the 10 most recent files in one click), **Reload** after an outside edit
-- **Actions** menu (whole gamelist): `.bak` backup, arcade system names from `mame.xml`, **Check ROMs** (gamelist vs files of the folder: add missing ROMs, remove entries without ROM, merge duplicates, export the report), purge all `<region>` tags
+- **Actions** menu (whole gamelist): `.bak` backup, arcade system names from `mame.xml`, **Check ROMs** (gamelist vs files of the folder: add missing ROMs, remove entries without ROM, merge duplicates, export the report), **Check media** (unused media to the Recycle Bin, links to missing files removed, export the report), purge all `<region>` tags
 - **Settings**: language, ScreenScraper member login and media types, scrape source chosen per system, keyboard shortcuts
 - Game ⋯ menu: copy the ROM path, delete the game (ROM + media + XML entry) with optional backup
 - Application window without address bar when Edge / Chrome / Brave is available; **Quit** stops the server
@@ -100,7 +100,7 @@ Please use the scrapers responsibly: requests are throttled, avoid hammering the
 ## Requirements
 
 - Windows executable: nothing else
-- From source: Python **3.9+** with `flask`, `lxml`, `requests`, `Pillow` (`requirements.txt`)
+- From source: Python **3.9+** with `flask`, `lxml`, `requests`, `Pillow`, `Send2Trash` (`requirements.txt`)
 - A modern browser (Edge, Chrome, Brave, Firefox)
 - Internet access only for the scrapers
 
@@ -125,6 +125,7 @@ Code layout (`app.py` is only the entry point; the overview is in `gme/__init__.
 | `gme/scrapers/compare.py`, `apply.py` | current vs proposed per field (statuses, presets), applying a scrape (shared by the three sources) |
 | `gme/scrapers/common.py` | throttling, name matching, ROM hashes |
 | `gme/romcheck.py` | Check ROMs: gamelist compared with the files of its folder, update (`/api/check-roms`) |
+| `gme/mediacheck.py` | Check media: unused media files and links to missing files, clean-up (`/api/check-media`) |
 | `gme/recent.py` | recently opened gamelists (`recent_gamelists.json` next to `app.py` or the `.exe`) |
 | `gme/remote_cache.py` | proposed images: previews (`/api/scrape/preview/<key>`), kept in `cache/remote/` and reused when applied |
 | `gme/xml_store.py` | the open `gamelist.xml`: path, cache, writes, game lookup |

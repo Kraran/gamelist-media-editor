@@ -79,6 +79,11 @@ Pour tout le gamelist :
 
   Coche ce que tu veux changer puis **Mettre à jour le gamelist** (sauvegarde `.bak` avant, cochée par défaut). **Exporter le rapport** l’enregistre en texte. Si plus de la moitié des jeux n’ont pas leur ROM (mauvais dossier, disque débranché), rien n’est coché.
   Pour l’arcade (MAME, FBNeo, Naomi…), les disques `.chd` et le dossier d’un romset (`kinst\` à côté de `kinst.zip`) ne sont jamais proposés comme jeux.
+- **Vérifier les médias** : compare les dossiers `images`, `videos`, `manuals` aux médias utilisés par les jeux et liste
+  - les **médias inutilisés** (miniature, taille à libérer),
+  - les **liens vers des médias absents** (balise qui pointe vers un fichier disparu).
+
+  **Nettoyer** met les fichiers cochés à la **Corbeille** (récupérables ; décoche l’option pour les supprimer définitivement) et retire les balises cassées cochées (sauvegarde `.bak` avant). Un fichier utilisé par n’importe quelle balise d’un jeu n’est jamais proposé. Si plus de la moitié des médias semblent inutilisés (dossier partagé avec un autre gamelist ?), rien n’est coché.
 - **Remplir les systèmes arcade** depuis un dump MAME `mame.xml` (`mame.exe -listxml`) ; les jeux qui ont déjà une valeur sont laissés tels quels
 - **Supprimer toutes les balises `<region>`** (confirmation, sauvegarde optionnelle)
 

@@ -59,6 +59,9 @@
           <button type="button" class="menu-item" role="menuitem" id="btn-rom-check">
             {{ icon("list-details") }}<span class="menu-item-text"><span class="menu-item-title" data-i18n="romcheck.title">Vérifier les ROMs</span><span class="menu-item-sub" data-i18n="romcheck.action_sub">Compare le gamelist aux fichiers du dossier</span></span>
           </button>
+          <button type="button" class="menu-item" role="menuitem" id="btn-media-check">
+            {{ icon("photo") }}<span class="menu-item-text"><span class="menu-item-title" data-i18n="mediacheck.title">Vérifier les médias</span><span class="menu-item-sub" data-i18n="mediacheck.action_sub">Médias inutilisés, liens vers des fichiers absents</span></span>
+          </button>
           <div class="menu-sep" role="separator"></div>
           <button type="button" class="menu-item is-danger" role="menuitem" id="btn-purge-regions">
             {{ icon("eraser") }}<span class="menu-item-text"><span class="menu-item-title" data-i18n="tools.purge_title">Supprimer toutes les balises &lt;region&gt;</span><span class="menu-item-sub" data-i18n="actions.purge_sub">Dans tous les jeux, après confirmation</span></span>
@@ -318,20 +321,20 @@
     </div>
   </div>
 
-  <div class="modal-overlay" id="romcheck-modal" role="dialog" aria-modal="true" aria-labelledby="romcheck-title">
-    <div class="modal romcheck-modal">
+  <div class="modal-overlay" id="check-modal" role="dialog" aria-modal="true" aria-labelledby="check-title">
+    <div class="modal check-modal">
       <div class="tools-header">
-        <h3 class="modal-title" id="romcheck-title">{{ icon("list-details") }}<span data-i18n="romcheck.title">Vérifier les ROMs</span></h3>
-        <button type="button" class="btn btn-icon" id="romcheck-close" title="Fermer" data-i18n-title="tools.close">{{ icon("x") }}</button>
+        <h3 class="modal-title" id="check-title"></h3>
+        <button type="button" class="btn btn-icon" id="check-close" title="Fermer" data-i18n-title="tools.close">{{ icon("x") }}</button>
       </div>
-      <p class="tools-intro romcheck-intro" id="romcheck-intro"></p>
-      <div class="romcheck-stats" id="romcheck-stats"></div>
-      <div class="romcheck-body" id="romcheck-body"></div>
+      <p class="tools-intro check-intro" id="check-intro"></p>
+      <div class="check-stats" id="check-stats"></div>
+      <div class="check-body" id="check-body"></div>
       <div class="tools-footer">
-        <button type="button" class="btn btn-ghost" id="romcheck-export">{{ icon("file-text") }}<span data-i18n="romcheck.export">Exporter le rapport</span></button>
-        <label class="romcheck-backup"><input type="checkbox" id="romcheck-backup" checked /><span data-i18n="romcheck.backup">Sauvegarde .bak avant</span></label>
-        <button type="button" class="btn" id="romcheck-cancel" data-i18n="tools.close">Fermer</button>
-        <button type="button" class="btn btn-accent" id="romcheck-apply" disabled>{{ icon("check") }}<span id="romcheck-apply-label">Mettre à jour le gamelist</span></button>
+        <button type="button" class="btn btn-ghost" id="check-export">{{ icon("file-text") }}<span data-i18n="romcheck.export">Exporter le rapport</span></button>
+        <div class="check-options" id="check-options"></div>
+        <button type="button" class="btn" id="check-cancel" data-i18n="tools.close">Fermer</button>
+        <button type="button" class="btn btn-accent" id="check-apply" disabled>{{ icon("check") }}<span id="check-apply-label">Mettre à jour le gamelist</span></button>
       </div>
     </div>
   </div>

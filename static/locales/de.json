@@ -482,5 +482,25 @@
     "report_date": "Datum",
     "size_units": "B,KB,MB,GB",
     "arcade_note": "Arcade-System: .chd-Disks und der Ordner eines Romsets (kinst/ neben kinst.zip) zählen nicht als Spiele."
+  },
+  "mediacheck": {
+    "title": "Medien prüfen",
+    "action_sub": "Ungenutzte Medien, Verweise auf fehlende Dateien",
+    "stat_files": "Mediendateien",
+    "stat_orphans": "Ungenutzt",
+    "stat_size": "Freizugeben",
+    "stat_broken": "Defekte Verweise",
+    "all_good": "Jede Mediendatei wird genutzt und jeder Verweis zeigt auf eine Datei.",
+    "orphans_title": "Ungenutzte Medien",
+    "orphans_desc": "Dateien in den Ordnern {folders}, die kein Spiel der Gamelist nutzt.",
+    "orphans_warning": "Mehr als die Hälfte der Medien scheint ungenutzt: Teilt sich dieser Ordner eine andere Gamelist? Nichts ist angekreuzt.",
+    "broken_title": "Verweise auf fehlende Medien",
+    "broken_desc": "Das Tag des Spiels zeigt auf eine Datei, die es nicht mehr gibt. Das Entfernen des Tags berührt keine Datei.",
+    "trash": "In den Papierkorb (wiederherstellbar)",
+    "done": "{deleted} Mediendatei(en) gelöscht ({size} frei), {unlinked} Verweis(e) entfernt",
+    "done_trash": " — im Papierkorb",
+    "done_failed": " · {n} Datei(en) nicht gelöscht (gesperrt oder kein Papierkorb)",
+    "apply": "Aufräumen",
+    "apply_n": "Aufräumen ({n})"
   }
 }

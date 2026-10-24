@@ -35,7 +35,7 @@ La CI GitHub construit aussi l’exe à chaque push et le joint au run (14 jours
 python -m pip install -r requirements.txt
 ```
 
-Dépendances : Flask, lxml, requests, Pillow.
+Dépendances : Flask, lxml, requests, Pillow, Send2Trash.
 
 4. `Lancer.bat` ou `python app.py`  
    Optionnel : `python app.py "C:\chemin\vers\gamelist.xml"`  

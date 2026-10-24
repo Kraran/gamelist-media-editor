@@ -482,5 +482,25 @@
     "report_date": "Data",
     "size_units": "B,KB,MB,GB",
     "arcade_note": "Sistema arcade: discos .chd e a pasta de um romset (kinst/ ao lado de kinst.zip) não contam como jogos."
+  },
+  "mediacheck": {
+    "title": "Verificar as mídias",
+    "action_sub": "Mídias não usadas, links para arquivos ausentes",
+    "stat_files": "Arquivos de mídia",
+    "stat_orphans": "Não usados",
+    "stat_size": "A liberar",
+    "stat_broken": "Links quebrados",
+    "all_good": "Todas as mídias são usadas e cada link aponta para um arquivo.",
+    "orphans_title": "Mídias não usadas",
+    "orphans_desc": "Arquivos das pastas {folders} que nenhum jogo da gamelist usa.",
+    "orphans_warning": "Mais da metade das mídias parece não usada: esta pasta é compartilhada com outra gamelist? Nada está marcado.",
+    "broken_title": "Links para mídias ausentes",
+    "broken_desc": "A tag do jogo aponta para um arquivo que não existe mais. Remover a tag não mexe em nenhum arquivo.",
+    "trash": "Mover para a Lixeira (recuperável)",
+    "done": "{deleted} mídia(s) excluída(s) ({size} liberados), {unlinked} link(s) removido(s)",
+    "done_trash": " — na Lixeira",
+    "done_failed": " · {n} arquivo(s) não excluído(s) (bloqueado ou sem Lixeira)",
+    "apply": "Limpar",
+    "apply_n": "Limpar ({n})"
   }
 }

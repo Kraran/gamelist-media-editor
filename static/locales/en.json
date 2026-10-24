@@ -482,5 +482,25 @@
     "report_date": "Date",
     "size_units": "B,KB,MB,GB",
     "arcade_note": "Arcade system: .chd disks and a romset's folder (kinst/ beside kinst.zip) are not counted as games."
+  },
+  "mediacheck": {
+    "title": "Check media",
+    "action_sub": "Unused media, links to missing files",
+    "stat_files": "Media files",
+    "stat_orphans": "Unused",
+    "stat_size": "To free",
+    "stat_broken": "Broken links",
+    "all_good": "Every media file is used and every link points to a file.",
+    "orphans_title": "Unused media",
+    "orphans_desc": "Files in the {folders} folders that no game of the gamelist uses.",
+    "orphans_warning": "More than half of the media look unused: is this folder shared with another gamelist? Nothing is ticked.",
+    "broken_title": "Links to missing media",
+    "broken_desc": "The game's tag points to a file that no longer exists. Removing the tag touches no file.",
+    "trash": "Move to the Recycle Bin (recoverable)",
+    "done": "{deleted} media file(s) deleted ({size} freed), {unlinked} link(s) removed",
+    "done_trash": " — in the Recycle Bin",
+    "done_failed": " · {n} file(s) not deleted (locked, or no Recycle Bin)",
+    "apply": "Clean up",
+    "apply_n": "Clean up ({n})"
   }
 }

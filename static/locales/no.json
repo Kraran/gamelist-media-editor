@@ -482,5 +482,25 @@
     "report_date": "Dato",
     "size_units": "B,KB,MB,GB",
     "arcade_note": "Arkadesystem: .chd-disker og mappen til et romsett (kinst/ ved siden av kinst.zip) regnes ikke som spill."
+  },
+  "mediacheck": {
+    "title": "Kontroller media",
+    "action_sub": "Ubrukte media, lenker til manglende filer",
+    "stat_files": "Mediefiler",
+    "stat_orphans": "Ubrukte",
+    "stat_size": "Å frigjøre",
+    "stat_broken": "Brutte lenker",
+    "all_good": "Hver mediefil brukes og hver lenke peker til en fil.",
+    "orphans_title": "Ubrukte media",
+    "orphans_desc": "Filer i mappene {folders} som ingen spill i gamelisten bruker.",
+    "orphans_warning": "Over halvparten av mediene ser ubrukte ut: deles mappen med en annen gameliste? Ingenting er krysset av.",
+    "broken_title": "Lenker til manglende media",
+    "broken_desc": "Spillets tagg peker til en fil som ikke lenger finnes. Å fjerne taggen rører ingen fil.",
+    "trash": "Flytt til papirkurven (kan gjenopprettes)",
+    "done": "{deleted} mediefil(er) slettet ({size} frigjort), {unlinked} lenke(r) fjernet",
+    "done_trash": " — i papirkurven",
+    "done_failed": " · {n} fil(er) ikke slettet (låst eller ingen papirkurv)",
+    "apply": "Rydd opp",
+    "apply_n": "Rydd opp ({n})"
   }
 }

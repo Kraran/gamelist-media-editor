@@ -30,6 +30,8 @@ a = Analysis(
         "click",
         "itsdangerous",
         "markupsafe",
+        "send2trash",
+        "send2trash.win.legacy",
     ],
     hookspath=[],
     hooksconfig={},

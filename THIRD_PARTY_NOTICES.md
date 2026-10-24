@@ -5,7 +5,7 @@ third-party assets so that the interface works offline.
 
 | Asset | Version | License | Files |
 |---|---|---|---|
-| [Tabler Icons](https://tabler.io/icons) (outline set, 54 icons) | 3.49.0 | MIT | `templates/_icons.svg` |
+| [Tabler Icons](https://tabler.io/icons) (outline set, 57 icons) | 3.49.0 | MIT | `templates/_icons.svg` |
 | [IBM Plex Sans](https://github.com/IBM/plex) (IBM) | fontsource 5.2.8 | SIL Open Font License 1.1 | `static/fonts/ibm-plex-sans-*.woff2`, `static/fonts/OFL-IBMPlexSans.txt` |
 | [Saira Condensed](https://github.com/Omnibus-Type/Saira) (Omnibus-Type) | fontsource 5.3.0 | SIL Open Font License 1.1 | `static/fonts/saira-condensed-*.woff2`, `static/fonts/OFL-SairaCondensed.txt` |
 
