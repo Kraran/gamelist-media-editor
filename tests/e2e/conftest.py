@@ -66,7 +66,7 @@ def page(browser, server, gamelist):
     errors = []
     pg.on("pageerror", lambda e: errors.append(str(e)))
     pg.goto(server + "/")
-    pg.wait_for_selector("#game-list >> text=Charlie")
+    pg.wait_for_selector("#game-list .game-item")
     pg.wait_for_function("document.getElementById('meta-genre-main').options.length > 1")  # genres.json loaded
     # Embedded fonts swap in after load and change line heights: wait for them so a
     # click never lands on a row that is still moving.

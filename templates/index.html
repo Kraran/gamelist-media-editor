@@ -60,21 +60,13 @@
         {{ icon("search") }}
         <input type="search" id="search" placeholder="Rechercher un jeu…" data-i18n-placeholder="sidebar.search_placeholder" autocomplete="off" aria-label="Rechercher un jeu" data-i18n-aria="sidebar.search_aria" />
       </label>
-      <div class="media-filters" id="media-filters" role="group" aria-label="Filtres médias manquants" data-i18n-aria="sidebar.filters_aria" title="Filtrer les jeux selon les médias manquants" data-i18n-title="sidebar.filters_title">
-        <button type="button" class="filter-chip active" data-filter="all" aria-pressed="true"><span data-i18n="sidebar.filter_all">Tous</span><span class="filter-count">0</span></button>
-        <button type="button" class="filter-chip" data-filter="any" aria-pressed="false"><span data-i18n="sidebar.filter_any">Un média manquant</span><span class="filter-count">0</span></button>
-        <button type="button" class="filter-chip" data-filter="image" aria-pressed="false"><span data-i18n="sidebar.filter_image">Sans image</span><span class="filter-count">0</span></button>
-        <button type="button" class="filter-chip" data-filter="video" aria-pressed="false"><span data-i18n="sidebar.filter_video">Sans vidéo</span><span class="filter-count">0</span></button>
-        <button type="button" class="filter-chip" data-filter="marquee" aria-pressed="false"><span data-i18n="sidebar.filter_marquee">Sans marquee</span><span class="filter-count">0</span></button>
-        <button type="button" class="filter-chip" data-filter="boxart" aria-pressed="false"><span data-i18n="sidebar.filter_boxart">Sans boxart</span><span class="filter-count">0</span></button>
-        <button type="button" class="filter-chip" data-filter="manual" aria-pressed="false"><span data-i18n="sidebar.filter_manual">Sans manuel</span><span class="filter-count">0</span></button>
-        <button type="button" class="filter-chip" data-filter="boxback" aria-pressed="false"><span data-i18n="sidebar.filter_boxback">Sans boxback</span><span class="filter-count">0</span></button>
-        <button type="button" class="filter-chip" data-filter="cartridge" aria-pressed="false"><span data-i18n="sidebar.filter_cartridge">Sans support</span><span class="filter-count">0</span></button>
-        <button type="button" class="filter-chip" data-filter="fanart" aria-pressed="false"><span data-i18n="sidebar.filter_fanart">Sans fanart</span><span class="filter-count">0</span></button>
-        <button type="button" class="filter-chip" data-filter="mix" aria-pressed="false"><span data-i18n="sidebar.filter_mix">Sans mix</span><span class="filter-count">0</span></button>
-        <button type="button" class="filter-chip" data-filter="map" aria-pressed="false"><span data-i18n="sidebar.filter_map">Sans map</span><span class="filter-count">0</span></button>
-      </div>
-      <div class="game-list" id="game-list" role="listbox" aria-label="Liste des jeux"></div>
+      <label class="list-filter" data-i18n-title="sidebar.filters_title" title="Filtrer les jeux selon les médias manquants">
+        {{ icon("filter") }}
+        <select id="media-filter" data-i18n-aria="sidebar.filters_aria" aria-label="Filtres médias manquants">
+          <option value="all">Tous</option>
+        </select>
+      </label>
+      <div class="game-list" id="game-list" role="listbox" tabindex="0" data-i18n-aria="sidebar.list_aria" aria-label="Liste des jeux"></div>
     </aside>
 
     <section class="content" id="content">

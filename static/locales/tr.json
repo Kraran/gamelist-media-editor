@@ -39,7 +39,10 @@
     "filter_boxart": "Kutu yok",
     "filter_fanart": "Fanart yok",
     "filter_mix": "Mix yok",
-    "filter_map": "Harita yok"
+    "filter_map": "Harita yok",
+    "list_aria": "Oyun listesi",
+    "media_missing": "Eksik: {list}",
+    "media_complete": "Tüm medyalar mevcut"
   },
   "editor": {
     "save_name": "Kaydet",

@@ -39,7 +39,10 @@
     "filter_boxart": "Sin carátula",
     "filter_fanart": "Sin fanart",
     "filter_mix": "Sin mix",
-    "filter_map": "Sin mapa"
+    "filter_map": "Sin mapa",
+    "list_aria": "Lista de juegos",
+    "media_missing": "Faltan: {list}",
+    "media_complete": "Todos los medios están presentes"
   },
   "editor": {
     "save_name": "Guardar",

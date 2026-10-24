@@ -39,7 +39,10 @@
     "filter_boxart": "Senza copertina",
     "filter_fanart": "Senza fanart",
     "filter_mix": "Senza mix",
-    "filter_map": "Senza mappa"
+    "filter_map": "Senza mappa",
+    "list_aria": "Elenco dei giochi",
+    "media_missing": "Mancanti: {list}",
+    "media_complete": "Tutti i media presenti"
   },
   "editor": {
     "save_name": "Salva",

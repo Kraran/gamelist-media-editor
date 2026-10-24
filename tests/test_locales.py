@@ -60,4 +60,8 @@ def test_keys_used_in_code_exist():
     assert len(server_keys) > 20, "server translation keys not found in gme/"
     used |= server_keys
     assert used, "no translation keys found: the regexes need updating"
+    # t("sidebar.filter_" + key): a dynamic key; its prefix must match real keys
+    prefixes = {k for k in used if k.endswith(("_", "."))}
+    assert not [p for p in prefixes if not any(k.startswith(p) for k in REF)], prefixes
+    used -= prefixes
     assert not used - set(REF), f"keys used in code but missing: {sorted(used - set(REF))}"

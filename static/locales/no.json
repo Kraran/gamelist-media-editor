@@ -39,7 +39,10 @@
     "filter_boxart": "Uten omslag",
     "filter_fanart": "Uten fanart",
     "filter_mix": "Uten mix",
-    "filter_map": "Uten kart"
+    "filter_map": "Uten kart",
+    "list_aria": "Spilliste",
+    "media_missing": "Mangler: {list}",
+    "media_complete": "Alle medier finnes"
   },
   "editor": {
     "save_name": "Lagre",

@@ -5,6 +5,9 @@ All notable changes to Gamelist Media Editor are documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Game list thumbnails**: screenshot (or box, mix, logo) of each game, generated once by the app and cached in `cache/thumbs/` (WebP, refreshed when the image changes)
+- **Media count per game** (`4/10`, green when complete) with the list of missing media on hover, instead of the unlabeled dots
+- **Single media filter** menu with the number of games missing each media, instead of twelve chips
 - **New interface foundation** (dark theme): three areas (game list, media, description and metadata side panel), design tokens in `static/style.css` ready for a light theme, embedded SVG icons (Tabler) instead of emoji, embedded fonts (IBM Plex Sans with Cyrillic, Saira Condensed for titles) so the UI works offline
 - Save buttons stay quiet and turn violet only when that part has unsaved changes; confirmation buttons name the action ("Delete", "Quit"…)
 - Keyboard shortcuts shown in the status bar, translated
@@ -18,6 +21,7 @@ All notable changes to Gamelist Media Editor are documented in this file.
 - GitHub Actions CI: tests on Windows and Linux, Python 3.9 and 3.13, plus `app.js` syntax check
 
 ### Changed
+- **Much faster with large gamelists**: on a realistic 30,000-game MAME list the app now opens in 1 s instead of 14 s and opens a game in 0.17 s instead of 1.4 s. The game list is virtualized (about 40 rows in the page instead of 420,000 elements), the server builds it in one pass (2.0 s → 0.3 s) and sends 3 times less data: only filled fields, descriptions loaded when a game is opened
 - "Delete this game" moved from the app bar to the game header; the window adapts below 1280 px (icon-only bar buttons) and 1100 px (metadata under the media)
 - Text, field outlines and focus rings meet WCAG AA contrast
 - `app.py` (3,850 lines) split into the `gme/` package: `editor`, `scrapers/ss|adb|steam|common`, `xml_store`, `media`, `systems`, `arcade`, `security`, `i18n`, `window`, `server`, `main`… Code moved verbatim (152 of 161 definitions identical by AST comparison, the 9 others are the intended edits), Flask blueprints per area, no behaviour change; `app.py` stays the entry point (`python app.py`, `Lancer.bat`, PyInstaller)

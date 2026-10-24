@@ -27,7 +27,8 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
 - **Steam**: trailer download (French when available, 720p if ≤ 50 MB, else 480p)
 
 **Workflow**
-- Filter games by **missing media** (live counts), search, keyboard navigation, `Ctrl+S` save, `Ctrl+F` search
+- Game list with **thumbnails** and a **media count** per game (hover it to see what is missing); fast with very large gamelists (a 30,000-game MAME list opens in about a second)
+- Filter games by **missing media** (counts per media), search, keyboard navigation, `Ctrl+S` save, `Ctrl+F` search
 - **Open another `gamelist.xml`** at any time (file browser + recent files), **Reload** after an outside edit
 - **Tools**: language, ScreenScraper member login and media types, `.bak` backup, purge all `<region>` tags
 - Delete a game (ROM + media + XML entry) with optional backup
@@ -113,10 +114,12 @@ Code layout (`app.py` is only the entry point; the overview is in `gme/__init__.
 | `gme/scrapers/ss.py`, `adb.py`, `steam.py` | ScreenScraper, Arcade Database, Steam (client, parsing, routes) |
 | `gme/scrapers/common.py` | throttling, name matching, ROM hashes |
 | `gme/xml_store.py` | the open `gamelist.xml`: path, cache, writes, game lookup |
+| `gme/thumbs.py` | list thumbnails (`/api/thumb`), cached in `cache/thumbs/` next to `app.py` or the `.exe` |
 | `gme/media.py`, `gme/systems.py`, `gme/arcade.py` | media files, ScreenScraper system ids, arcade hardware names |
 | `gme/security.py`, `gme/i18n.py`, `gme/window.py` | local-only guards, server messages, app window |
 | `templates/`, `static/` | UI (`app.js`, `style.css`, `locales/*.json`) |
 
+- The game list is virtualized (`renderList` / `renderListWindow` in `app.js`): only the rows in view exist in the page. `/api/games` sends the non-empty fields without descriptions; `/api/game/<index>` returns one game with its description
 - `xml_store.XML_PATH` / `xml_store.BASE_DIR` change when another gamelist is opened: read them through the module, never import the names
 - Version: `APP_VERSION` and `APP_RELEASE_DATE` in `gme/version.py` are the only places to change (header, About dialog, User-Agent, console)
 - `python app.py --no-browser [gamelist.xml]` starts the server without opening a window

@@ -39,7 +39,10 @@
     "filter_boxart": "Zonder boxart",
     "filter_fanart": "Zonder fanart",
     "filter_mix": "Zonder mix",
-    "filter_map": "Zonder map"
+    "filter_map": "Zonder map",
+    "list_aria": "Spellenlijst",
+    "media_missing": "Ontbreekt: {list}",
+    "media_complete": "Alle media aanwezig"
   },
   "editor": {
     "save_name": "Opslaan",
