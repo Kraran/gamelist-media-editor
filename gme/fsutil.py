@@ -53,3 +53,13 @@ def atomic_write(path, data):
                 os.remove(tmp)
             except OSError:
                 pass
+
+
+def trash(path):
+    """Move a file or a folder to the Recycle Bin (recoverable).
+
+    Raises OSError (or send2trash's TrashPermissionError) when the drive has
+    no Recycle Bin, e.g. some network shares: callers then keep the file.
+    """
+    from send2trash import send2trash
+    send2trash(path)

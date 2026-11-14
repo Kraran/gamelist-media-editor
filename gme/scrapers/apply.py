@@ -21,9 +21,9 @@ from gme import xml_store
 from gme.fields import FieldError, clean_meta, set_desc, set_name
 from gme.http import api_err
 from gme.i18n import st
-from gme.media import MAX_DOWNLOAD_BYTES, download_pad2key, download_remote_media, pad2key_dest, safe_delete_file
+from gme.media import MAX_DOWNLOAD_BYTES, discard_old_media, download_pad2key, download_remote_media, media_filename, pad2key_dest
 from gme.scrapers.compare import compare_rows, current_from_game, fields_for_preset
-from gme.xml_store import MEDIA_DIRS, get_base_name, get_game_elem, require_gamelist, resolve_under_base, save_xml
+from gme.xml_store import MEDIA_DIRS, get_base_name, get_game_elem, require_gamelist, save_xml
 
 
 def _download_error(field, e):
@@ -39,10 +39,9 @@ def _download_error(field, e):
 
 
 def set_media_path(game, field, rel_path):
-    """Point ``field`` at ``rel_path``; delete the previous file if it was another one."""
-    old_rel = game.findtext(field, "") or ""
-    if old_rel and resolve_under_base(old_rel) != resolve_under_base(rel_path):
-        safe_delete_file(old_rel)
+    """Point ``field`` at ``rel_path``; the previous file goes to the Recycle Bin
+    if it was another one that no other tag uses."""
+    discard_old_media(game, field, game.findtext(field, "") or "", rel_path)
     elem = game.find(field)
     if elem is None:
         elem = etree.SubElement(game, field)
@@ -104,7 +103,9 @@ def apply_proposed(game, fields, proposed, headers=None, media_handlers=None, no
             else:
                 media_dir = os.path.join(xml_store.BASE_DIR, media_dir_name)
                 os.makedirs(media_dir, exist_ok=True)
-                filename = download_remote_media(url, media_dir, base_name, field, headers=headers, timeout=40)
+                filename = download_remote_media(
+                    url, media_dir, base_name, field, headers=headers, timeout=40,
+                    filename_for=lambda ext, f=field, d=media_dir_name: media_filename(game, f, ext, d))
                 rel_path = f"./{media_dir_name}/{filename}"
         except ValueError as e:
             msg = _download_error(field, e)

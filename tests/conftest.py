@@ -1,7 +1,10 @@
 """Shared fixtures: a throw-away gamelist + Flask test client."""
+import os
+import shutil
+
 import pytest
 
-from gme import recent, xml_store
+from gme import fsutil, recent, xml_store
 from gme.server import app
 
 GAMELIST = """<?xml version="1.0"?>
@@ -21,6 +24,24 @@ def recent_file(tmp_path, monkeypatch):
     path = tmp_path / "recent_gamelists.json"
     monkeypatch.setattr(recent, "RECENT_FILE", str(path))
     return path
+
+
+@pytest.fixture(autouse=True)
+def trashed(monkeypatch):
+    """Nothing goes to the real Recycle Bin: what would is recorded, then removed."""
+    paths = []
+
+    def fake_trash(path):
+        if not os.path.exists(path):
+            raise OSError(f"no such file: {path}")
+        paths.append(str(path))
+        if os.path.isdir(path):
+            shutil.rmtree(path)
+        else:
+            os.remove(path)
+
+    monkeypatch.setattr(fsutil, "trash", fake_trash)
+    return paths
 
 
 @pytest.fixture

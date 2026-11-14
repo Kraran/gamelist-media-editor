@@ -164,6 +164,8 @@
     "purge_ok": "{n} <region>-tagg(ar) borttagna",
     "purge_bak": " — .bak-kopia skapad",
     "delete_ok": "“{name}” borttaget ({n} fil(er) raderade)",
+    "delete_ok_trash": "“{name}” borttaget ({n} fil(er) flyttade till Papperskorgen)",
+    "delete_kept": " · {n} fil(er) behölls, används av ett annat spel",
     "ss_saved": "ScreenScraper-inställningar sparade",
     "no_fields": "Inget fält valt",
     "list_reloaded": "Lista omladdad",
@@ -198,7 +200,11 @@
     "purge_body": "<p>Alla <code>&lt;region&gt;</code>-taggar från <strong>alla</strong> spel tas bort från XML.</p>",
     "purge_ok": "Ta bort regioner",
     "delete_title": "Ta bort “{name}”?",
-    "delete_body": "<p>Permanent borttagning av:</p><ul><li>ROM-filen</li><li>bild, video, marquee, manual, boxback</li><li>hela posten i <code>gamelist.xml</code></li></ul><p><strong>Kan inte ångras</strong> (utom manuell .bak-återställning).</p>",
+    "delete_files": "Spelets filer ({n})",
+    "delete_media": "Media ({n})",
+    "delete_entry": "Dess post i <code>gamelist.xml</code>",
+    "delete_kept": "Behålls, ett annat spel använder dem ({n})",
+    "delete_more": "… och {n} till",
     "delete_ok": "Ta bort",
     "this_game": "detta spel",
     "arcade_sys_title": "Fill arcadesystemname?",
@@ -382,7 +388,8 @@
     "url_not_http": "URL is not http(s)",
     "rating_range_value": "rating out of range: {value}",
     "rating_invalid_value": "invalid rating: {value}",
-    "stale_game": "Det här spelet har ändrats i gamelist.xml (redigerat utanför appen). Listan har laddats om: kontrollera valet och försök igen."
+    "stale_game": "Det här spelet har ändrats i gamelist.xml (redigerat utanför appen). Listan har laddats om: kontrollera valet och försök igen.",
+    "rom_not_deleted": "Kunde inte ta bort {path} ({detail}). Inget har ändrats."
   },
   "open_gl": {
     "title": "Öppna en gamelist.xml",

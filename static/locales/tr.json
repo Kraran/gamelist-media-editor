@@ -164,6 +164,8 @@
     "purge_ok": "{n} <region> etiketi silindi",
     "purge_bak": " — .bak yedeği oluşturuldu",
     "delete_ok": "“{name}” silindi ({n} dosya kaldırıldı)",
+    "delete_ok_trash": "“{name}” silindi ({n} dosya Geri Dönüşüm Kutusu'na taşındı)",
+    "delete_kept": " · {n} dosya korundu, başka bir oyun kullanıyor",
     "ss_saved": "ScreenScraper ayarları kaydedildi",
     "no_fields": "Alan seçilmedi",
     "list_reloaded": "Liste yenilendi",
@@ -198,7 +200,11 @@
     "purge_body": "<p><strong>Tüm</strong> oyunlardaki tüm <code>&lt;region&gt;</code> etiketleri XML’den kaldırılacak.</p>",
     "purge_ok": "Bölgeleri sil",
     "delete_title": "“{name}” silinsin mi?",
-    "delete_body": "<p>Kalıcı silme:</p><ul><li>ROM</li><li>görsel, video, marquee, kılavuz, boxback</li><li><code>gamelist.xml</code> içindeki tüm kayıt</li></ul><p><strong>Geri alınamaz</strong> (manuel .bak geri yükleme hariç).</p>",
+    "delete_files": "Oyunun dosyaları ({n})",
+    "delete_media": "Medya ({n})",
+    "delete_entry": "<code>gamelist.xml</code> içindeki kaydı",
+    "delete_kept": "Korunur, başka bir oyun kullanıyor ({n})",
+    "delete_more": "… ve {n} tane daha",
     "delete_ok": "Sil",
     "this_game": "bu oyun",
     "arcade_sys_title": "Fill arcadesystemname?",
@@ -382,7 +388,8 @@
     "url_not_http": "URL is not http(s)",
     "rating_range_value": "rating out of range: {value}",
     "rating_invalid_value": "invalid rating: {value}",
-    "stale_game": "Bu oyun gamelist.xml içinde değişti (uygulama dışında düzenlendi). Liste yeniden yüklendi: seçimi kontrol edip tekrar deneyin."
+    "stale_game": "Bu oyun gamelist.xml içinde değişti (uygulama dışında düzenlendi). Liste yeniden yüklendi: seçimi kontrol edip tekrar deneyin.",
+    "rom_not_deleted": "{path} silinemedi ({detail}). Hiçbir şey değiştirilmedi."
   },
   "open_gl": {
     "title": "gamelist.xml aç",

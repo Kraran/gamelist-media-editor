@@ -126,6 +126,6 @@ def test_game_menu_copy_path_and_delete_asks(page, gamelist):
     page.click("#btn-delete-game")
     page.wait_for_selector("#confirm-modal.open")
     assert "Alpha" in page.inner_text("#confirm-title")
-    assert page.evaluate("document.activeElement.id") == "confirm-ok"   # the dialog keeps the focus
+    assert page.evaluate("document.activeElement.id") == "confirm-cancel"   # deleting: Cancel has the focus
     page.click("#confirm-cancel")
     assert (gamelist.parent / "alpha.zip").exists()

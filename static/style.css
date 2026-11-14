@@ -902,6 +902,31 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); cur
   cursor: pointer;
 }
 .modal-backup input { margin-top: 2px; }
+/* Delete a game: the files that will go, from the server's dry run */
+.modal-body .del-h { margin-top: var(--s3); color: var(--text); font-weight: 600; font-size: var(--fs-sm); }
+.modal-body .del-h:first-child { margin-top: 0; }
+.modal-body .del-h.is-kept { color: var(--text-2); font-weight: 500; }
+.modal-body .del-list {
+  list-style: none;
+  margin-top: var(--s1);
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+.del-list li { display: flex; align-items: baseline; gap: var(--s2); min-width: 0; font-size: var(--fs-sm); }
+.del-list code {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: rtl;               /* long paths: keep the file name visible */
+  text-align: left;
+  color: var(--text);
+}
+.del-list li > span { flex: none; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.del-list .del-more { color: var(--text-3); }
+.modal-body .del-trash { margin-top: var(--s4); }   /* .modal-backup look */
 .modal-actions, .tools-footer {
   display: flex;
   align-items: center;

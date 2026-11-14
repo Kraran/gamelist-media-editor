@@ -164,6 +164,8 @@
     "purge_ok": "Usunięto {n} tag(ów) <region>",
     "purge_bak": " — utworzono kopię .bak",
     "delete_ok": "Usunięto „{name}” ({n} plik(ów))",
+    "delete_ok_trash": "Usunięto „{name}” ({n} plik(ów) przeniesiono do Kosza)",
+    "delete_kept": " · zachowano {n} plik(ów) używanych przez inną grę",
     "ss_saved": "Ustawienia ScreenScraper zapisane",
     "no_fields": "Nie wybrano pola",
     "list_reloaded": "Lista odświeżona",
@@ -198,7 +200,11 @@
     "purge_body": "<p>Wszystkie tagi <code>&lt;region&gt;</code> ze <strong>wszystkich</strong> gier zostaną usunięte z XML.</p>",
     "purge_ok": "Usuń regiony",
     "delete_title": "Usunąć „{name}”?",
-    "delete_body": "<p>Trwałe usunięcie:</p><ul><li>ROM-u</li><li>obrazu, wideo, marquee, instrukcji, boxback</li><li>całego wpisu w <code>gamelist.xml</code></li></ul><p><strong>Tej operacji nie można cofnąć</strong> (poza ręcznym przywróceniem .bak).</p>",
+    "delete_files": "Pliki gry ({n})",
+    "delete_media": "Multimedia ({n})",
+    "delete_entry": "Jej wpis w <code>gamelist.xml</code>",
+    "delete_kept": "Zachowane, używa ich inna gra ({n})",
+    "delete_more": "… i {n} więcej",
     "delete_ok": "Usuń",
     "this_game": "tej gry",
     "arcade_sys_title": "Fill arcadesystemname?",
@@ -382,7 +388,8 @@
     "url_not_http": "URL is not http(s)",
     "rating_range_value": "rating out of range: {value}",
     "rating_invalid_value": "invalid rating: {value}",
-    "stale_game": "Ta gra zmieniła się w gamelist.xml (edycja poza aplikacją). Lista została przeładowana: sprawdź wybór i spróbuj ponownie."
+    "stale_game": "Ta gra zmieniła się w gamelist.xml (edycja poza aplikacją). Lista została przeładowana: sprawdź wybór i spróbuj ponownie.",
+    "rom_not_deleted": "Nie udało się usunąć {path} ({detail}). Nic nie zostało zmienione."
   },
   "open_gl": {
     "title": "Otwórz gamelist.xml",
