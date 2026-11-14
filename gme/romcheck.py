@@ -23,7 +23,7 @@ import re
 from flask import Blueprint, jsonify, request
 from lxml import etree
 
-from gme import xml_store
+from gme import fsutil, xml_store
 from gme.http import api_err
 from gme.i18n import st
 from gme.log import log
@@ -247,10 +247,10 @@ def _delete_media(game, still_used):
         if not full or _key(full) in still_used or not os.path.isfile(full):
             continue
         try:
-            os.remove(full)
+            fsutil.trash(full)
             deleted += 1
-        except OSError:
-            pass
+        except Exception as e:  # no Recycle Bin on this drive: keep the file
+            log.warning("ROM check: could not move %s to the Recycle Bin (%s)", full, e)
     return deleted
 
 

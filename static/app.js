@@ -304,9 +304,21 @@ function handleError(e, context) {
   setStatus(isQuota ? t("status.quota") : t("status.error"));
   return msg;
 }
+/* A replaced media usually keeps its file name: without a new URL the browser
+ * shows the picture it already has. Each change stamps the paths it wrote. */
+const MEDIA_STAMP = new Map();   // gamelist path → stamp
+function stampMedia(paths) {
+  const v = Date.now().toString(36);
+  paths.forEach(p => { if (p) MEDIA_STAMP.set(p, v); });
+}
 function mediaUrl(relPath) {
-if (!relPath) return null;
-return "/media/" + relPath.replace(/^\.\//, "");
+  if (!relPath) return null;
+  const v = MEDIA_STAMP.get(relPath);
+  return "/media/" + relPath.replace(/^\.\//, "").split("/").map(encodeURIComponent).join("/") + (v ? "?v=" + v : "");
+}
+function thumbUrl(relPath) {
+  const v = MEDIA_STAMP.get(relPath);
+  return "/api/thumb?path=" + encodeURIComponent(relPath) + (v ? "&v=" + v : "");
 }
 function escapeHtml(str) {
   return String(str)
@@ -636,7 +648,7 @@ function gameRowHtml(g, listIndex, pos) {
     : t("sidebar.media_complete");
   const tp = thumbPath(g);
   const thumb = tp
-    ? `<img src="/api/thumb?path=${encodeURIComponent(tp)}" alt="" loading="lazy" decoding="async" />`
+    ? `<img src="${thumbUrl(tp)}" alt="" loading="lazy" decoding="async" />`
     : icon("device-gamepad-2");
   const countCls = present === fields.length ? " is-complete" : present === 0 ? " is-empty" : "";
   return `<div class="game-item${active ? " active" : ""}" role="option" id="gi-${listIndex}"` +
@@ -1265,6 +1277,7 @@ async function uploadMedia(field, { file, url }) {
   try {
     const data = await apiFetch(gameUrl(`/api/upload/${currentIndex}/${field}`), { method: "POST", body: form });
     const g = games.find(x => x.index === currentIndex);
+    stampMedia([data.path]);
     if (g) { g[field] = data.path; renderZones(g); }
     renderList(document.getElementById("search").value);
     toast(t("toast.upload_ok", { field: fieldLabel(field), filename: data.filename }));
@@ -1525,16 +1538,24 @@ function askConfirm({ title, bodyHtml, showBackup = true, okLabel, cancelLabel, 
     const onCancel = () => cleanup({ confirmed: false, backup: false });
     const onExtra = () => cleanup({ confirmed: false, backup: false, extra: true });
     const onOverlay = (e) => { if (e.target === overlay) onCancel(); };
+    // Enter on a button presses that button (the browser does it). Elsewhere
+    // it confirms, except in a dialog that deletes: there, a click is needed.
+    const danger = okClass === "btn-danger";
     const onKey = (e) => {
-      if (e.key === "Escape") onCancel();
-      if (e.key === "Enter") onOk();
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onCancel();
+      } else if (e.key === "Enter" && !(e.target.closest && e.target.closest("button"))) {
+        e.preventDefault();
+        if (!danger) onOk();
+      }
     };
     okBtn.addEventListener("click", onOk);
     cancelBtn.addEventListener("click", onCancel);
     extraBtn.addEventListener("click", onExtra);
     overlay.addEventListener("click", onOverlay);
     document.addEventListener("keydown", onKey);
-    okBtn.focus();
+    (danger ? cancelBtn : okBtn).focus();
   });
 }
 
@@ -1883,7 +1904,7 @@ function checkSectionHtml(s) {
       `<input type="checkbox" data-rc="${s.kind}" value="${escapeHtml(row.key)}"${sel.has(row.key) ? " checked" : ""} />` +
       (row.thumb !== undefined
         ? `<span class="rc-thumb">${row.thumb
-          ? `<img src="/api/thumb?path=${encodeURIComponent(row.thumb)}" alt="" loading="lazy" decoding="async" />`
+          ? `<img src="${thumbUrl(row.thumb)}" alt="" loading="lazy" decoding="async" />`
           : icon(/\.pdf$/i.test(row.path) ? "file-text" : "movie")}</span>` : "") +
       `<span class="rc-name">${escapeHtml(row.name)}</span><code class="rc-path" title="${escapeHtml(row.path)}">${escapeHtml(row.path)}</code>` +
       `<span class="rc-meta">${escapeHtml(row.meta || "")}</span></label>`).join("") +
@@ -2123,33 +2144,64 @@ document.getElementById("btn-purge-regions").addEventListener("click", async () 
     });
     let msg = t("toast.purge_ok", { n: data.removed });
     if (data.backup) msg += t("toast.purge_bak");
+    await loadGames();             // the open game and the list lose their region too
     toast(msg);
     setStatus(t("status.done"));
   } catch (e) { handleError(e); }
 });
 
+/** The files a deletion will remove, from the server's dry run (gme/gamedelete.py). */
+const DELETE_ROWS_SHOWN = 6;
+function deletePlanHtml(plan) {
+  const list = (title, rows, cls = "") => {
+    if (!rows.length) return "";
+    const shown = rows.slice(0, DELETE_ROWS_SHOWN).map(r =>
+      `<li><code title="${escapeHtml(r.path)}">\u200e${escapeHtml(r.path)}${r.dir ? "/" : ""}\u200e</code>` +
+      `<span>${escapeHtml(fmtSize(r.size))}</span></li>`).join("");
+    const more = rows.length > DELETE_ROWS_SHOWN
+      ? `<li class="del-more">${escapeHtml(t("confirm.delete_more", { n: rows.length - DELETE_ROWS_SHOWN }))}</li>` : "";
+    return `<p class="del-h${cls}">${escapeHtml(title)}</p><ul class="del-list">${shown}${more}</ul>`;
+  };
+  return list(t("confirm.delete_files", { n: plan.files.length }), plan.files) +
+    list(t("confirm.delete_media", { n: plan.media.length }), plan.media) +
+    `<p class="del-h">${t("confirm.delete_entry")}</p>` +
+    list(t("confirm.delete_kept", { n: plan.kept.length }), plan.kept, " is-kept") +
+    `<label class="modal-backup del-trash"><input type="checkbox" id="delete-trash" checked />` +
+    `<span>${escapeHtml(t("mediacheck.trash"))}</span></label>`;
+}
+
 document.getElementById("btn-delete-game").addEventListener("click", async () => {
   if (currentIndex === null) return;
   const g = games.find(x => x.index === currentIndex);
   const name = g ? g.name : t("confirm.this_game");
+  let plan;
+  try {
+    plan = await apiFetch(gameUrl(`/api/delete-game/${currentIndex}/preview`), { method: "POST" });
+  } catch (e) {
+    handleError(e);
+    return;
+  }
   const choice = await askConfirm({
     title: t("confirm.delete_title", { name }),
-    bodyHtml: t("confirm.delete_body"),
+    bodyHtml: deletePlanHtml(plan),
     okLabel: t("confirm.delete_ok"),
   });
   if (!choice.confirmed) return;
+  const trash = document.getElementById("delete-trash").checked;
 
   setStatus(t("status.deleting_game"));
   try {
     const data = await apiFetch(gameUrl(`/api/delete-game/${currentIndex}`), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ backup: choice.backup }),
+      body: JSON.stringify({ backup: choice.backup, trash }),
     });
-    const nFiles = (data.deleted_files || []).length;
-    let msg = t("toast.delete_ok", { name: data.name, n: nFiles });
+    const n = (data.deleted_files || []).length;
+    let msg = t(data.trash ? "toast.delete_ok_trash" : "toast.delete_ok", { name: data.name, n });
+    if ((data.kept_files || []).length) msg += t("toast.delete_kept", { n: data.kept_files.length });
+    if ((data.failed_files || []).length) msg += t("mediacheck.done_failed", { n: data.failed_files.length });
     if (data.backup) msg += t("toast.purge_bak");
-    toast(msg);
+    toast(msg, (data.failed_files || []).length ? "warning" : "success");
     currentIndex = null;
     currentListIndex = null;
     document.getElementById("btn-delete-game").disabled = true;
@@ -2984,6 +3036,13 @@ async function applyScrape() {
     });
     closeSsModal();
     await loadGames();
+    const g = games.find(x => x.index === currentIndex);
+    if (g && (data.applied || []).length) {
+      // New pictures, maybe under the same file names
+      stampMedia(data.applied.filter(f => FIELD_DEFS.some(d => d.key === f)).map(f => g[f]));
+      renderZones(g);
+      renderListWindow(true);
+    }
     const errors = data.errors || [];
     let msg = t("scrape.apply_ok", { n: (data.applied || []).length });
     if (errors.length) {

@@ -5,8 +5,9 @@ from urllib.parse import unquote, urlparse
 
 import requests
 
-from gme import remote_cache, xml_store
+from gme import fsutil, remote_cache, xml_store
 from gme.fsutil import atomic_write
+from gme.log import log
 from gme.version import APP_UA
 from gme.xml_store import get_base_name, resolve_under_base
 
@@ -15,15 +16,106 @@ from gme.xml_store import get_base_name, resolve_under_base
 MAX_DOWNLOAD_BYTES = 50 * 1024 * 1024  # 50 MB
 
 
-def safe_delete_file(rel_path):
-    """Delete a media file under BASE_DIR. Returns True if deleted."""
-    full = resolve_under_base(rel_path)
+# --- Files shared between games ----------------------------------------------
+# Two games (or two tags of one game) may point to the same file: a box art
+# reused for a clone, a ROM listed twice. A file still used elsewhere is never
+# deleted nor overwritten, and what is deleted goes to the Recycle Bin.
+
+# Tags that never hold a file path; every other tag may (<image>, <wheel>, <path>…)
+NOT_FILE_TAGS = {"name", "desc", "rating", "releasedate", "developer", "publisher", "genre",
+                 "players", "lang", "region", "family", "favorite", "hidden", "kidgame",
+                 "playcount", "lastplayed", "arcadesystemname", "genreid", "sortname", "md5",
+                 "crc32", "cheevosid", "gametime"}
+
+
+def file_path(value):
+    """Absolute path of a path written in the gamelist, or None (empty, URL, steam://)."""
+    value = (value or "").strip()
+    if not value or "://" in value:
+        return None
+    if not os.path.isabs(value):
+        clean = value.replace("\\", "/")
+        while clean.startswith("./"):
+            clean = clean[2:]
+        value = os.path.join(xml_store.BASE_DIR, clean)
+    return os.path.normpath(value)
+
+
+def file_key(value):
+    """Comparable form of a path written in the gamelist (same file = same key), or None."""
+    full = file_path(value)
+    return os.path.normcase(full) if full else None
+
+
+def _file_tags(game):
+    for child in game:
+        if isinstance(child.tag, str) and child.tag not in NOT_FILE_TAGS and child.text:
+            yield child
+
+
+def file_in_use(game, value, skip_tag=None):
+    """True when a tag of the gamelist other than ``game``'s ``skip_tag`` points to ``value``.
+
+    The other tags of ``game`` count (its thumbnail may be its image file).
+    """
+    key = file_key(value)
+    root = game.getparent()
+    if not key or root is None:
+        return False
+    name = os.path.basename(key).lower()
+    for other in root.iterfind("game"):
+        for child in _file_tags(other):
+            if other is game and child.tag == skip_tag:
+                continue
+            text = child.text.strip().replace("\\", "/")
+            if text.rsplit("/", 1)[-1].lower() == name and file_key(text) == key:
+                return True
+    return False
+
+
+def files_used_by_others(game):
+    """Keys of every file the other games of the gamelist point to."""
+    root = game.getparent()
+    used = set()
+    if root is None:
+        return used
+    for other in root.iterfind("game"):
+        if other is game:
+            continue
+        for child in _file_tags(other):
+            key = file_key(child.text)
+            if key:
+                used.add(key)
+    return used
+
+
+def media_filename(game, field, ext, media_dir_name):
+    """``<rom>-<field><ext>``, or ``<rom>-<field>-2<ext>``… when that file belongs to another tag."""
+    base = get_base_name(game)
+    n = 1
+    while True:
+        name = f"{base}-{field}{ext}" if n == 1 else f"{base}-{field}-{n}{ext}"
+        rel = f"./{media_dir_name}/{name}"
+        if not os.path.exists(os.path.join(xml_store.BASE_DIR, media_dir_name, name)) \
+                or not file_in_use(game, rel, skip_tag=field):
+            return name
+        n += 1
+
+
+def discard_old_media(game, field, old_rel, new_rel):
+    """After ``field`` moved from ``old_rel`` to ``new_rel``: the old file goes to the
+    Recycle Bin, unless another tag still uses it. Returns True if it was moved."""
+    old_key = file_key(old_rel)
+    if not old_key or old_key == file_key(new_rel) or file_in_use(game, old_rel, skip_tag=field):
+        return False
+    full = resolve_under_base(old_rel)
     if not full or not os.path.isfile(full):
         return False
     try:
-        os.remove(full)
+        fsutil.trash(full)
         return True
-    except OSError:
+    except Exception as e:  # no Recycle Bin on this drive, locked file: keep it
+        log.warning("Could not move the replaced media %s to the Recycle Bin (%s)", full, e)
         return False
 
 
@@ -251,12 +343,13 @@ def _png_is_solid_green(data):
     return g >= 170 and r <= 60 and b <= 60
 
 
-def download_remote_media(url, media_dir, base_name, field, headers=None, timeout=40):
+def download_remote_media(url, media_dir, base_name, field, headers=None, timeout=40, filename_for=None):
     """Download a remote media file and save it with a real image/video/pdf extension.
 
     A copy already downloaded for the scrape preview (``remote_cache``) is
     reused, so applying a previewed image costs no second download.
     ScreenScraper URLs often end with ``image.php`` — that suffix is ignored.
+    ``filename_for(ext)`` names the file (default ``<base_name>-<field><ext>``).
     Returns the dest filename (not a path).
     """
     if urlparse(url).scheme not in ("http", "https"):
@@ -273,7 +366,7 @@ def download_remote_media(url, media_dir, base_name, field, headers=None, timeou
     if field == "boxback" and is_ss_green_placeholder(data):
         raise ValueError("green_placeholder")
     ext = resolve_media_ext(url, content_type, field, data[:64])
-    filename = f"{base_name}-{field}{ext}"
+    filename = filename_for(ext) if filename_for else f"{base_name}-{field}{ext}"
     atomic_write(os.path.join(media_dir, filename), data)
     return filename
 

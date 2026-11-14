@@ -164,6 +164,8 @@
     "purge_ok": "{n} <region> tag(s) removed",
     "purge_bak": " — .bak backup created",
     "delete_ok": "“{name}” deleted ({n} file(s) removed)",
+    "delete_ok_trash": "“{name}” deleted ({n} file(s) moved to the Recycle Bin)",
+    "delete_kept": " · {n} file(s) kept, used by another game",
     "ss_saved": "ScreenScraper settings saved",
     "no_fields": "No field selected",
     "list_reloaded": "List reloaded",
@@ -198,7 +200,11 @@
     "purge_body": "<p>All <code>&lt;region&gt;</code> tags from <strong>all</strong> games will be removed from the XML.</p>",
     "purge_ok": "Remove regions",
     "delete_title": "Delete “{name}”?",
-    "delete_body": "<p>Permanent deletion of:</p><ul><li>the ROM</li><li>image, video, marquee, manual, boxback</li><li>the whole entry in <code>gamelist.xml</code></li></ul><p><strong>This cannot be undone</strong> (except manual .bak restore).</p>",
+    "delete_files": "Game files ({n})",
+    "delete_media": "Media ({n})",
+    "delete_entry": "Its entry in <code>gamelist.xml</code>",
+    "delete_kept": "Kept, another game uses them ({n})",
+    "delete_more": "… and {n} more",
     "delete_ok": "Delete",
     "this_game": "this game",
     "arcade_sys_title": "Fill arcadesystemname?",
@@ -382,7 +388,8 @@
     "url_not_http": "URL is not http(s)",
     "rating_range_value": "rating out of range: {value}",
     "rating_invalid_value": "invalid rating: {value}",
-    "stale_game": "This game changed in gamelist.xml (edited outside the app). The list has been reloaded: check the selection and try again."
+    "stale_game": "This game changed in gamelist.xml (edited outside the app). The list has been reloaded: check the selection and try again.",
+    "rom_not_deleted": "Could not delete {path} ({detail}). Nothing was changed."
   },
   "open_gl": {
     "title": "Open a gamelist.xml",

@@ -164,6 +164,8 @@
     "purge_ok": "{n} balise(s) <region> supprimée(s)",
     "purge_bak": " — sauvegarde .bak créée",
     "delete_ok": "« {name} » supprimé ({n} fichier(s) effacé(s))",
+    "delete_ok_trash": "« {name} » supprimé ({n} fichier(s) mis à la Corbeille)",
+    "delete_kept": " · {n} fichier(s) gardé(s), utilisé(s) par un autre jeu",
     "ss_saved": "Paramètres ScreenScraper enregistrés",
     "no_fields": "Aucun champ sélectionné",
     "list_reloaded": "Liste rechargée",
@@ -198,7 +200,11 @@
     "purge_body": "<p>Toutes les balises <code>&lt;region&gt;</code> de <strong>tous</strong> les jeux seront retirées du XML.</p>",
     "purge_ok": "Supprimer les régions",
     "delete_title": "Supprimer « {name} » ?",
-    "delete_body": "<p>Suppression définitive de :</p><ul><li>la ROM</li><li>l’image, la vidéo, le marquee, le manuel, le boxback</li><li>toute l’entrée dans <code>gamelist.xml</code></li></ul><p><strong>Cette action est irréversible</strong> (sauf restauration manuelle du .bak).</p>",
+    "delete_files": "Fichiers du jeu ({n})",
+    "delete_media": "Médias ({n})",
+    "delete_entry": "Son entrée dans <code>gamelist.xml</code>",
+    "delete_kept": "Gardés, car un autre jeu les utilise ({n})",
+    "delete_more": "… et {n} autre(s)",
     "delete_ok": "Supprimer",
     "this_game": "ce jeu",
     "arcade_sys_title": "Remplir arcadesystemname ?",
@@ -382,7 +388,8 @@
     "url_not_http": "URL non http(s)",
     "rating_range_value": "rating hors plage : {value}",
     "rating_invalid_value": "rating invalide : {value}",
-    "stale_game": "Ce jeu a changé dans gamelist.xml (modifié hors de l'application). La liste a été rechargée : vérifie la sélection et recommence."
+    "stale_game": "Ce jeu a changé dans gamelist.xml (modifié hors de l'application). La liste a été rechargée : vérifie la sélection et recommence.",
+    "rom_not_deleted": "Impossible de supprimer {path} ({detail}). Rien n’a été modifié."
   },
   "open_gl": {
     "title": "Ouvrir un gamelist.xml",

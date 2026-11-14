@@ -17,7 +17,7 @@ import os
 
 from flask import Blueprint, jsonify, request
 
-from gme import xml_store
+from gme import fsutil, xml_store
 from gme.http import api_err
 from gme.i18n import st
 from gme.log import log
@@ -106,8 +106,7 @@ def scan(tree=None):
 
 
 def _trash(full):
-    from send2trash import send2trash
-    send2trash(full)
+    fsutil.trash(full)
 
 
 @bp.route("/api/check-media")

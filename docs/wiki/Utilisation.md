@@ -41,6 +41,7 @@ Les médias présents s’affichent **dans leur forme** (boîte verticale, logo 
 
 - **Ajouter** : glisse un fichier (ou une image d’une page web) sur un média manquant, ou clique dessus pour choisir un fichier
 - **Remplacer** : glisse sur le média, ou bouton *Remplacer le fichier*
+  L’ancien fichier, s’il avait un autre nom, va à la **Corbeille**. Un fichier qu’un autre jeu utilise (ou une autre balise du même jeu) n’est jamais effacé ni écrasé : le nouveau prend un autre nom (`…-image-2.png`).
 - **Retirer** : la corbeille retire la balise du XML (le fichier reste sur le disque)
 
 Limite : 50 Mo par fichier.
@@ -65,7 +66,12 @@ Le bouton **Suivant incomplet** (ou `N`) passe au prochain jeu de la liste auque
 ## Menu ⋯ du jeu
 
 - **Copier le chemin de la ROM** (chemin complet)
-- **Supprimer ce jeu…** : ROM + médias + entrée XML, avec sauvegarde `.bak` optionnelle (irréversible)
+- **Supprimer ce jeu…** : la fenêtre liste exactement ce qui part :
+  - les **fichiers du jeu** : la ROM, ses pistes ou disques (`.cue`, `.gdi`, `.m3u`), le dossier du même nom à côté (MAME : `kinst/` de `kinst.zip`), son fichier Pad2Key `.keys` ;
+  - ses **médias** ;
+  - son entrée dans `gamelist.xml`.
+
+  Ce qu’un autre jeu utilise encore (boxart partagé, ROM listée deux fois) est **gardé** et listé à part. Tout va à la **Corbeille** (décoche l’option pour supprimer définitivement) ; sauvegarde `.bak` optionnelle. Si la ROM ne peut pas être supprimée (fichier verrouillé, lecteur réseau sans Corbeille), rien n’est modifié.
 
 ## Actions (⋯ dans la barre du haut)
 

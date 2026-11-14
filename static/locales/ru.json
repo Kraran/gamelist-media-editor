@@ -164,6 +164,8 @@
     "purge_ok": "Удалено тегов <region>: {n}",
     "purge_bak": " — создана копия .bak",
     "delete_ok": "«{name}» удалено (файлов: {n})",
+    "delete_ok_trash": "«{name}» удалено (файлов в корзине: {n})",
+    "delete_kept": " · сохранено файлов: {n} (их использует другая игра)",
     "ss_saved": "Настройки ScreenScraper сохранены",
     "no_fields": "Поле не выбрано",
     "list_reloaded": "Список обновлён",
@@ -198,7 +200,11 @@
     "purge_body": "<p>Все теги <code>&lt;region&gt;</code> у <strong>всех</strong> игр будут удалены из XML.</p>",
     "purge_ok": "Удалить регионы",
     "delete_title": "Удалить «{name}»?",
-    "delete_body": "<p>Окончательное удаление:</p><ul><li>ROM</li><li>изображения, видео, marquee, мануала, boxback</li><li>всей записи в <code>gamelist.xml</code></li></ul><p><strong>Действие необратимо</strong> (кроме ручного восстановления .bak).</p>",
+    "delete_files": "Файлы игры ({n})",
+    "delete_media": "Медиа ({n})",
+    "delete_entry": "Её запись в <code>gamelist.xml</code>",
+    "delete_kept": "Сохраняются: их использует другая игра ({n})",
+    "delete_more": "… и ещё {n}",
     "delete_ok": "Удалить",
     "this_game": "этой игры",
     "arcade_sys_title": "Fill arcadesystemname?",
@@ -382,7 +388,8 @@
     "url_not_http": "URL is not http(s)",
     "rating_range_value": "rating out of range: {value}",
     "rating_invalid_value": "invalid rating: {value}",
-    "stale_game": "Эта игра изменилась в gamelist.xml (файл изменён вне приложения). Список перезагружен: проверьте выбор и повторите попытку."
+    "stale_game": "Эта игра изменилась в gamelist.xml (файл изменён вне приложения). Список перезагружен: проверьте выбор и повторите попытку.",
+    "rom_not_deleted": "Не удалось удалить {path} ({detail}). Ничего не изменено."
   },
   "open_gl": {
     "title": "Открыть gamelist.xml",

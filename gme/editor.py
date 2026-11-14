@@ -15,7 +15,7 @@ from gme.fields import FieldError, clean_meta, set_desc, set_meta, set_name
 from gme.http import api_err
 from gme.i18n import st
 from gme.log import log
-from gme.media import MAX_DOWNLOAD_BYTES, MEDIA_EXTS, default_ext_for_field, download_remote_media, ext_from_magic, pad2key_dest, safe_delete_file
+from gme.media import MAX_DOWNLOAD_BYTES, MEDIA_EXTS, default_ext_for_field, discard_old_media, download_remote_media, ext_from_magic, media_filename
 from gme.paths import resource_path
 from gme.systems import get_system_info
 from gme.version import APP_RELEASE_DATE, APP_VERSION
@@ -254,13 +254,14 @@ def upload(index, field):
                 head = file.stream.read(64)
                 file.stream.seek(0)
                 ext = ext_from_magic(head) or default_ext_for_field(field)
-            new_filename = f"{base_name}-{field}{ext}"
+            new_filename = media_filename(game, field, ext, media_dir_name)
             file.save(os.path.join(media_dir, new_filename))
             rel_path = f"./{media_dir_name}/{new_filename}"
         elif url:
             try:
                 new_filename = download_remote_media(
-                    url, media_dir, base_name, field, timeout=20
+                    url, media_dir, base_name, field, timeout=20,
+                    filename_for=lambda ext: media_filename(game, field, ext, media_dir_name),
                 )
                 rel_path = f"./{media_dir_name}/{new_filename}"
             except ValueError as e:
@@ -278,10 +279,9 @@ def upload(index, field):
         else:
             return api_err(st("server.no_file_url"), 400, code="no_file_url")
 
-        # Remove previous media file if path changes (e.g. .png → .jpg)
-        old_rel = game.findtext(field, "") or ""
-        if old_rel and resolve_under_base(old_rel) != resolve_under_base(rel_path):
-            safe_delete_file(old_rel)
+        # The previous file (another name, e.g. .png → .jpg) goes to the Recycle
+        # Bin, unless another game still uses it
+        discard_old_media(game, field, game.findtext(field, "") or "", rel_path)
 
         elem = game.find(field)
         if elem is None:
@@ -525,67 +525,16 @@ def fill_arcadesystem():
     })
 
 
-@bp.route("/api/delete-game/<int:index>", methods=["POST"])
-def delete_game(index):
-    """Delete ROM + media files on disk + XML entry for the game."""
-    err = require_gamelist()
-    if err:
-        return err
-    try:
-        body = request.get_json(silent=True) or {}
-        do_backup = bool(body.get("backup", False))
-        backup_path = None
-        if do_backup:
-            backup_path = backup_xml()
-
-        tree = load_xml()
-        root = tree.getroot()
-        games = root.findall("game")
-        if not (0 <= index < len(games)):
-            return api_err(st("server.invalid_index"), 404, code="invalid_index")
-        game = games[index]
-        name = game.findtext("name", "") or st("server.game_fallback", index=index)
-        media_tags = [
-            "path", "image", "video", "marquee", "manual", "boxback",
-            "thumbnail", "fanart", "map", "boxfront", "boxart", "cartridge", "mix",
-            "bezel",
-        ]
-        deleted_files, failed_files = [], []
-        for tag in media_tags:
-            rel = game.findtext(tag, "") or ""
-            if not rel:
-                continue
-            if safe_delete_file(rel):
-                deleted_files.append(rel)
-            else:
-                full = resolve_under_base(rel)
-                if full and os.path.exists(full):
-                    failed_files.append(rel)
-        keys_path = pad2key_dest(game)
-        if keys_path and os.path.isfile(keys_path):
-            try:
-                os.remove(keys_path)
-                deleted_files.append(os.path.relpath(keys_path, xml_store.BASE_DIR))
-            except OSError:
-                failed_files.append(keys_path)
-        root.remove(game)
-        save_xml(tree)
-        return jsonify({
-            "success": True, "name": name,
-            "deleted_files": deleted_files, "failed_files": failed_files,
-            "backup": backup_path,
-        })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
 @bp.route("/media/<path:filepath>")
 def serve_media(filepath):
     """Serve a media file only if it resolves under BASE_DIR."""
     full = resolve_under_base(filepath)
     if not full or not os.path.isfile(full):
         return st("server.file_not_found"), 404
-    return send_from_directory(os.path.dirname(full), os.path.basename(full))
+    resp = send_from_directory(os.path.dirname(full), os.path.basename(full))
+    # Revalidate every time (cheap 304): a replaced media keeps its name
+    resp.headers["Cache-Control"] = "no-cache"
+    return resp
 
 
 @bp.route("/api/shutdown", methods=["POST"])

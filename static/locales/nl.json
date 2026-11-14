@@ -164,6 +164,8 @@
     "purge_ok": "{n} <region>-tag(s) verwijderd",
     "purge_bak": " — .bak-back-up gemaakt",
     "delete_ok": "“{name}” verwijderd ({n} bestand(en) verwijderd)",
+    "delete_ok_trash": "“{name}” verwijderd ({n} bestand(en) naar de Prullenbak)",
+    "delete_kept": " · {n} bestand(en) behouden, gebruikt door een ander spel",
     "ss_saved": "ScreenScraper-instellingen opgeslagen",
     "no_fields": "Geen veld geselecteerd",
     "list_reloaded": "Lijst herladen",
@@ -198,7 +200,11 @@
     "purge_body": "<p>Alle <code>&lt;region&gt;</code>-tags van <strong>alle</strong> games worden uit de XML verwijderd.</p>",
     "purge_ok": "Regio’s verwijderen",
     "delete_title": "“{name}” verwijderen?",
-    "delete_body": "<p>Definitieve verwijdering van:</p><ul><li>de ROM</li><li>afbeelding, video, marquee, handleiding, boxback</li><li>het hele item in <code>gamelist.xml</code></li></ul><p><strong>Dit kan niet ongedaan worden gemaakt</strong> (behalve handmatig .bak-herstel).</p>",
+    "delete_files": "Bestanden van het spel ({n})",
+    "delete_media": "Media ({n})",
+    "delete_entry": "De vermelding in <code>gamelist.xml</code>",
+    "delete_kept": "Behouden, een ander spel gebruikt ze ({n})",
+    "delete_more": "… en nog {n}",
     "delete_ok": "Verwijderen",
     "this_game": "dit spel",
     "arcade_sys_title": "Fill arcadesystemname?",
@@ -382,7 +388,8 @@
     "url_not_http": "URL is not http(s)",
     "rating_range_value": "rating out of range: {value}",
     "rating_invalid_value": "invalid rating: {value}",
-    "stale_game": "Dit spel is gewijzigd in gamelist.xml (buiten de app bewerkt). De lijst is opnieuw geladen: controleer de selectie en probeer het opnieuw."
+    "stale_game": "Dit spel is gewijzigd in gamelist.xml (buiten de app bewerkt). De lijst is opnieuw geladen: controleer de selectie en probeer het opnieuw.",
+    "rom_not_deleted": "Kon {path} niet verwijderen ({detail}). Er is niets gewijzigd."
   },
   "open_gl": {
     "title": "Open een gamelist.xml",

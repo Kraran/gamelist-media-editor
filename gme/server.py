@@ -4,6 +4,7 @@ from flask import Flask
 
 from gme import security
 from gme.editor import bp as editor_bp
+from gme.gamedelete import bp as gamedelete_bp
 from gme.paths import resource_path
 from gme.mediacheck import bp as mediacheck_bp
 from gme.recent import bp as recent_bp
@@ -30,5 +31,5 @@ app.before_request(security.guard_local_requests)
 app.before_request(security.check_game_identity)
 app.after_request(security.flag_reindexed)
 
-for blueprint in (editor_bp, ss_bp, adb_bp, steam_bp, thumbs_bp, remote_cache_bp, recent_bp, romcheck_bp, mediacheck_bp):
+for blueprint in (editor_bp, gamedelete_bp, ss_bp, adb_bp, steam_bp, thumbs_bp, remote_cache_bp, recent_bp, romcheck_bp, mediacheck_bp):
     app.register_blueprint(blueprint)
