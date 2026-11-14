@@ -1,14 +1,15 @@
 # Fonctionnalités
 
-Version documentée : **1.4.0**
+Version documentée : **1.5.0**
 
 ## Médias
 
-- Glisser-déposer (fichier ou image d’une page web) ou clic pour choisir : image, video, marquee, manual, boxback, **support**, **boxart**, **fanart**, **mix**, **maps**
+- Glisser-déposer (fichier ou image d’une page web) ou clic pour choisir : image, video, marquee, manual, boxback, **support**, **boxart**, **fanart**, **mix**, **maps**, **miniature**, **bezel**
 - Galerie : chaque média dans sa forme, avec sa taille en pixels ou la durée de la vidéo ; médias manquants regroupés
 - Clic image → agrandissement
 - Extensions réelles (PNG/JPG/MP4…), jamais `.php` ; écritures atomiques (jamais de fichier à moitié écrit)
-- Extras RetroBat au scrape ScreenScraper : miniature, bezel 16:9, Pad2Key (`.keys`)
+- Extra RetroBat au scrape ScreenScraper : Pad2Key (`.keys`)
+- Un fichier remplacé va à la **Corbeille** ; un fichier qu’un autre jeu utilise n’est jamais effacé ni écrasé
 
 ## Métadonnées
 
@@ -28,7 +29,7 @@ Version documentée : **1.4.0**
 
 ## Liste
 
-- **Miniatures** et **compteur de médias** par jeu (survol : ce qui manque)
+- **Miniatures** et **compteur de médias requis** par jeu (survol : ce qui manque)
 - Recherche, **filtre** par média manquant avec compteurs
 - **Médias requis par système** : le compteur de la liste, le filtre et **Suivant incomplet** (`N`) s’en servent
 - Rapide sur de très grosses listes (30 000 jeux MAME s’ouvrent en une seconde environ)
@@ -38,14 +39,15 @@ Version documentée : **1.4.0**
 
 - Démarre **sans** gamelist
 - Ouvrir un autre XML (explorateur + récents), recharger depuis le disque
-- **Actions** : `.bak` manuel, systèmes arcade depuis `mame.xml`, purge globale `<region>`
-- Supprimer un jeu (menu ⋯ du jeu), copier le chemin de la ROM
+- **Actions** : `.bak` manuel, systèmes arcade depuis `mame.xml`, **Vérifier les ROMs** (ROMs absentes du gamelist, entrées sans ROM, doublons ; mise à jour et rapport), **Vérifier les médias** (médias inutilisés à la Corbeille, liens cassés retirés ; rapport), purge globale `<region>`
+- Supprimer un jeu (menu ⋯ du jeu) : la fenêtre liste les fichiers qui partent (ROM, pistes et disques, médias) et ceux gardés car un autre jeu les utilise ; tout va à la Corbeille
+- Copier le chemin de la ROM
 - Fenêtre Chromium `--app=` (pas de barre d’adresse)
 
 ## Interface
 
 - Thème sombre, polices et icônes intégrées (fonctionne hors ligne)
-- **Réglages** : langue, ScreenScraper, sources de scrape, raccourcis
+- **Réglages** : langue, ScreenScraper, sources de scrape, médias requis, raccourcis ; gardés dans `ui_settings.json` à côté de l’exe
 - **Clavier** : `J`/`K`, `N`, `S`, `Ctrl+S`, `Ctrl+F`, `?`
 - 13 langues
 - À propos (clic logo), Quitter
@@ -55,6 +57,6 @@ Version documentée : **1.4.0**
 - `127.0.0.1:5050` uniquement ; requêtes d’autres sites (CSRF) et en-têtes `Host` étrangers refusés
 - Chaque action vise le jeu par son `<path>` : si le XML a changé entre-temps, elle atteint le bon jeu ou est refusée
 - Limite 50 Mo, écritures du XML sérialisées et atomiques
-- Tests automatiques (Windows / Linux, navigateur) et exe construit par la CI ; exe sur la [release](https://github.com/Kraran/gamelist-media-editor/releases/tag/v1.4.0)
+- Tests automatiques (Windows / Linux, navigateur) et exe construit par la CI ; exe sur la [release](https://github.com/Kraran/gamelist-media-editor/releases/tag/v1.5.0)
 
-**Gamelist Media Editor** · v1.4.0
+**Gamelist Media Editor** · v1.5.0

@@ -1,11 +1,11 @@
 # Installation
 
-Version documentée : **1.4.0**
+Version documentée : **1.5.0**
 
 ## Option A — Exécutable Windows (recommandé)
 
-1. Ouvre la [release v1.4.0](https://github.com/Kraran/gamelist-media-editor/releases/tag/v1.4.0)
-2. Télécharge **`GamelistMediaEditor-Windows-v1.4.0.zip`**
+1. Ouvre la [release v1.5.0](https://github.com/Kraran/gamelist-media-editor/releases/tag/v1.5.0)
+2. Télécharge **`GamelistMediaEditor-Windows-v1.5.0.zip`**
 3. Décompresse où tu veux
 4. Lance **`GamelistMediaEditor.exe`**
 
@@ -69,11 +69,14 @@ Les fichiers **Pad2Key** (`.keys`) vont **à côté de la ROM**, pas dans `image
 
 Le dossier `cache` peut être supprimé sans risque.
 
-## Mise à jour 1.3.0 → 1.4.0
+## Mise à jour vers 1.5.0
 
 - Remplace les fichiers de l’app (garde `screenscraper_config.json`, `ui_settings.json` et `recent_gamelists.json`)
-- En source : `python -m pip install -r requirements.txt`
+- En source : `python -m pip install -r requirements.txt` (nouvelle dépendance **Send2Trash**, pour la Corbeille)
 - Aucune migration du `gamelist.xml`
-- Les **Outils** sont devenus **Réglages** (roue dentée) et **Actions** (⋯) : voir [Utilisation](Utilisation)
+- Au premier lancement, la langue et les sources de scrape choisies avant sont reprises dans `ui_settings.json`
+- Le compteur de la liste compte maintenant les **médias requis** du système (`3/4`) : choisis-les dans **Réglages › Médias requis**
 
-**Gamelist Media Editor** · v1.4.0
+Depuis la 1.3.0 : les **Outils** sont devenus **Réglages** (roue dentée) et **Actions** (⋯), voir [Utilisation](Utilisation).
+
+**Gamelist Media Editor** · v1.5.0

@@ -4,7 +4,7 @@
 
 Local web app to edit the media and metadata of EmulationStation **RetroBat** (and Batocera / Recalbox) `gamelist.xml` files, with drag-and-drop and built-in scrapers.
 
-**Version 1.4.0** · [Documentation (Wiki)](https://github.com/Kraran/gamelist-media-editor/wiki) · [Releases](https://github.com/Kraran/gamelist-media-editor/releases) · [Changelog](CHANGELOG.md)
+**Version 1.5.0** · [Documentation (Wiki)](https://github.com/Kraran/gamelist-media-editor/wiki) · [Releases](https://github.com/Kraran/gamelist-media-editor/releases) · [Changelog](CHANGELOG.md)
 
 ![The editor: game list, media of the selected game, description and metadata](docs/screenshots/editor.png)
 
@@ -14,9 +14,9 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
 
 **Media**
 - **Media gallery**: each media shown in its own shape (upright boxes, wide logos…) with its size in pixels; missing media grouped below
-- Drag-and-drop (file or image from a web page) or click to choose a file, for **image**, **video**, **marquee**, **manual**, **boxback**, **support** (`cartridge`), **boxart**, **fanart**, **mix**, **maps**
-- RetroBat extras from ScreenScraper: **thumbnail**, **bezel**, **Pad2Key** (`.keys`)
-- Image lightbox, upload limit 50 MB, previous file removed when a media is replaced
+- Drag-and-drop (file or image from a web page) or click to choose a file, for **image**, **video**, **marquee**, **manual**, **boxback**, **support** (`cartridge`), **boxart**, **fanart**, **mix**, **maps**, **thumbnail**, **bezel**
+- RetroBat extra from ScreenScraper: **Pad2Key** (`.keys`)
+- Image lightbox, upload limit 50 MB; a replaced file goes to the Recycle Bin, never when another game still uses it
 
 **Metadata**
 - Name, description, genre, rating (**stars**), release date (**date picker**), developer, publisher, family, players, language and region (**named lists**), `arcadesystemname`; suggestions from the values already in the gamelist
@@ -41,10 +41,12 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
 - **Keyboard**: `J`/`K` next/previous game, `N` next incomplete, `S` scrape, `Ctrl+S` save, `Ctrl+F` or `/` search, `?` shows the list
 - **Open another `gamelist.xml`** at any time (file browser, the 10 most recent files in one click), **Reload** after an outside edit
 - **Actions** menu (whole gamelist): `.bak` backup, arcade system names from `mame.xml`, **Check ROMs** (gamelist vs files of the folder: add missing ROMs, remove entries without ROM, merge duplicates, export the report), **Check media** (unused media to the Recycle Bin, links to missing files removed, export the report), purge all `<region>` tags
-- **Settings**: language, ScreenScraper member login and media types, scrape source chosen per system, keyboard shortcuts
+- **Settings**: language, ScreenScraper member login, region and media types, scrape source and required media per system, keyboard shortcuts (kept in `ui_settings.json`)
 - Game ⋯ menu: copy the ROM path, delete the game (ROM, tracks / discs, media and XML entry, listed before; files another game uses are kept; to the Recycle Bin) with optional backup
 - Application window without address bar when Edge / Chrome / Brave is available; **Quit** stops the server
 - **13 languages**
+
+![Check media: unused media with their size, links to missing files, clean-up to the Recycle Bin](docs/screenshots/check-media.png)
 
 **Safety**
 - Server bound to `127.0.0.1`; requests from other websites (CSRF) and foreign `Host` headers (DNS rebinding) are rejected
@@ -57,7 +59,7 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
 
 ### Option A — Windows executable (recommended)
 
-1. Download **`GamelistMediaEditor-Windows-v1.4.0.zip`** from the [v1.4.0 release](https://github.com/Kraran/gamelist-media-editor/releases/tag/v1.4.0)
+1. Download **`GamelistMediaEditor-Windows-v1.5.0.zip`** from the [v1.5.0 release](https://github.com/Kraran/gamelist-media-editor/releases/tag/v1.5.0)
 2. Extract anywhere and run **`GamelistMediaEditor.exe`** (no Python needed)
 3. The app window opens on http://127.0.0.1:5050 — use **Gamelist…** to open a `gamelist.xml`
 
