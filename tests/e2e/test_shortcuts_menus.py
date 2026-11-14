@@ -100,10 +100,12 @@ def test_settings_sources_reset(page, settings_file):
 def test_actions_menu_backup(page, gamelist):
     page.click("#btn-actions")
     assert page.get_attribute("#btn-actions", "aria-expanded") == "true"
-    assert page.evaluate("document.activeElement.id") == "btn-manual-backup"
+    assert page.evaluate("document.activeElement.id") == "btn-batch-scrape"
     page.keyboard.press("ArrowUp")                           # wraps to the last item
     assert page.evaluate("document.activeElement.id") == "btn-purge-regions"
+    page.keyboard.press("ArrowDown")                         # back to the first
     page.keyboard.press("ArrowDown")
+    assert page.evaluate("document.activeElement.id") == "btn-manual-backup"
     page.keyboard.press("Enter")
     page.wait_for_selector("#toast.show")
     assert (gamelist.parent / "gamelist.xml.bak").exists()

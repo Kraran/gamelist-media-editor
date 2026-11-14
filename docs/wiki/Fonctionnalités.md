@@ -23,6 +23,7 @@ Version documentée : **1.5.0**
 - **Un bouton Scraper**, source choisie par système (Arcade Database pour l’arcade, Steam pour `steam`, ScreenScraper sinon), menu pour en forcer une autre (retenue par système)
 - **Comparaison** actuel / proposé avec images ; seul ce qui manque est coché ; préréglages *Compléter*, *Tout remplacer*, *Rien*
 - Aperçus téléchargés une fois et réutilisés à l’application (quota ScreenScraper)
+- **Scrape par lot** : jeux cochés (case, `Ctrl`/`Maj`+clic, `X`) ou affichés ; compléter ou remplacer, champs au choix, progression avec arrêt, rapport (mis à jour, incertains à choisir ensuite, erreurs)
 - ScreenScraper (hash + nom, types configurables, boost membre, tous les systèmes RetroBat)
 - Arcade Database (PCB / Cabinet / Flyer / Decal, système arcade)
 - Steam (trailer FR, 720p / 480p, limite 50 Mo)

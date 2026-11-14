@@ -85,6 +85,7 @@ Elle sert au compteur de la liste (`3/4`), au filtre **Média requis manquant** 
 
 Pour tout le gamelist :
 
+- **Scraper par lot** : les jeux cochés dans la liste, sinon tous ceux affichés ; voir [Scrapers](Scrapers#scraper-par-lot)
 - **Sauvegarder (.bak)** : copie `gamelist.xml.bak` à côté du fichier
 - **Vérifier les ROMs** : compare le gamelist aux fichiers du dossier et liste
   - les **ROMs absentes du gamelist** (à ajouter : nom du fichier, prêtes à scraper avec `S` puis `N`),
@@ -123,6 +124,7 @@ Ces réglages (et la langue) sont gardés dans `ui_settings.json`, à côté de 
 | Début / Fin | Premier / dernier jeu de la liste |
 | `N` | Jeu incomplet suivant |
 | `S` | Scraper le jeu |
+| `X` | Cocher / décocher le jeu ouvert pour le scrape par lot (`Maj`+clic : tous jusqu’à ce jeu, `Échap` : tout décocher) |
 | Entrée | Appliquer le scrape (fenêtre de comparaison) |
 | `Ctrl+S` | Enregistrer |
 | `Ctrl+F` ou `/` | Rechercher |

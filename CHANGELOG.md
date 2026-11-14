@@ -2,6 +2,13 @@
 
 All notable changes to Gamelist Media Editor are documented in this file.
 
+## [Unreleased]
+
+### Added
+- **Batch scrape** (Actions › *Scrape in batch*, or *Scrape…* in the selection bar): scrapes the ticked games, or else every game shown in the list (search and filter, e.g. *Required media missing*), one after the other with the source of the system. Choose *Fill gaps* (only empty fields) or *Replace all*, and which media and information to write (the name and Pad2Key are off by default); a `.bak` is made first. A progress bar shows each game, *Stop* ends after the game in progress, and the report lists the games updated (with their fields), the **uncertain** ones (the source offers several games: nothing is written, *Choose…* opens the game's scrape to pick it), the errors, and can be exported. A refused ScreenScraper (quota, login, API closed) or a stopped server ends the run instead of failing every game
+- **Tick games in the list** for the batch scrape: the box on a row's thumbnail, `Ctrl`+click, or `X` for the open game; `Shift`+click ticks every game shown in between; `Esc` unticks all. The ticks survive a reload of the list
+- ScreenScraper answers that will not change with another game (quota, login, API closed) come back as `source_blocked` (HTTP 503) instead of "not found"
+
 ## [1.5.0] - 2026-11-14
 
 Check ROMs and Check media, required media per system, safer deletions (Recycle Bin, files shared between games kept), settings kept next to the app. Release notes: [docs/release-notes/RELEASE_NOTES_v1.5.0.md](docs/release-notes/RELEASE_NOTES_v1.5.0.md).

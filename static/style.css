@@ -402,6 +402,34 @@ input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px;
   color: var(--line-soft);
 }
 .gi-thumb img { width: 100%; height: 100%; object-fit: cover; }
+/* Tick box for the batch scrape: on hover, or always once a game is ticked */
+.gi-thumb { position: relative; }
+.gi-select {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(8, 9, 14, 0.55);
+  opacity: 0;
+  transition: opacity var(--dur);
+}
+.gi-select input { width: 18px; height: 18px; margin: 0; cursor: pointer; accent-color: var(--accent); }
+.game-item:hover .gi-select, .has-selection .gi-select, .game-item.is-ticked .gi-select { opacity: 1; }
+.has-selection .game-item:not(.is-ticked):not(:hover) .gi-select { background: transparent; }
+.game-item.is-ticked { box-shadow: inset 0 0 0 1px var(--accent-text); }
+.list-selection {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  margin: 0 var(--s3) var(--s2);
+  padding: var(--s1) var(--s1) var(--s1) var(--s3);
+  border: 1px solid var(--accent-text);
+  border-radius: var(--r-control);
+  background: var(--accent-soft);
+  font-size: var(--fs-sm);
+}
+.list-selection-count { flex: 1; min-width: 0; color: var(--text); font-variant-numeric: tabular-nums; }
+.list-selection[hidden] { display: none; }
 .gi-thumb .icon { width: 20px; height: 20px; }
 .gi-text { display: grid; min-width: 0; }
 .game-item .name {
@@ -1274,6 +1302,26 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); cur
 .rc-path { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-3); font-size: var(--fs-xs); background: none; }
 .rc-meta { color: var(--text-3); font-size: var(--fs-xs); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .rc-more, .rc-note { padding: var(--s2); color: var(--text-3); font-size: var(--fs-xs); }
+/* Batch scrape */
+.batch-modal { height: min(760px, calc(100vh - 48px)); }
+.batch-group { margin-top: var(--s5); }
+.batch-group .ss-section-title { margin-bottom: var(--s2); }
+.batch-progress { display: grid; gap: var(--s2); margin-bottom: var(--s4); }
+.batch-bar { height: 6px; border-radius: 3px; background: var(--surface); overflow: hidden; }
+.batch-bar span { display: block; height: 100%; background: var(--accent); transition: width var(--dur); }
+.batch-now { color: var(--text-2); font-size: var(--fs-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.batch-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: var(--s5); }
+.batch-row {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.4fr) auto;
+  align-items: center;
+  gap: var(--s3);
+  padding: 6px var(--s2);
+  border-radius: var(--r-control);
+  font-size: var(--fs-sm);
+}
+.batch-row:hover { background: var(--surface); }
+.batch-msg { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-2); }
 .rc-all-good { display: grid; justify-items: center; gap: var(--s2); padding: var(--s6) var(--s4); color: var(--text-2); text-align: center; }
 .rc-all-good .icon { width: 40px; height: 40px; color: var(--ok); stroke-width: 1.5; }
 .check-options { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s4); margin-right: auto; }

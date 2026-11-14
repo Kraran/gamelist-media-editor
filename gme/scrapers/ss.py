@@ -230,6 +230,17 @@ def format_ss_error(raw, status=200):
     return t[:400] if t else st("server.ss_error", status=status)
 
 
+# Answers that say ScreenScraper refuses us for now (quota, login, API closed):
+# every other game would fail the same way, so a batch scrape stops on them.
+_BLOCKING_KEYS = ("server.ss_quota", "server.ss_login", "server.ss_api_closed",
+                  "server.ss_429", "server.ss_503", "server.ss_too_many")
+
+
+def ss_blocking(message):
+    """True for a ScreenScraper error that will not go away with another game."""
+    return any(message == st(k) for k in _BLOCKING_KEYS)
+
+
 def ss_request(endpoint, extra_params=None, timeout=25):
     """
     Call ScreenScraper API2. Returns (ok, data_or_error_str, http_status).
@@ -566,6 +577,7 @@ def api_ss_scrape(index):
     rom_full = resolve_under_base(path_rel) if path_rel else None
     hash_info = rom_identification(rom_full) if rom_full else None
     api_errors = []  # collect real SS messages (auth, not found, …)
+    blocked = []     # quota, login, API closed: see ss_blocking
 
     def full_from_jeu(jeu, match_method):
         parsed = parse_ss_game(jeu, prefer, ss_media_pref(cfg))
@@ -603,6 +615,8 @@ def api_ss_scrape(index):
         ok, data, _ = ss_request("jeuInfos.php", extra)
         if not ok:
             api_errors.append(f"{method}: {data}")
+            if ss_blocking(data):
+                blocked.append(data)
             return None
         jeu = (data.get("response") or {}).get("jeu")
         if isinstance(jeu, list):
@@ -657,6 +671,8 @@ def api_ss_scrape(index):
         found = []
         if not ok:
             api_errors.append(f"search: {data}")
+            if ss_blocking(data):
+                blocked.append(data)
             return found
         response = data.get("response") or {}
         jeux = response.get("jeux") or response.get("jeu") or []
@@ -719,6 +735,10 @@ def api_ss_scrape(index):
             "candidates": candidates[:15],
             "message": st("server.ss_candidates"),
         })
+
+    # Refused for now (quota, login…): not "not found", and a batch must stop
+    if blocked:
+        return api_err(blocked[-1], 503, code="source_blocked")
 
     # Prefer showing login/config errors over a generic "not found"
     login_err = next(

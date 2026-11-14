@@ -1,61 +1,10 @@
 """Scrape in the browser: one button, source menu, comparison dialog (fake sources)."""
-import io
 import json
 
 import pytest
 from lxml import etree
 
-from gme import remote_cache
-from gme.scrapers import ss
-
 pytestmark = pytest.mark.e2e
-
-
-def png(size=(64, 48)):
-    from PIL import Image
-    buf = io.BytesIO()
-    Image.new("RGB", size, (40, 120, 200)).save(buf, "PNG")
-    return buf.getvalue()
-
-
-def media(kind):
-    return {"type": kind, "region": "wor",
-            "url": f"https://neoclone.screenscraper.fr/api2/mediaJeu.php?sspassword=secret&media={kind}"}
-
-
-JEU = {
-    "id": "777",
-    "noms": [{"region": "wor", "text": "Alpha"}],
-    "synopsis": [{"langue": "fr", "text": "Une description venue de la source."}],
-    "genres": [{"noms": [{"langue": "fr", "text": "Action"}]}],
-    "joueurs": {"text": "1"},
-    "developpeur": {"text": "Studio Alpha"},
-    "medias": [media("ss"), media("wheel-hd")],
-}
-
-
-@pytest.fixture
-def fake_sources(monkeypatch, tmp_path):
-    """ScreenScraper answers with JEU (hash match, or a list when `ambiguous`)."""
-    state = {"ambiguous": False, "downloads": []}
-
-    def fake_request(endpoint, extra=None, timeout=25):
-        extra = extra or {}
-        if endpoint == "jeuInfos.php" and (extra.get("gameid") or not state["ambiguous"]):
-            return True, {"response": {"jeu": JEU}}, 200
-        if endpoint == "jeuRecherche.php":
-            twin = dict(JEU, id="778", noms=[{"region": "wor", "text": "Alpha Plus"}])
-            return True, {"response": {"jeux": [JEU, twin]}}, 200
-        return False, "not found", 404
-
-    def fake_fetch(url, headers=None, timeout=40, max_bytes=0):
-        state["downloads"].append(url)
-        return png(), "image/png"
-
-    monkeypatch.setattr(ss, "ss_request", fake_request)
-    monkeypatch.setattr(remote_cache, "fetch", fake_fetch)
-    monkeypatch.setattr(remote_cache, "CACHE_DIR", str(tmp_path / "remote-cache"))
-    return state
 
 
 def open_alpha(page):
