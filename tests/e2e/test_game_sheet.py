@@ -139,10 +139,11 @@ def test_present_media_are_tiles_and_missing_ones_chips(page):
     assert page.locator("#media-grid .media-tile").count() == 2
     assert page.eval_on_selector(".media-tile[data-field='marquee'] .tile-media", "e => getComputedStyle(e).aspectRatio") == "3 / 1"
     page.wait_for_function("document.querySelector(\".media-tile[data-field='image'] .tile-dims\").textContent === '640 × 480'")
-    assert page.locator("#missing-chips .missing-chip").count() == 8
+    assert page.locator("#missing-chips .missing-chip").count() == 10
     select(page, "Bravo")
     assert page.is_hidden("#media-grid")
-    assert page.locator("#missing-chips .missing-chip").count() == 10
+    assert page.locator("#missing-chips .missing-chip").count() == 12
+    assert page.locator("#missing-chips .missing-chip.is-required").count() == 4   # first, before "Optional"
 
 
 def test_clicking_a_missing_media_uploads_a_file(page, gamelist, tmp_path):
@@ -152,7 +153,7 @@ def test_clicking_a_missing_media_uploads_a_file(page, gamelist, tmp_path):
     fc.value.set_files(str(tmp_path / "new-shot.png"))
     page.wait_for_selector(".media-tile[data-field='image']")
     assert wait_until(lambda: game(gamelist, "Bravo").get("image", "").endswith(".png"))
-    assert page.locator("#game-list .game-item.active .gi-count").inner_text() == "1/10"
+    assert page.locator("#game-list .game-item.active .gi-count").inner_text() == "1/4"
 
 
 # --- Suggestions --------------------------------------------------------------

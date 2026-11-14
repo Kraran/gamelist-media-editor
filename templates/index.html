@@ -139,7 +139,7 @@
                 </div>
               </div>
               <div class="header-tools">
-                <button type="button" class="btn btn-ghost" id="btn-next-incomplete" data-i18n-title="editor.next_incomplete_title" title="Aller au prochain jeu de la liste auquel il manque des médias">
+                <button type="button" class="btn btn-ghost" id="btn-next-incomplete" data-i18n-title="editor.next_incomplete_title" title="Aller au prochain jeu de la liste auquel il manque un média requis">
                   {{ icon("player-skip-forward") }}<span data-i18n="editor.next_incomplete">Suivant incomplet</span><kbd aria-hidden="true">N</kbd>
                 </button>
                 <div class="menu-wrap">
@@ -160,7 +160,12 @@
 
           <div class="media-grid" id="media-grid"></div>
           <section class="media-missing" id="media-missing" hidden>
-            <h2 class="media-missing-title" data-i18n="editor.missing_title">Médias manquants</h2>
+            <div class="media-missing-head">
+              <h2 class="media-missing-title" data-i18n="editor.missing_title">Médias manquants</h2>
+              <button type="button" class="btn btn-sm btn-ghost" id="btn-required-media" data-i18n-title="editor.required_edit_title" title="Choisir les médias qu’un jeu de ce système doit avoir">
+                {{ icon("list-check") }}<span data-i18n="editor.required_edit">Médias requis…</span>
+              </button>
+            </div>
             <div class="missing-chips" id="missing-chips"></div>
             <p class="media-missing-hint" data-i18n="editor.missing_hint">Glisse un fichier ou une image du web sur un emplacement, ou clique dessus pour choisir un fichier.</p>
           </section>
@@ -310,6 +315,7 @@
           <button type="button" class="seg" data-preset="none" aria-pressed="false"><span data-i18n="scrape.preset_none">Rien</span></button>
         </div>
         <span class="ss-count" id="ss-count" aria-live="polite"></span>
+        <span class="ss-jump" id="ss-jump"></span>
       </div>
       <div class="ss-candidates" id="ss-candidates" hidden></div>
       <div class="ss-compare" id="ss-fields"></div>
@@ -400,7 +406,7 @@
             </div>
             <p class="about-desc" data-i18n="about.desc">
               Application web locale pour éditer les médias et métadonnées d’un <code>gamelist.xml</code>
-              EmulationStation / RetroBat. Glisser-déposer, scrapers ScreenScraper &amp; Arcade Database,
+              EmulationStation / RetroBat. Glisser-déposer, scrapers ScreenScraper, Arcade Database &amp; Steam,
               filtres, sauvegarde et interface multilingue.
             </p>
             <dl class="about-grid">
@@ -419,7 +425,7 @@
             </dl>
             <div class="about-note" data-i18n="about.note">
               Logiciel fourni « tel quel ». Aucune ROM n’est distribuée. Les scrapers accèdent
-              aux services publics ScreenScraper et Arcade Database (Arcade Italia) — utilisez-les
+              aux services publics ScreenScraper, Arcade Database (Arcade Italia) et Steam — utilisez-les
               de façon raisonnable.
             </div>
           </div>
@@ -444,12 +450,13 @@
           <button type="button" class="settings-tab" role="tab" id="tab-general" aria-controls="pane-general" aria-selected="true" data-pane="general">{{ icon("language") }}<span data-i18n="settings.tab_general">Général</span></button>
           <button type="button" class="settings-tab" role="tab" id="tab-ss" aria-controls="pane-ss" aria-selected="false" tabindex="-1" data-pane="ss">{{ icon("cloud-download") }}<span>ScreenScraper</span></button>
           <button type="button" class="settings-tab" role="tab" id="tab-sources" aria-controls="pane-sources" aria-selected="false" tabindex="-1" data-pane="sources">{{ icon("plug-connected") }}<span data-i18n="settings.tab_sources">Sources de scrape</span></button>
+          <button type="button" class="settings-tab" role="tab" id="tab-required" aria-controls="pane-required" aria-selected="false" tabindex="-1" data-pane="required">{{ icon("list-check") }}<span data-i18n="settings.tab_required">Médias requis</span></button>
           <button type="button" class="settings-tab" role="tab" id="tab-keys" aria-controls="pane-keys" aria-selected="false" tabindex="-1" data-pane="keys">{{ icon("keyboard") }}<span data-i18n="settings.tab_keys">Raccourcis clavier</span></button>
         </div>
         <div class="settings-panes">
           <section class="settings-pane" role="tabpanel" id="pane-general" aria-labelledby="tab-general">
             <h4 class="settings-h" id="settings-lang-title" data-i18n="tools.lang_title">Langue de l’interface</h4>
-            <p class="settings-desc" data-i18n="tools.lang_desc">Change la langue de l’interface. Le choix est mémorisé sur ce navigateur.</p>
+            <p class="settings-desc" data-i18n="tools.lang_desc">Change la langue de l’interface. Le choix est mémorisé.</p>
             <div class="settings-field">
               <select id="ui-lang" aria-labelledby="settings-lang-title">
                 <option value="fr">Français</option>
@@ -487,13 +494,7 @@
               </div>
               <div class="ss-form-row">
                 <label for="ss-region" data-i18n="tools.ss_region">Région préférée</label>
-                <select id="ss-region">
-                  <option value="fr">fr (France)</option>
-                  <option value="eu">eu (Europe)</option>
-                  <option value="us">us (USA)</option>
-                  <option value="jp">jp (Japon)</option>
-                  <option value="wor">wor (World)</option>
-                </select>
+                <select id="ss-region"></select>
               </div>
               <div class="ss-media-prefs">
                 <div class="ss-form-row">
@@ -519,7 +520,6 @@
                 </div>
               </div>
               <div class="ss-form-actions">
-                <button type="button" class="btn btn-accent" id="btn-ss-save" data-i18n="tools.ss_save">Enregistrer</button>
                 <button type="button" class="btn" id="btn-ss-test" data-i18n="tools.ss_test">Tester la connexion</button>
                 <span class="ss-status" id="ss-status"></span>
               </div>
@@ -528,8 +528,14 @@
 
           <section class="settings-pane" role="tabpanel" id="pane-sources" aria-labelledby="tab-sources" hidden>
             <h4 class="settings-h" data-i18n="settings.sources_title">Source de scrape par système</h4>
-            <p class="settings-desc" data-i18n="settings.sources_desc">Le bouton Scraper choisit la source selon le système : Arcade Database pour les dossiers arcade, Steam pour steam, ScreenScraper pour les autres. Un autre choix fait dans son menu est retenu ici, sur ce navigateur.</p>
+            <p class="settings-desc" data-i18n="settings.sources_desc">Le bouton Scraper choisit la source selon le système : Arcade Database pour les dossiers arcade, Steam pour steam, ScreenScraper pour les autres. Un autre choix fait dans son menu est retenu ici.</p>
             <div class="sources-list" id="sources-list"></div>
+          </section>
+
+          <section class="settings-pane" role="tabpanel" id="pane-required" aria-labelledby="tab-required" hidden>
+            <h4 class="settings-h" data-i18n="settings.required_title">Médias requis par système</h4>
+            <p class="settings-desc" data-i18n="settings.required_desc">Un jeu est complet quand il a tous les médias requis de son système. Le compteur de la liste, le filtre « Média requis manquant » et Suivant incomplet s’en servent.</p>
+            <div class="required-box" id="required-box"></div>
           </section>
 
           <section class="settings-pane" role="tabpanel" id="pane-keys" aria-labelledby="tab-keys" hidden>
@@ -539,7 +545,7 @@
               <tr><td class="keys-combo"><kbd>J</kbd> <kbd>↓</kbd></td><td data-i18n="settings.key_next">Jeu suivant</td></tr>
               <tr><td class="keys-combo"><kbd>K</kbd> <kbd>↑</kbd></td><td data-i18n="settings.key_prev">Jeu précédent</td></tr>
               <tr><td class="keys-combo"><kbd data-i18n="settings.k_home">Début</kbd> <kbd data-i18n="settings.k_end">Fin</kbd></td><td data-i18n="settings.key_first_last">Premier / dernier jeu de la liste</td></tr>
-              <tr><td class="keys-combo"><kbd>N</kbd></td><td data-i18n="settings.key_next_incomplete">Jeu suivant auquel il manque des médias</td></tr>
+              <tr><td class="keys-combo"><kbd>N</kbd></td><td data-i18n="settings.key_next_incomplete">Jeu suivant auquel il manque un média requis</td></tr>
               <tr><td class="keys-combo"><kbd>S</kbd></td><td data-i18n="settings.key_scrape">Scraper le jeu</td></tr>
               <tr><td class="keys-combo"><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td data-i18n="settings.key_save">Enregistrer les modifications</td></tr>
               <tr><td class="keys-combo"><kbd>Ctrl</kbd>+<kbd>F</kbd> <kbd>/</kbd></td><td data-i18n="settings.key_search">Rechercher un jeu</td></tr>

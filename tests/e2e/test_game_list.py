@@ -86,7 +86,9 @@ def test_thumbnails_load_and_missing_ones_show_an_icon(page):
 
 def test_media_count_and_tooltip(page):
     first = page.locator("#game-list .game-item >> nth=0 >> .gi-count")
-    assert first.inner_text() == "0/10" and "is-empty" in first.get_attribute("class")
+    # Required media of an arcade system by default: image, video, marquee (no box)
+    assert first.inner_text() == "0/3" and "is-empty" in first.get_attribute("class")
     second = page.locator("#game-list .game-item >> nth=1 >> .gi-count")
-    assert second.inner_text() == "1/10"
-    assert "Vidéo" in second.get_attribute("title")
+    assert second.inner_text() == "1/3"
+    title = second.get_attribute("title")
+    assert "Vidéo" in title and "Marquee" in title and "Boxart" not in title
