@@ -20,7 +20,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest]
+        # ubuntu-24.04: ubuntu-latest (26.04) has no Python 3.9 any more
+        os: [windows-latest, ubuntu-24.04]
         # 3.9 = minimum stated in the README, 3.13 = current
         python: ["3.9", "3.13"]
     steps:
