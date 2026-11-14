@@ -2,7 +2,9 @@
 
 All notable changes to Gamelist Media Editor are documented in this file.
 
-## [Unreleased]
+## [1.5.0] - 2026-11-14
+
+Check ROMs and Check media, required media per system, safer deletions (Recycle Bin, files shared between games kept), settings kept next to the app. Release notes: [docs/release-notes/RELEASE_NOTES_v1.5.0.md](docs/release-notes/RELEASE_NOTES_v1.5.0.md).
 
 ### Added
 - **Required media per system** (Settings › Required media, or *Required media…* above a game's missing media): the media a game must have to be complete, by default image, video, marquee and box art (no box on arcade systems). The list count (`3/4`), the *Required media missing* filter and *Next incomplete* use them; a game's missing required media come first, the others under *Optional*. Each system keeps its own choice; the other customized systems are listed with a way back to the default
