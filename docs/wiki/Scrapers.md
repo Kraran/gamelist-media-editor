@@ -32,6 +32,24 @@ Un scrape n’**efface** jamais une valeur : un champ que la source n’a pas re
 
 Chaque image proposée est téléchargée **une seule fois**, pour l’aperçu, et gardée un jour dans `cache\remote\`. L’application réutilise ce fichier : ScreenScraper n’est pas sollicité deux fois. Les adresses ScreenScraper (qui contiennent ton identifiant) n’apparaissent ni dans la page ni dans la console.
 
+## Scraper par lot
+
+Pour scraper beaucoup de jeux d’un coup : **Actions › Scraper par lot**, ou **Scraper…** dans la barre de sélection.
+
+**Quels jeux ?** Les jeux **cochés** dans la liste ; si aucun ne l’est, **tous les jeux affichés** (avec la recherche et le filtre en cours : par exemple le filtre *Média requis manquant* donne tous les jeux incomplets).
+
+Pour cocher : la case qui apparaît sur la miniature d’une ligne, `Ctrl`+clic sur la ligne, ou `X` pour le jeu ouvert. `Maj`+clic coche tous les jeux affichés jusqu’à celui-là. `Échap` (ou ×) décoche tout.
+
+**Quoi écrire ?**
+- **Compléter** : seuls les champs vides sont remplis, rien n’est remplacé.
+- **Tout remplacer** : les champs cochés sont aussi remplacés quand la source a une autre valeur.
+- Coche les **médias** et les **informations** à écrire. Le **nom** et **Pad2Key** sont décochés par défaut.
+- Une sauvegarde `.bak` est faite avant (option).
+
+**Pendant le lot**, une barre montre le jeu en cours ; **Arrêter** s’arrête après ce jeu. La source est celle du système (bouton Scraper). Si ScreenScraper refuse (quota, identifiants, API fermée), le lot s’interrompt au lieu d’échouer jeu après jeu.
+
+**Le rapport** donne les jeux **mis à jour** (avec les champs écrits), ceux **sans rien de nouveau**, les **incertains** et les **erreurs**. Un jeu est incertain quand la source ne reconnaît pas la ROM et propose plusieurs jeux par le nom : rien n’est écrit, et **Choisir…** ouvre son scrape pour que tu choisisses le bon. **Exporter le rapport** l’enregistre en texte.
+
 ## ScreenScraper
 
 - Fonctionne **sans compte** (identifiants développeur de l’app)

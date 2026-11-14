@@ -139,6 +139,7 @@ function applyI18n() {
   try { initCodeSelects(); renderRating(); renderReleaseDate(); updateUnsavedUi(); } catch (_) {}
   try { updateScrapeButton(); } catch (_) {}
   try { fillSsRegions(); } catch (_) {}
+  try { selectionChanged(false); } catch (_) {}
   try {
     if (typeof games !== "undefined" && games.length) {
       const badge = document.getElementById("game-count");
@@ -281,11 +282,9 @@ async function apiFetch(url, options = {}) {
     res = await fetch(url, options);
   } catch (e) {
     const offline = (typeof navigator !== "undefined" && navigator.onLine === false);
-    throw new Error(
-      offline
-        ? t("errors.offline")
-        : t("errors.server_down")
-    );
+    const err = new Error(offline ? t("errors.offline") : t("errors.server_down"));
+    err.network = true;          // no answer at all (server stopped, offline)
+    throw err;
   }
 
   let data = null;
@@ -609,6 +608,7 @@ async function loadGames() {
       if (data.xml_path) {
         window.__gmeXmlPath = data.xml_path;
       }
+      pruneSelection();
       setNoGamelistUi(true);
       // restore empty-state-select visibility (editor still hidden until selection)
       const emptySelect = document.getElementById("empty-state-select");
@@ -697,6 +697,7 @@ function thumbPath(g) {
 
 function gameRowHtml(g, listIndex, pos, required) {
   const active = listIndex === currentListIndex;
+  const ticked = selection.has(g.path);
   const missing = missingRequired(g, required);
   const present = required.length - missing.length;
   const title = missing.length
@@ -707,9 +708,10 @@ function gameRowHtml(g, listIndex, pos, required) {
     ? `<img src="${thumbUrl(tp)}" alt="" loading="lazy" decoding="async" />`
     : icon("device-gamepad-2");
   const countCls = !missing.length ? " is-complete" : present === 0 ? " is-empty" : "";
-  return `<div class="game-item${active ? " active" : ""}" role="option" id="gi-${listIndex}"` +
+  return `<div class="game-item${active ? " active" : ""}${ticked ? " is-ticked" : ""}" role="option" id="gi-${listIndex}"` +
     ` data-list-index="${listIndex}" aria-selected="${active}" aria-setsize="${viewIndices.length}" aria-posinset="${pos + 1}">` +
-    `<span class="gi-thumb">${thumb}</span>` +
+    `<span class="gi-thumb">${thumb}<span class="gi-select"><input type="checkbox" tabindex="-1"${ticked ? " checked" : ""}` +
+    ` aria-label="${escapeHtml(t("batch.tick", { name: g.name }))}" /></span></span>` +
     `<span class="gi-text"><span class="name">${escapeHtml(g.name)}</span><span class="path">${escapeHtml(g.path)}</span></span>` +
     `<span class="gi-count${countCls}" title="${escapeHtml(title)}">${required.length ? `${present}/${required.length}` : "–"}</span>` +
     `</div>`;
@@ -782,6 +784,51 @@ function isTypingTarget(el) {
   }
   return el.isContentEditable;
 }
+
+/* --- Ticked games, for the batch scrape --------------------------------------
+ * Kept by <path>, so they survive a reload of the list. Tick a row's box,
+ * Ctrl+click a row or press X; Shift+click ticks every game shown in between.
+ */
+const selection = new Set();
+let selectionAnchor = null;          // path of the last game ticked, for Shift+click
+
+function toggleTicked(g, on) {
+  if (!g) return;
+  const tick = on === undefined ? !selection.has(g.path) : on;
+  if (tick) selection.add(g.path);
+  else selection.delete(g.path);
+  selectionAnchor = g.path;
+}
+function selectRange(toListIndex) {
+  const from = viewIndices.findIndex(i => games[i].path === selectionAnchor);
+  const to = viewIndices.indexOf(toListIndex);
+  if (from < 0 || to < 0) {
+    toggleTicked(games[toListIndex]);
+    return;
+  }
+  for (let p = Math.min(from, to); p <= Math.max(from, to); p++) selection.add(games[viewIndices[p]].path);
+  selectionAnchor = games[toListIndex].path;
+}
+function pruneSelection() {
+  if (!selection.size) return;
+  const paths = new Set(games.map(g => g.path));
+  [...selection].forEach(p => { if (!paths.has(p)) selection.delete(p); });
+  selectionChanged(false);
+}
+function clearSelection() {
+  selection.clear();
+  selectionAnchor = null;
+  selectionChanged();
+}
+/** Selection bar above the list; rows redrawn with their boxes. */
+function selectionChanged(redraw = true) {
+  const bar = document.getElementById("list-selection");
+  bar.hidden = !selection.size;
+  document.getElementById("list-selection-count").textContent = t("batch.selected", { n: fmtCount(selection.size) });
+  document.getElementById("game-list").classList.toggle("has-selection", selection.size > 0);
+  if (redraw) renderListWindow(true);
+}
+document.getElementById("btn-selection-clear").addEventListener("click", clearSelection);
 
 /* --- Metadata widgets -----------------------------------------------------
  * Language and region: named lists in the interface language (the browser
@@ -1396,7 +1443,17 @@ document.getElementById("media-filter").addEventListener("change", e => {
   const list = document.getElementById("game-list");
   list.addEventListener("click", e => {
     const row = e.target.closest(".game-item");
-    if (row) requestSelectGame(parseInt(row.dataset.listIndex, 10));
+    if (!row) return;
+    const listIndex = parseInt(row.dataset.listIndex, 10);
+    // The box, Ctrl+click or Shift+click tick games for the batch scrape; a plain click opens
+    if (e.target.closest(".gi-select") || e.ctrlKey || e.metaKey || e.shiftKey) {
+      e.preventDefault();
+      if (e.shiftKey && selectionAnchor) selectRange(listIndex);
+      else toggleTicked(games[listIndex]);
+      selectionChanged();
+      return;
+    }
+    requestSelectGame(listIndex);
   });
   list.addEventListener("scroll", onListScroll, { passive: true });
   // Broken or missing thumbnail: show the placeholder icon instead
@@ -1462,6 +1519,14 @@ document.addEventListener("keydown", e => {
     if (e.key === "Escape") {
       e.preventDefault();
       closeGamelistModal();
+    }
+    return;
+  }
+  const batchModal = document.getElementById("batch-modal");
+  if (batchModal && batchModal.classList.contains("open")) {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      closeBatch();               // not while running: Stop does that
     }
     return;
   }
@@ -1550,6 +1615,17 @@ document.addEventListener("keydown", e => {
       openSettings("keys");
       return;
     }
+    if (key === "x" && !e.repeat && currentListIndex !== null) {
+      e.preventDefault();
+      toggleTicked(games[currentListIndex]);
+      selectionChanged();
+      return;
+    }
+    if (key === "Escape" && selection.size) {
+      e.preventDefault();
+      clearSelection();
+      return;
+    }
   }
 
   // Home / End → first / last visible game (not while typing)
@@ -1571,7 +1647,7 @@ document.addEventListener("keydown", e => {
 /* --- Dialogs: Tab stays inside the open one -----------------------------------
  * The page behind a dialog cannot be reached with the keyboard. The confirm
  * dialog can open above another one, so it is looked at first. */
-const DIALOG_IDS = ["confirm-modal", "media-lightbox", "ss-modal", "check-modal", "open-gamelist-modal",
+const DIALOG_IDS = ["confirm-modal", "media-lightbox", "ss-modal", "batch-modal", "check-modal", "open-gamelist-modal",
   "settings-modal", "about-modal"];
 function topDialog() {
   for (const id of DIALOG_IDS) {
@@ -1876,7 +1952,7 @@ document.getElementById("btn-required-media").addEventListener("click", () => op
 /* --- Actions on the whole gamelist (app bar ⋯ menu) ----------------------- */
 setupMenu("actions-menu", "btn-actions");
 function setGamelistActionsEnabled(on) {
-  ["btn-manual-backup", "btn-fill-arcade", "btn-rom-check", "btn-media-check", "btn-purge-regions"].forEach(id => {
+  ["btn-batch-scrape", "btn-manual-backup", "btn-fill-arcade", "btn-rom-check", "btn-media-check", "btn-purge-regions"].forEach(id => {
     document.getElementById(id).disabled = !on;
   });
 }
@@ -2165,6 +2241,269 @@ document.getElementById("check-apply").addEventListener("click", applyCheck);
 document.getElementById("check-export").addEventListener("click", exportCheck);
 document.getElementById("check-modal").addEventListener("click", e => {
   if (e.target.id === "check-modal") closeCheck();
+});
+
+/* --- Batch scrape (Actions › Scrape in batch, or the selection bar) ----------
+ * The ticked games, else the games shown in the list, one after the other with
+ * the source of the system: the same scrape and apply routes as one game, with
+ * the fields computed from the comparison (missing only, or replace too).
+ * A game the source does not recognise surely (several candidates) is skipped
+ * and listed; quota or a stopped server ends the run. Nothing runs in the
+ * background: closing the window stops it.
+ */
+const BATCH_MEDIA = ["image", "thumbnail", "marquee", "boxart", "boxback", "cartridge", "fanart", "mix", "map",
+  "bezel", "video", "manual", "pad2key"];
+const BATCH_INFO = ["desc", "genre", "rating", "releasedate", "developer", "publisher", "players", "lang", "region",
+  "family", "arcadesystemname", "name"];
+const batchPrefs = { mode: "missing", off: new Set(["name", "pad2key"]) };   // kept for the session
+let batch = null;   // { phase, source, targets, i, stop, halted, results }
+
+function batchTargets() {
+  if (selection.size) return games.filter(g => selection.has(g.path));
+  return viewIndices.map(i => games[i]);
+}
+
+function isQuotaMessage(msg) {
+  const low = String(msg || "").toLowerCase();
+  return ["quota", "thread", "429", "trop de requ", "too many", "503", "maintenance", "satur"].some(k => low.includes(k));
+}
+
+async function openBatch() {
+  closeMenu(null, false);
+  if (!(await confirmLeaveEditor())) return;
+  const targets = batchTargets().map(g => ({ index: g.index, path: g.path, name: g.name }));
+  if (!targets.length) {
+    toast(t("batch.no_games"), "info");
+    return;
+  }
+  batch = { phase: "setup", source: chosenScraper(), targets, fromSelection: selection.size > 0, i: 0, stop: false,
+    halted: "", results: { updated: [], nothing: [], uncertain: [], errors: [] } };
+  renderBatch();
+  document.getElementById("batch-modal").classList.add("open");
+  document.getElementById("batch-start").focus();
+}
+
+function closeBatch() {
+  if (!batch || batch.phase === "running") return;
+  document.getElementById("batch-modal").classList.remove("open");
+  batch = null;
+}
+
+function batchFieldsHtml(title, keys) {
+  return `<section class="batch-group"><h4 class="ss-section-title">${escapeHtml(title)}</h4><div class="required-grid">` +
+    keys.map(k => `<label class="required-item"><input type="checkbox" data-batch-field="${k}"` +
+      `${batchPrefs.off.has(k) ? "" : " checked"} />${icon(SCRAPE_MEDIA_ICONS[k] || "list-details")}` +
+      `<span>${escapeHtml(scrapeFieldLabel(k))}</span></label>`).join("") + `</div></section>`;
+}
+
+function renderBatch() {
+  const b = batch;
+  const sc = SCRAPERS[b.source];
+  const system = (currentSystem && (currentSystem.label || currentSystem.folder)) || "—";
+  document.getElementById("batch-title").innerHTML = icon(sc.icon) + `<span>${escapeHtml(t("batch.title"))}</span>`;
+  document.getElementById("batch-intro").textContent = t(b.fromSelection ? "batch.intro_selection" : "batch.intro_list",
+    { n: fmtCount(b.targets.length), source: sc.label, system });
+  const body = document.getElementById("batch-body");
+  const start = document.getElementById("batch-start");
+  const cancel = document.getElementById("batch-cancel");
+  const options = document.getElementById("batch-options");
+  document.getElementById("batch-close").hidden = b.phase === "running";
+  document.getElementById("batch-export").hidden = b.phase !== "done";
+  if (b.phase === "setup") {
+    body.innerHTML =
+      `<div class="ss-toolbar"><div class="segmented" role="group" aria-label="${escapeHtml(t("scrape.selection"))}">` +
+      ["missing", "all"].map(m => `<button type="button" class="seg" data-batch-mode="${m}" aria-pressed="${batchPrefs.mode === m}">` +
+        `<span>${escapeHtml(t(m === "missing" ? "scrape.preset_missing" : "scrape.preset_all"))}</span></button>`).join("") +
+      `</div><span class="ss-count">${escapeHtml(t(batchPrefs.mode === "missing" ? "batch.mode_missing" : "batch.mode_all"))}</span></div>` +
+      batchFieldsHtml(t("scrape.section_media"), BATCH_MEDIA) +
+      batchFieldsHtml(t("scrape.section_info"), BATCH_INFO);
+    options.innerHTML = `<label class="check-option"><input type="checkbox" id="batch-backup" checked />` +
+      `<span>${escapeHtml(t("romcheck.backup"))}</span></label>`;
+    cancel.textContent = t("confirm.cancel");
+    start.hidden = false;
+    document.getElementById("batch-start-label").textContent = t("batch.start", { n: fmtCount(b.targets.length) });
+    updateBatchStart();
+    return;
+  }
+  options.innerHTML = "";
+  start.hidden = true;
+  cancel.textContent = t(b.phase === "running" ? (b.stop ? "batch.stopping" : "batch.stop") : "tools.close");
+  cancel.disabled = b.phase === "running" && b.stop;
+  const r = b.results;
+  const done = r.updated.length + r.nothing.length + r.uncertain.length + r.errors.length;
+  const stats = [
+    [t("batch.stat_updated"), r.updated.length, r.updated.length ? "is-ok" : ""],
+    [t("batch.stat_nothing"), r.nothing.length, ""],
+    [t("batch.stat_uncertain"), r.uncertain.length, r.uncertain.length ? "is-warn" : ""],
+    [t("batch.stat_errors"), r.errors.length, r.errors.length ? "is-warn" : ""],
+  ];
+  let html = `<div class="batch-progress"><div class="batch-bar"><span style="width:${Math.round(done / b.targets.length * 100)}%"></span></div>` +
+    `<span class="batch-now">${escapeHtml(b.phase === "running"
+      ? t("batch.progress", { done: fmtCount(done), total: fmtCount(b.targets.length), name: (b.targets[b.i] || {}).name || "" })
+      : t(b.halted ? "batch.halted" : b.stop ? "batch.stopped" : "batch.finished", { done: fmtCount(done), total: fmtCount(b.targets.length), reason: b.halted }))}</span></div>` +
+    `<div class="check-stats batch-stats">` + stats.map(([label, n, cls]) =>
+      `<div class="rc-stat ${cls}"><span class="rc-stat-n">${fmtCount(n)}</span><span class="rc-stat-label">${escapeHtml(label)}</span></div>`).join("") + `</div>`;
+  if (b.phase === "done") {
+    const list = (title, desc, rows, rowHtml) => rows.length
+      ? `<section class="rc-section"><div class="rc-head"><span class="rc-title">${escapeHtml(title)}</span><span class="rc-count">${fmtCount(rows.length)}</span></div>` +
+        `<p class="rc-desc">${escapeHtml(desc)}</p><div class="rc-list">${rows.map(rowHtml).join("")}</div></section>` : "";
+    html += list(t("batch.uncertain_title"), t("batch.uncertain_desc"), r.uncertain, g =>
+      `<div class="batch-row"><span class="rc-name">${escapeHtml(g.name)}</span><code class="rc-path">${escapeHtml(g.path)}</code>` +
+      `<button type="button" class="btn btn-sm" data-batch-pick="${escapeHtml(g.path)}">${escapeHtml(t("batch.pick"))}</button></div>`);
+    html += list(t("batch.errors_title"), t("batch.errors_desc"), r.errors, g =>
+      `<div class="batch-row"><span class="rc-name">${escapeHtml(g.name)}</span><span class="batch-msg" title="${escapeHtml(g.message)}">${escapeHtml(g.message)}</span>` +
+      `<button type="button" class="btn btn-sm btn-ghost" data-batch-open="${escapeHtml(g.path)}">${escapeHtml(t("batch.open"))}</button></div>`);
+    html += list(t("batch.updated_title"), t("batch.updated_desc"), r.updated, g =>
+      `<div class="batch-row"><span class="rc-name">${escapeHtml(g.name)}</span><span class="batch-msg">${escapeHtml(g.fields.map(scrapeFieldLabel).join(", "))}</span>` +
+      `<button type="button" class="btn btn-sm btn-ghost" data-batch-open="${escapeHtml(g.path)}">${escapeHtml(t("batch.open"))}</button></div>`);
+  }
+  body.innerHTML = html;
+}
+
+function batchFields() {
+  return [...document.querySelectorAll("#batch-body [data-batch-field]:checked")].map(cb => cb.dataset.batchField);
+}
+function updateBatchStart() {
+  document.getElementById("batch-start").disabled = !batchFields().length;
+}
+
+document.getElementById("batch-body").addEventListener("change", e => {
+  const key = e.target.dataset && e.target.dataset.batchField;
+  if (!key) return;
+  if (e.target.checked) batchPrefs.off.delete(key);
+  else batchPrefs.off.add(key);
+  updateBatchStart();
+});
+
+document.getElementById("batch-body").addEventListener("click", async e => {
+  const mode = e.target.closest("[data-batch-mode]");
+  if (mode && batch && batch.phase === "setup") {
+    batchPrefs.mode = mode.dataset.batchMode;
+    batch.mode = batchPrefs.mode;
+    renderBatch();
+    document.querySelector(`[data-batch-mode="${batchPrefs.mode}"]`).focus();
+    return;
+  }
+  const pick = e.target.closest("[data-batch-pick], [data-batch-open]");
+  if (!pick) return;
+  // Open the game; for an uncertain one, its scrape shows the candidates to choose from
+  const path = pick.dataset.batchPick || pick.dataset.batchOpen;
+  const listIndex = games.findIndex(g => g.path === path);
+  if (listIndex < 0) return;
+  document.getElementById("batch-modal").classList.remove("open");
+  await requestSelectGame(listIndex);
+  if (pick.dataset.batchPick && games[listIndex] && currentIndex === games[listIndex].index) {
+    runScrape(batch ? batch.source : chosenScraper());
+  }
+});
+
+async function runBatch() {
+  const b = batch;
+  if (!b || b.phase !== "setup") return;
+  const fields = new Set(batchFields());
+  const wanted = SCRAPE_PRESETS[batchPrefs.mode] || SCRAPE_PRESETS.missing;
+  const backup = document.getElementById("batch-backup").checked;
+  const sc = SCRAPERS[b.source];
+  b.phase = "running";
+  renderBatch();
+  document.getElementById("batch-cancel").focus();
+  if (backup) {
+    try {
+      await apiFetch("/api/backup", { method: "POST" });
+    } catch (e) {
+      b.halted = e.message;
+    }
+  }
+  const post = (route, g, body) => apiFetch(`${route}${g.index}?path=${encodeURIComponent(g.path)}`, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+  });
+  for (b.i = 0; b.i < b.targets.length && !b.stop && !b.halted; b.i++) {
+    const g = b.targets[b.i];
+    renderBatch();
+    setStatus(t("batch.progress", { done: fmtCount(b.i), total: fmtCount(b.targets.length), name: g.name }));
+    try {
+      const data = await post(sc.scrape, g, {});
+      if (data.need_choice) {
+        b.results.uncertain.push(g);
+        continue;
+      }
+      const todo = (data.compare || []).filter(r => wanted.includes(r.status) && fields.has(r.key)).map(r => r.key);
+      if (!todo.length) {
+        b.results.nothing.push(g);
+        continue;
+      }
+      const res = await post(sc.apply, g, { fields: todo, proposed: data.proposed });
+      const applied = res.applied || [];
+      const errors = res.errors || [];
+      if (applied.length) b.results.updated.push({ ...g, fields: applied, warnings: errors });
+      else if (errors.length) b.results.errors.push({ ...g, message: errors[0] });
+      else b.results.nothing.push(g);
+    } catch (e) {
+      b.results.errors.push({ ...g, message: e.message });
+      // Quota reached, server stopped: the next games would fail the same way
+      if (e.code === "source_blocked" || e.network || isQuotaMessage(e.message)) b.halted = e.message;
+    }
+  }
+  b.phase = "done";
+  await loadGames();
+  // New pictures, maybe under the same file names
+  b.results.updated.forEach(u => {
+    const g = games.find(x => x.path === u.path);
+    if (g) stampMedia(u.fields.filter(f => FIELD_DEFS.some(d => d.key === f)).map(f => g[f]));
+  });
+  renderListWindow(true);
+  const cur = games.find(x => x.index === currentIndex);
+  if (cur) renderZones(cur);
+  renderBatch();
+  // The report is in the dialog; the status bar keeps the result once it is closed
+  setStatus(t("batch.done_toast", { n: fmtCount(b.results.updated.length) }));
+  document.getElementById("batch-cancel").focus();
+}
+
+/** Plain-text report, saved as a file (Downloads folder). */
+function exportBatch() {
+  if (!batch) return;
+  const r = batch.results;
+  const lines = [
+    `${t("batch.title")} — ${SCRAPERS[batch.source].label} — Gamelist Media Editor`,
+    `${t("romcheck.report_gamelist")} : ${window.__gmeXmlPath || ""}`,
+    `${t("romcheck.report_date")} : ${new Date().toLocaleString(currentLocale || "fr")}`,
+    "",
+  ];
+  const section = (title, rows, extra) => {
+    lines.push(`${title} (${rows.length})`);
+    rows.forEach(g => lines.push(`  ${g.path}  —  ${g.name}` + (extra(g) ? `  (${extra(g)})` : "")));
+    lines.push("");
+  };
+  section(t("batch.uncertain_title"), r.uncertain, () => "");
+  section(t("batch.errors_title"), r.errors, g => g.message);
+  section(t("batch.updated_title"), r.updated, g => g.fields.map(scrapeFieldLabel).join(", "));
+  section(t("batch.stat_nothing"), r.nothing, () => "");
+  const blob = new Blob(["﻿" + lines.join("\r\n")], { type: "text/plain;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `batch-scrape-${(currentSystem && currentSystem.folder) || "gamelist"}-${new Date().toISOString().slice(0, 10)}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+document.getElementById("btn-batch-scrape").addEventListener("click", openBatch);
+document.getElementById("btn-batch-selection").addEventListener("click", openBatch);
+document.getElementById("batch-start").addEventListener("click", runBatch);
+document.getElementById("batch-export").addEventListener("click", exportBatch);
+document.getElementById("batch-close").addEventListener("click", closeBatch);
+document.getElementById("batch-cancel").addEventListener("click", () => {
+  if (batch && batch.phase === "running") {
+    batch.stop = true;            // after the game in progress
+    renderBatch();
+  } else {
+    closeBatch();
+  }
+});
+document.getElementById("batch-modal").addEventListener("click", e => {
+  if (e.target.id === "batch-modal") closeBatch();
 });
 
 /* --- This game (header ⋯ menu) and "Next incomplete" ---------------------- */
@@ -2587,6 +2926,8 @@ async function applyOpenGamelist() {
     if (sysEl && data.xml_path) sysEl.title = data.xml_path;
     const searchEl = document.getElementById("search");
     if (searchEl) searchEl.value = "";
+    selection.clear();
+    selectionChanged(false);
     renderList("");
     closeGamelistModal();
     const label = (data.system && (data.system.label || data.system.folder)) || path;
@@ -3271,7 +3612,7 @@ function closeSsModal() {
 
 // Closing the window / tab with unsaved changes: the browser asks
 window.addEventListener("beforeunload", e => {
-  if (changedFields().length) { e.preventDefault(); e.returnValue = ""; }
+  if (changedFields().length || (batch && batch.phase === "running")) { e.preventDefault(); e.returnValue = ""; }
 });
 document.getElementById("ss-modal-close").addEventListener("click", closeSsModal);
 document.getElementById("ss-modal-cancel").addEventListener("click", closeSsModal);
