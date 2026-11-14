@@ -34,9 +34,10 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
 ![Scrape comparison: current and proposed media side by side, missing fields ticked](docs/screenshots/scrape.png)
 
 **Workflow**
-- Game list with **thumbnails** and a **media count** per game (hover it to see what is missing); fast with very large gamelists (a 30,000-game MAME list opens in about a second)
+- Game list with **thumbnails** and a **required media count** per game (hover it to see what is missing); fast with very large gamelists (a 30,000-game MAME list opens in about a second)
+- **Required media per system** (Settings): the media a game needs to be complete (by default image, video, marquee and box art; no box on arcade systems); the count, the *Required media missing* filter and *Next incomplete* follow them
 - Filter games by **missing media** (counts per media), search
-- **Next incomplete** (`N`): jumps to the next game in the list that is missing media (or that matches the media filter)
+- **Next incomplete** (`N`): jumps to the next game in the list that is missing a required media (or that matches the media filter)
 - **Keyboard**: `J`/`K` next/previous game, `N` next incomplete, `S` scrape, `Ctrl+S` save, `Ctrl+F` or `/` search, `?` shows the list
 - **Open another `gamelist.xml`** at any time (file browser, the 10 most recent files in one click), **Reload** after an outside edit
 - **Actions** menu (whole gamelist): `.bak` backup, arcade system names from `mame.xml`, **Check ROMs** (gamelist vs files of the folder: add missing ROMs, remove entries without ROM, merge duplicates, export the report), **Check media** (unused media to the Recycle Bin, links to missing files removed, export the report), purge all `<region>` tags
@@ -82,7 +83,7 @@ Tip: drag a `gamelist.xml` onto the `.exe` to open it directly.
 
 Optional: `Creer-Raccourci.ps1` creates a desktop shortcut to `Lancer.bat` with the app icon.
 
-Your `screenscraper_config.json` (member login, media types) and `recent_gamelists.json` (recently opened gamelists) are stored next to `app.py` / the `.exe`. Keep them when you update.
+Your `screenscraper_config.json` (member login, media types), `ui_settings.json` (language, scrape sources, required media) and `recent_gamelists.json` (recently opened gamelists) are stored next to `app.py` / the `.exe`. Keep them when you update.
 
 ---
 
@@ -127,6 +128,8 @@ Code layout (`app.py` is only the entry point; the overview is in `gme/__init__.
 | `gme/romcheck.py` | Check ROMs: gamelist compared with the files of its folder, update (`/api/check-roms`) |
 | `gme/mediacheck.py` | Check media: unused media files and links to missing files, clean-up (`/api/check-media`) |
 | `gme/recent.py` | recently opened gamelists (`recent_gamelists.json` next to `app.py` or the `.exe`) |
+| `gme/settings.py` | interface settings: language, scrape source and required media per system (`ui_settings.json`, `/api/settings`) |
+| `gme/gamedelete.py` | deleting a game: dry run listing its files, then the Recycle Bin (`/api/delete-game`) |
 | `gme/remote_cache.py` | proposed images: previews (`/api/scrape/preview/<key>`), kept in `cache/remote/` and reused when applied |
 | `gme/xml_store.py` | the open `gamelist.xml`: path, cache, writes, game lookup |
 | `gme/thumbs.py` | list thumbnails (`/api/thumb`), cached in `cache/thumbs/` next to `app.py` or the `.exe` |
@@ -157,7 +160,7 @@ Interface:
 
 **Français · English · Español · Deutsch · Italiano · Português · Nederlands · Polski · Türkçe · Svenska · Norsk · Dansk · Русский**
 
-Open **Settings › General** and pick a language: it applies at once and is remembered by the browser.
+Open **Settings › General** and pick a language: it applies at once and is remembered (`ui_settings.json`).
 
 ## License
 

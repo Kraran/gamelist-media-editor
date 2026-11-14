@@ -8,7 +8,7 @@ Application web **locale** (sur ton PC uniquement) qui te permet de :
 
 - glisser-déposer **image, vidéo, marquee, manuel, boxback, support, boxart, fanart, mix, maps** ;
 - **scraper** un jeu avec un seul bouton (**ScreenScraper**, **Arcade Database** ou **Steam** selon le système) et **comparer** l’actuel et le proposé avant d’appliquer ;
-- voir d’un coup d’œil ce qui manque (**miniatures** et **compteur de médias** dans la liste, filtre par média manquant, **Suivant incomplet**) ;
+- voir d’un coup d’œil ce qui manque (**miniatures** et **compteur de médias requis** dans la liste, filtre par média manquant, **Suivant incomplet**) ;
 - éditer nom, description, genre, note (étoiles), date, langue, région, système arcade, favori / caché / jeu enfant, avec **une seule barre d’enregistrement** ;
 - travailler au **clavier** (`J`/`K`, `N`, `S`, `Ctrl+S`…) ;
 - **ouvrir un autre `gamelist.xml`** sans redémarrer, en **13 langues**.

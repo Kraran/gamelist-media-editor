@@ -68,7 +68,7 @@ def test_question_mark_opens_shortcuts(page):
     assert page.get_attribute("#tab-keys", "aria-selected") == "true"
     assert page.is_visible("#pane-keys") and page.is_hidden("#pane-general")
     page.keyboard.press("ArrowUp")                           # tabs: arrows move between panes
-    assert page.get_attribute("#tab-sources", "aria-selected") == "true"
+    assert page.get_attribute("#tab-required", "aria-selected") == "true"
     page.keyboard.press("Escape")
     page.wait_for_function("!document.getElementById('settings-modal').classList.contains('open')")
 
@@ -82,8 +82,8 @@ def test_settings_language_applies_at_once(page):
     page.wait_for_function("document.querySelector('#btn-settings .btn-label').textContent === 'Réglages'")
 
 
-def test_settings_sources_reset(page):
-    page.evaluate("localStorage.setItem('gme_scraper_by_system', JSON.stringify({snes: 'steam'}))")
+def test_settings_sources_reset(page, settings_file):
+    page.evaluate("saveSettings({scrapers: {snes: 'steam'}})")
     open_first(page)
     page.evaluate("updateScrapeButton()")
     assert page.inner_text("#scrape-source-name") == "Steam"
@@ -93,6 +93,8 @@ def test_settings_sources_reset(page):
     page.click("#sources-list [data-reset-folder='snes']")
     assert "Aucun choix forcé" in page.inner_text("#sources-list")
     assert page.inner_text("#scrape-source-name") == "ScreenScraper"
+    page.wait_for_function("SETTINGS.scrapers.snes === undefined")
+    assert '"snes"' not in settings_file.read_text(encoding="utf-8")       # saved by the server
 
 
 def test_actions_menu_backup(page, gamelist):

@@ -204,7 +204,7 @@ def get_base_name(game_elem):
 LIST_FIELDS = frozenset((
     "path", "name",
     "image", "video", "marquee", "manual", "boxback", "cartridge", "boxart",
-    "fanart", "mix", "map",
+    "fanart", "mix", "map", "thumbnail", "bezel",
     "rating", "releasedate", "developer", "publisher", "family", "players",
     "lang", "region", "genre", "kidgame", "hidden", "favorite", "arcadesystemname",
 ))

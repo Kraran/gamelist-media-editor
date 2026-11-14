@@ -15,7 +15,7 @@ Tu peux changer de système à tout moment sans redémarrer.
 | Zone | Rôle |
 |------|------|
 | Barre du haut | Logo / À propos, système, nombre de jeux, **Gamelist…**, **Recharger**, **Actions** (⋯), **Réglages**, **Quitter** |
-| Liste (gauche) | Recherche, filtre par média manquant (avec le nombre de jeux), jeux avec **miniature** et **compteur de médias** (`4/10`, vert si complet ; survole-le pour voir ce qui manque) |
+| Liste (gauche) | Recherche, filtre par média manquant (avec le nombre de jeux), jeux avec **miniature** et **compteur de médias requis** (`3/4`, vert si complet ; survole-le pour voir ce qui manque) |
 | Centre | Nom du jeu, **Scraper**, **Suivant incomplet**, menu ⋯ du jeu, médias présents, médias manquants |
 | Droite | Description, métadonnées, favori / caché / jeu enfant |
 | Bas | Barre d’enregistrement (quand quelque chose a changé), barre d’état et raccourcis |
@@ -38,6 +38,8 @@ Les médias présents s’affichent **dans leur forme** (boîte verticale, logo 
 | Fanart | `<fanart>` | `images/` |
 | Mix | `<mix>` | `images/` |
 | Maps | `<map>` | `images/` |
+| Miniature | `<thumbnail>` | `images/` |
+| Bezel | `<bezel>` | `images/` |
 
 - **Ajouter** : glisse un fichier (ou une image d’une page web) sur un média manquant, ou clique dessus pour choisir un fichier
 - **Remplacer** : glisse sur le média, ou bouton *Remplacer le fichier*
@@ -61,7 +63,13 @@ Changer de jeu, recharger, scraper ou quitter avec des modifications en cours de
 
 ## Suivant incomplet
 
-Le bouton **Suivant incomplet** (ou `N`) passe au prochain jeu de la liste auquel il manque au moins un média. Si un filtre est actif (ex. « sans boxart »), il passe au prochain jeu qui correspond au filtre. Il reprend en haut de la liste et prévient quand il n’en reste plus.
+Le bouton **Suivant incomplet** (ou `N`) passe au prochain jeu de la liste auquel il manque au moins un **média requis**. Si un filtre est actif (ex. « sans boxart »), il passe au prochain jeu qui correspond au filtre. Il reprend en haut de la liste et prévient quand il n’en reste plus.
+
+## Médias requis
+
+Chaque système a sa liste de **médias requis** : ceux qu’un jeu doit avoir pour être complet. Par défaut : image, vidéo, marquee et boxart (sans boxart pour les systèmes arcade). Change-la dans **Réglages › Médias requis**, ou avec **Médias requis…** au-dessus des médias manquants d’un jeu.
+
+Elle sert au compteur de la liste (`3/4`), au filtre **Média requis manquant** et à **Suivant incomplet**. Dans la fiche, les médias requis manquants viennent en premier, les autres sous **Facultatifs**.
 
 ## Menu ⋯ du jeu
 
@@ -97,10 +105,13 @@ Pour tout le gamelist :
 
 | Onglet | Contenu |
 |---|---|
-| Général | Langue de l’interface (appliquée immédiatement, mémorisée par le navigateur) |
-| ScreenScraper | Compte membre (boost), région préférée, types d’images, test de connexion |
+| Général | Langue de l’interface (appliquée immédiatement) |
+| ScreenScraper | Compte membre (boost), région préférée, types d’images, test de connexion ; chaque réglage est enregistré dès qu’il change |
 | Sources de scrape | Les sources forcées par système depuis le menu ▾ du bouton Scraper, avec retour à l’automatique |
+| Médias requis | Les médias qu’un jeu du système ouvert doit avoir, et les autres systèmes personnalisés |
 | Raccourcis clavier | La liste ci-dessous |
+
+Ces réglages (et la langue) sont gardés dans `ui_settings.json`, à côté de l’exe.
 
 ## Raccourcis
 

@@ -641,7 +641,10 @@ input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px;
 /* Missing media: small drop targets, click to choose a file */
 .media-missing { margin-top: var(--s2); }
 .media-grid[hidden] + .media-missing { margin-top: 0; }
-.media-missing-title { font-size: var(--fs-sm); font-weight: 600; color: var(--text-2); margin-bottom: var(--s3); }
+.media-missing-head { display: flex; align-items: center; gap: var(--s2); margin-bottom: var(--s3); }
+.media-missing-title { font-size: var(--fs-sm); font-weight: 600; color: var(--text-2); }
+.media-missing-head .btn { margin-left: auto; color: var(--text-3); }
+.media-missing-head .btn:hover { color: var(--text); }
 .missing-chips { display: flex; flex-wrap: wrap; gap: var(--s2); }
 .missing-chip {
   display: inline-flex;
@@ -662,6 +665,15 @@ input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px;
 .missing-chip:hover, .missing-chip:focus-visible { border-style: solid; background: var(--surface); color: var(--text); }
 .missing-chip:hover .chip-add, .missing-chip:focus-visible .chip-add { opacity: 1; }
 .missing-chip.drag-over { border: 1px solid var(--accent-text); background: var(--accent-soft); color: var(--text); }
+/* Required by the system: stronger than the optional ones after the label */
+.missing-chip.is-required { border-color: var(--accent-text); color: var(--text); }
+.missing-chip.is-required .icon { color: var(--accent-text); }
+.missing-sep {
+  flex-basis: 100%;
+  margin-top: var(--s1);
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+}
 .media-missing-hint { margin-top: var(--s3); color: var(--text-3); font-size: var(--fs-xs); }
 
 /* 7. Inspector ----------------------------------------------------------- */
@@ -984,6 +996,33 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); cur
 .source-name { display: flex; align-items: center; gap: var(--s2); }
 .source-name .icon { color: var(--accent-text); }
 .sources-foot { display: flex; justify-content: flex-end; margin-top: var(--s1); }
+/* Settings › Required media */
+.required-head { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s2); color: var(--text); font-size: var(--fs-sm); }
+.required-state { color: var(--text-3); }
+.required-head .btn { margin-left: auto; }
+.required-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: var(--s2);
+  margin-top: var(--s3);
+}
+.required-item {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: var(--s2) var(--s3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+.required-item:has(input:checked) { border-color: var(--accent-text); background: var(--accent-soft); color: var(--text); }
+.required-item .icon { color: var(--text-3); }
+.required-item:has(input:checked) .icon { color: var(--accent-text); }
+.required-others-title { margin: var(--s5) 0 var(--s2); color: var(--text-2); font-size: var(--fs-sm); font-weight: 600; }
+.required-list { color: var(--text-2); font-size: var(--fs-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.settings-pane .source-row + .source-row { margin-top: var(--s1); }
 .keys-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
 .keys-table td { padding: var(--s2) var(--s3) var(--s2) 0; border-bottom: 1px solid var(--line); color: var(--text-2); }
 .keys-table .keys-combo { width: 1%; white-space: nowrap; color: var(--text-3); }
@@ -1021,6 +1060,28 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); cur
 .seg:hover { color: var(--text); }
 .seg[aria-pressed="true"] { background: var(--accent-soft); color: var(--text); box-shadow: inset 0 0 0 1px var(--accent-text); }
 .ss-count { color: var(--text-3); font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
+.ss-jump { display: inline-flex; gap: var(--s1); margin-left: auto; }
+.ss-jump-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 var(--s2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  background: transparent;
+  color: var(--text-2);
+  font: inherit;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+.ss-jump-btn:hover { color: var(--text); border-color: var(--line-field); }
+.ss-jump-btn span { color: var(--text-3); font-variant-numeric: tabular-nums; }
+/* More below: the bottom fades out */
+.ss-compare.has-more {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent);
+}
 
 .ss-compare, .ss-candidates {
   flex: 1;

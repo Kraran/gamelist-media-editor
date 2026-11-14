@@ -4,7 +4,7 @@ import shutil
 
 import pytest
 
-from gme import fsutil, recent, xml_store
+from gme import fsutil, recent, settings, xml_store
 from gme.server import app
 
 GAMELIST = """<?xml version="1.0"?>
@@ -23,6 +23,23 @@ def recent_file(tmp_path, monkeypatch):
     """Recent gamelists go to a temporary file, never next to app.py."""
     path = tmp_path / "recent_gamelists.json"
     monkeypatch.setattr(recent, "RECENT_FILE", str(path))
+    return path
+
+
+@pytest.fixture(autouse=True)
+def settings_file(tmp_path, monkeypatch):
+    """Interface settings go to a temporary file, never next to app.py."""
+    path = tmp_path / "ui_settings.json"
+    monkeypatch.setattr(settings, "SETTINGS_FILE", str(path))
+    return path
+
+
+@pytest.fixture(autouse=True)
+def ss_config_file(tmp_path, monkeypatch):
+    """ScreenScraper settings saved from a test go to a temporary file."""
+    from gme.scrapers import ss
+    path = tmp_path / "screenscraper_config.json"
+    monkeypatch.setattr(ss, "ss_config_path", lambda: str(path))
     return path
 
 

@@ -15,6 +15,7 @@ Thumbs.db
 
 screenscraper_config.json
 recent_gamelists.json
+ui_settings.json
 app-window/
 
 # PyInstaller output (exe stays on GitHub Releases only)

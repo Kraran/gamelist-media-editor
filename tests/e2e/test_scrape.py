@@ -158,3 +158,17 @@ def test_source_menu_is_remembered_per_system(page, fake_sources):
     page.click("#btn-scrape-menu")
     page.keyboard.press("Escape")
     assert page.is_hidden("#scrape-menu")
+
+
+def test_enter_on_a_ticked_row_applies_and_sections_have_shortcuts(page, gamelist, fake_sources):
+    open_alpha(page)
+    page.click("#btn-scrape")
+    page.wait_for_selector("#ss-modal.open")
+    jumps = page.eval_on_selector_all("#ss-jump [data-jump]", "els => els.map(e => e.dataset.jump)")
+    assert jumps == ["media", "info"]
+    page.click(".ss-meta-row:has(input[data-ss-field='desc'])")       # focus on the row's box
+    assert page.evaluate("document.activeElement.dataset.ssField") == "desc"
+    page.keyboard.press("Enter")                                       # as the shortcut list says
+    page.wait_for_function("!document.getElementById('ss-modal').classList.contains('open')")
+    game = etree.parse(str(gamelist)).getroot().find("game")
+    assert game.findtext("desc") == "Une description venue de la source."

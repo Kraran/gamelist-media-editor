@@ -22,6 +22,8 @@ const FIELD_DEFS = [
 { key: "fanart",    icon: "wallpaper" },
 { key: "mix",       icon: "layout-collage" },
 { key: "map",       icon: "map" },
+{ key: "thumbnail", icon: "photo-square-rounded" },
+{ key: "bezel",     icon: "frame" },
 ];
 function getFields() {
   return FIELD_DEFS.map(f => ({
@@ -34,17 +36,52 @@ let FIELDS = FIELD_DEFS.map(f => ({ ...f, label: f.key }));
 
 /* ========== i18n (client) ========== */
 /* Keys are dotted paths in locale JSON. applyI18n() writes [data-i18n*] attributes. */
-const LOCALE_KEY = "gme_locale";
+const LOCALE_KEY = "gme_locale";               // where older versions kept the language (browser)
 const DEFAULT_LOCALE = "fr";
 let I18N = {};
 let currentLocale = DEFAULT_LOCALE;
 
-function getStoredLocale() {
+/* --- Interface settings ------------------------------------------------------
+ * Language, scrape source and required media per system: kept by the server in
+ * ui_settings.json next to the app (gme/settings.py), not in the browser,
+ * whose storage the app window can lose.
+ */
+let SETTINGS = { locale: null, scrapers: {}, required_media: {} };
+
+async function loadSettings() {
+  try { SETTINGS = await apiFetch("/api/settings"); } catch (_) {}
+  // Older versions kept the language and the sources in the browser: hand them over once
+  const patch = {};
+  let oldLocale = null, oldScrapers = null;
   try {
-    const v = localStorage.getItem(LOCALE_KEY);
-    if (v && /^[a-z]{2}(-[A-Z]{2})?$/.test(v)) return v.split("-")[0];
+    oldLocale = localStorage.getItem(LOCALE_KEY);
+    oldScrapers = JSON.parse(localStorage.getItem(SCRAPER_PREF_KEY) || "null");
   } catch (_) {}
-  return DEFAULT_LOCALE;
+  if (!SETTINGS.locale && /^[a-z]{2}/.test(oldLocale || "")) patch.locale = oldLocale.slice(0, 2);
+  if (oldScrapers && typeof oldScrapers === "object" && !Object.keys(SETTINGS.scrapers).length) {
+    const valid = Object.entries(oldScrapers).filter(([, v]) => SCRAPERS[v]);
+    if (valid.length) patch.scrapers = Object.fromEntries(valid);
+  }
+  if (Object.keys(patch).length && !(await saveSettings(patch, { quiet: true }))) return;
+  try {
+    localStorage.removeItem(LOCALE_KEY);
+    localStorage.removeItem(SCRAPER_PREF_KEY);
+  } catch (_) {}
+}
+
+/** Save part of the settings ({locale}, {scrapers: {folder: source|null}}…). */
+async function saveSettings(patch, { quiet = false } = {}) {
+  try {
+    SETTINGS = await apiFetch("/api/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    return true;
+  } catch (e) {
+    if (!quiet) handleError(e);
+    return false;
+  }
 }
 
 function t(key, params, fallback) {
@@ -101,6 +138,7 @@ function applyI18n() {
   try { updateFilterCounts(); } catch (_) {}
   try { initCodeSelects(); renderRating(); renderReleaseDate(); updateUnsavedUi(); } catch (_) {}
   try { updateScrapeButton(); } catch (_) {}
+  try { fillSsRegions(); } catch (_) {}
   try {
     if (typeof games !== "undefined" && games.length) {
       const badge = document.getElementById("game-count");
@@ -124,7 +162,6 @@ async function loadLocale(code) {
     if (!res.ok) throw new Error("HTTP " + res.status);
     I18N = await res.json();
     currentLocale = lang;
-    try { localStorage.setItem(LOCALE_KEY, lang); } catch (_) {}
     applyI18n();
     return true;
   } catch (e) {
@@ -148,6 +185,7 @@ async function setLocale(code, { silent = false } = {}) {
   try {
     if (typeof renderList === "function") renderList();
   } catch (_) {}
+  if (ok) await saveSettings({ locale: currentLocale }, { quiet: true });
   if (!silent) {
     toast(t("tools.lang_changed"), ok ? "success" : "error");
   }
@@ -400,10 +438,29 @@ function hasMedia(g, key) {
   return !!(g[key] && String(g[key]).trim());
 }
 
+/* Required media: what a game of this system needs to count as complete (list
+ * counter, "Missing required media" filter, Next incomplete). Chosen per system
+ * in Settings › Required media; arcade systems have no box by default. */
+const DEFAULT_REQUIRED = ["image", "video", "marquee", "boxart"];
+const DEFAULT_REQUIRED_ARCADE = ["image", "video", "marquee"];
+function defaultRequired() {
+  return currentSystem && currentSystem.scraper === "arcadeitalia" ? DEFAULT_REQUIRED_ARCADE : DEFAULT_REQUIRED;
+}
+function customRequired(folder) {
+  const v = folder && SETTINGS.required_media && SETTINGS.required_media[folder];
+  return Array.isArray(v) ? v : null;
+}
+function requiredKeys() {
+  return customRequired(currentSystem && currentSystem.folder) || defaultRequired();
+}
+function missingRequired(g, keys) {
+  return (keys || requiredKeys()).filter(k => !hasMedia(g, k));
+}
+
 function matchesMediaFilter(g, filterKey) {
   const key = filterKey !== undefined ? filterKey : mediaFilter;
   if (key === "all") return true;
-  if (key === "any") return FIELDS.some(f => !hasMedia(g, f.key));
+  if (key === "any") return missingRequired(g).length > 0;
   return !hasMedia(g, key);
 }
 
@@ -441,16 +498,16 @@ function updateGameCount(visibleCount) {
 function updateFilterCounts(q) {
   const query = (q || "").toLowerCase().trim();
   const keys = FIELD_DEFS.map(f => f.key);
+  const required = requiredKeys();
   const counts = { all: 0, any: 0 };
   keys.forEach(k => { counts[k] = 0; });
   for (const g of games) {
     if (query && !matchesSearch(g, query)) continue;
     counts.all++;
-    let missing = false;
     for (const k of keys) {
-      if (!hasMedia(g, k)) { counts[k]++; missing = true; }
+      if (!hasMedia(g, k)) counts[k]++;
     }
-    if (missing) counts.any++;
+    if (missingRequired(g, required).length) counts.any++;
   }
   const sel = document.getElementById("media-filter");
   if (!sel) return;
@@ -638,24 +695,23 @@ function thumbPath(g) {
   return g.image || g.boxart || g.mix || g.marquee || "";
 }
 
-function gameRowHtml(g, listIndex, pos) {
+function gameRowHtml(g, listIndex, pos, required) {
   const active = listIndex === currentListIndex;
-  const fields = getFields();
-  const missing = fields.filter(f => !hasMedia(g, f.key));
-  const present = fields.length - missing.length;
+  const missing = missingRequired(g, required);
+  const present = required.length - missing.length;
   const title = missing.length
-    ? t("sidebar.media_missing", { list: missing.map(f => f.label).join(", ") })
+    ? t("sidebar.media_missing", { list: missing.map(fieldLabel).join(", ") })
     : t("sidebar.media_complete");
   const tp = thumbPath(g);
   const thumb = tp
     ? `<img src="${thumbUrl(tp)}" alt="" loading="lazy" decoding="async" />`
     : icon("device-gamepad-2");
-  const countCls = present === fields.length ? " is-complete" : present === 0 ? " is-empty" : "";
+  const countCls = !missing.length ? " is-complete" : present === 0 ? " is-empty" : "";
   return `<div class="game-item${active ? " active" : ""}" role="option" id="gi-${listIndex}"` +
     ` data-list-index="${listIndex}" aria-selected="${active}" aria-setsize="${viewIndices.length}" aria-posinset="${pos + 1}">` +
     `<span class="gi-thumb">${thumb}</span>` +
     `<span class="gi-text"><span class="name">${escapeHtml(g.name)}</span><span class="path">${escapeHtml(g.path)}</span></span>` +
-    `<span class="gi-count${countCls}" title="${escapeHtml(title)}">${present}/${fields.length}</span>` +
+    `<span class="gi-count${countCls}" title="${escapeHtml(title)}">${required.length ? `${present}/${required.length}` : "–"}</span>` +
     `</div>`;
 }
 
@@ -668,9 +724,10 @@ function renderListWindow(force) {
   if (!force && first === winFirst && last === winLast) return;
   winFirst = first; winLast = last;
   let html = "";
+  const required = requiredKeys();
   for (let pos = first; pos < last; pos++) {
     const i = viewIndices[pos];
-    html += gameRowHtml(games[i], i, pos);
+    html += gameRowHtml(games[i], i, pos, required);
   }
   win.style.transform = `translateY(${first * ROW_H}px)`;
   win.innerHTML = html;
@@ -1157,9 +1214,9 @@ function mediaTileHtml(g, f) {
   </figure>`;
 }
 
-function missingChipHtml(f) {
-  const title = t("editor.choose_file", { field: f.label });
-  return `<button type="button" class="missing-chip" data-field="${f.key}" title="${escapeHtml(title)}">` +
+function missingChipHtml(f, required) {
+  const title = t("editor.choose_file", { field: f.label }) + (required ? ` (${t("editor.required")})` : "");
+  return `<button type="button" class="missing-chip${required ? " is-required" : ""}" data-field="${f.key}" title="${escapeHtml(title)}">` +
     `${icon(f.icon)}<span>${escapeHtml(f.label)}</span>${icon("upload", "chip-add")}</button>`;
 }
 
@@ -1170,7 +1227,14 @@ function renderZones(g) {
   const grid = document.getElementById("media-grid");
   grid.innerHTML = present.map(f => mediaTileHtml(g, f)).join("");
   grid.hidden = !present.length;
-  document.getElementById("missing-chips").innerHTML = missing.map(missingChipHtml).join("");
+  // Required media first; the others after their own label
+  const required = requiredKeys();
+  const needed = missing.filter(f => required.includes(f.key));
+  const optional = missing.filter(f => !required.includes(f.key));
+  document.getElementById("missing-chips").innerHTML =
+    needed.map(f => missingChipHtml(f, true)).join("") +
+    (needed.length && optional.length ? `<span class="missing-sep">${escapeHtml(t("editor.missing_optional"))}</span>` : "") +
+    optional.map(f => missingChipHtml(f, false)).join("");
   document.getElementById("media-missing").hidden = !missing.length;
 
   grid.querySelectorAll(".media-tile").forEach(tile => {
@@ -1383,6 +1447,13 @@ document.addEventListener("keydown", e => {
     if (e.key === "Escape") {
       e.preventDefault();
       closeSsModal();
+    } else if (e.key === "Enter" && !(e.target.closest && e.target.closest("button"))) {
+      // Enter on a ticked card or row applies, as on the Apply button
+      const apply = document.getElementById("ss-modal-apply");
+      if (!apply.hidden && !apply.disabled) {
+        e.preventDefault();
+        applyScrape();
+      }
     }
     return;
   }
@@ -1497,6 +1568,39 @@ document.addEventListener("keydown", e => {
     return;
   }
 });
+/* --- Dialogs: Tab stays inside the open one -----------------------------------
+ * The page behind a dialog cannot be reached with the keyboard. The confirm
+ * dialog can open above another one, so it is looked at first. */
+const DIALOG_IDS = ["confirm-modal", "media-lightbox", "ss-modal", "check-modal", "open-gamelist-modal",
+  "settings-modal", "about-modal"];
+function topDialog() {
+  for (const id of DIALOG_IDS) {
+    const el = document.getElementById(id);
+    if (el && el.classList.contains("open")) return el;
+  }
+  return null;
+}
+document.addEventListener("keydown", e => {
+  if (e.key !== "Tab") return;
+  const dialog = topDialog();
+  if (!dialog) return;
+  const items = [...dialog.querySelectorAll("button, [href], input, select, textarea, [tabindex]")]
+    .filter(el => !el.disabled && el.tabIndex >= 0 && el.getClientRects().length && !el.closest("[hidden]"));
+  if (!items.length) return;
+  const first = items[0], last = items[items.length - 1];
+  const active = document.activeElement;
+  if (!dialog.contains(active)) {
+    e.preventDefault();
+    (e.shiftKey ? last : first).focus();
+  } else if (!e.shiftKey && active === last) {
+    e.preventDefault();
+    first.focus();
+  } else if (e.shiftKey && active === first) {
+    e.preventDefault();
+    last.focus();
+  }
+}, true);
+
 function askConfirm({ title, bodyHtml, showBackup = true, okLabel, cancelLabel, okClass = "btn-danger", extraLabel }) {
   return new Promise(resolve => {
     const overlay = document.getElementById("confirm-modal");
@@ -1634,13 +1738,14 @@ function setupMenu(id, buttonId, onOpen) {
 }
 
 /* --- Settings: General, ScreenScraper, scrape sources, shortcuts --------- */
-const SETTINGS_PANES = ["general", "ss", "sources", "keys"];
+const SETTINGS_PANES = ["general", "ss", "sources", "required", "keys"];
 
 function openSettings(pane) {
   closeMenu(null, false);
   wireLanguageControls();
   loadSsConfig();
   renderScrapeSources();
+  renderRequiredMedia();
   document.getElementById("settings-modal").classList.add("open");
   showSettingsPane(pane || "general", true);
 }
@@ -1702,15 +1807,71 @@ document.getElementById("sources-list").addEventListener("click", e => {
   const btn = e.target.closest("[data-reset-folder]");
   if (!btn) return;
   const folder = btn.dataset.resetFolder;
-  const prefs = scraperPrefs();
-  if (folder === "*") Object.keys(prefs).forEach(k => delete prefs[k]);
-  else delete prefs[folder];
-  try { localStorage.setItem(SCRAPER_PREF_KEY, JSON.stringify(prefs)); } catch (_) {}
+  const folders = folder === "*" ? Object.keys(scraperPrefs()) : [folder];
+  folders.forEach(f => delete SETTINGS.scrapers[f]);
   updateScrapeButton();
+  saveSettings({ scrapers: Object.fromEntries(folders.map(f => [f, null])) });
   renderScrapeSources();
   const first = document.querySelector("#sources-list button") || document.getElementById("tab-sources");
   first.focus();
 });
+
+/** Settings › Required media: ticks for the open system, and the other systems changed. */
+function renderRequiredMedia() {
+  const box = document.getElementById("required-box");
+  const folder = currentSystem && currentSystem.folder;
+  if (!folder) {
+    box.innerHTML = `<p class="sources-empty">${escapeHtml(t("settings.required_no_system"))}</p>`;
+    return;
+  }
+  const custom = customRequired(folder);
+  const required = requiredKeys();
+  const system = currentSystem.label || folder;
+  let html = `<div class="required-head"><span>${escapeHtml(t("settings.required_for", { system }))}</span>` +
+    `<span class="required-state">${escapeHtml(t(custom ? "settings.required_custom" : "settings.required_default"))}</span>` +
+    (custom ? `<button type="button" class="btn btn-sm btn-ghost" data-required-reset="${escapeHtml(folder)}">${escapeHtml(t("settings.required_reset"))}</button>` : "") +
+    `</div><div class="required-grid">` +
+    getFields().map(f => `<label class="required-item"><input type="checkbox" data-required="${f.key}"` +
+      `${required.includes(f.key) ? " checked" : ""} />${icon(f.icon)}<span>${escapeHtml(f.label)}</span></label>`).join("") +
+    `</div>`;
+  const others = Object.keys(SETTINGS.required_media || {}).filter(f => f !== folder).sort();
+  if (others.length) {
+    html += `<p class="required-others-title">${escapeHtml(t("settings.required_others"))}</p>` +
+      others.map(f => `<div class="source-row"><code class="source-folder">${escapeHtml(f)}</code>` +
+        `<span class="required-list">${escapeHtml(customRequired(f).map(fieldLabel).join(", ") || "–")}</span>` +
+        `<button type="button" class="btn btn-sm btn-ghost" data-required-reset="${escapeHtml(f)}">` +
+        `${escapeHtml(t("settings.required_reset"))}</button></div>`).join("");
+  }
+  box.innerHTML = html;
+}
+/** The list, the open game and the filter follow the new required media. */
+function requiredMediaChanged() {
+  renderList();
+  const g = games.find(x => x.index === currentIndex);
+  if (g) renderZones(g);
+  renderRequiredMedia();
+}
+document.getElementById("required-box").addEventListener("change", async e => {
+  if (!e.target.dataset.required) return;
+  const folder = currentSystem && currentSystem.folder;
+  if (!folder) return;
+  const ticked = [...document.querySelectorAll("#required-box [data-required]:checked")].map(cb => cb.dataset.required);
+  const def = defaultRequired();
+  const same = ticked.length === def.length && def.every(k => ticked.includes(k));
+  const focusKey = e.target.dataset.required;
+  await saveSettings({ required_media: { [folder]: same ? null : ticked } });
+  requiredMediaChanged();
+  const again = document.querySelector(`#required-box [data-required="${focusKey}"]`);
+  if (again) again.focus();
+});
+document.getElementById("required-box").addEventListener("click", async e => {
+  const btn = e.target.closest("[data-required-reset]");
+  if (!btn) return;
+  await saveSettings({ required_media: { [btn.dataset.requiredReset]: null } });
+  requiredMediaChanged();
+  document.getElementById("tab-required").focus();
+});
+document.getElementById("btn-required-media").addEventListener("click", () => openSettings("required"));
 
 /* --- Actions on the whole gamelist (app bar ⋯ menu) ----------------------- */
 setupMenu("actions-menu", "btn-actions");
@@ -2532,7 +2693,8 @@ document.addEventListener("keydown", (e) => {
 
 /** App entry: locale → genres → games; auto-open file picker if nothing loaded. */
 async function boot() {
-  await loadLocale(getStoredLocale());
+  await loadSettings();
+  await loadLocale(SETTINGS.locale || DEFAULT_LOCALE);
   wireLanguageControls();
   try {
     GENRES = await apiFetch("/static/genres.json");
@@ -2575,11 +2737,20 @@ function setSsLoading(on, message) {
   const testBtn = document.getElementById("btn-ss-test");
   if (testBtn) testBtn.disabled = on;
 }
+/* ScreenScraper region codes, named in the interface language */
+const SS_REGIONS = ["wor", "eu", "us", "jp", "fr", "de", "es", "it", "pt", "uk", "nl", "se", "no", "dk", "fi",
+  "pl", "ru", "br", "au", "ca", "kr", "cn", "tw", "asi"];
+function fillSsRegions(value) {
+  const sel = document.getElementById("ss-region");
+  const keep = value || sel.value || "fr";
+  sel.innerHTML = SS_REGIONS.map(c => `<option value="${c}">${escapeHtml(regionLabel(c))} (${c})</option>`).join("");
+  setSelectValue(sel, keep);
+}
 async function loadSsConfig() {
   try {
     const cfg = await apiFetch("/api/ss/config");
     document.getElementById("ss-ssid").value = cfg.ssid || "";
-    document.getElementById("ss-region").value = cfg.prefer_region || "fr";
+    fillSsRegions(cfg.prefer_region || "fr");
     const mt = cfg.media_types || {};
     const img = document.getElementById("ss-type-image");
     const box = document.getElementById("ss-type-boxart");
@@ -2604,7 +2775,7 @@ async function loadSsConfig() {
   }
 }
 
-async function saveSsConfig() {
+async function saveSsConfig({ quiet = false } = {}) {
   const payload = {
     ssid: document.getElementById("ss-ssid").value.trim(),
     prefer_region: document.getElementById("ss-region").value,
@@ -2624,9 +2795,11 @@ async function saveSsConfig() {
     });
     document.getElementById("ss-sspassword").value = "";
     await loadSsConfig();
-    toast(t("toast.ss_saved"));
+    if (!quiet) toast(t("toast.ss_saved"));
+    return true;
   } catch (e) {
     handleError(e);
+    return false;
   }
 }
 
@@ -2637,8 +2810,8 @@ async function testSsConfig() {
   st.className = "ss-status";
   setSsLoading(true, t("scrape.test_loading"));
   try {
-    // Persist form fields first (ssid / region / password if typed)
-    await saveSsConfig();
+    // A password typed but not yet saved (the field saves when it loses the focus)
+    await saveSsConfig({ quiet: true });
     const data = await apiFetch("/api/ss/test", { method: "POST" });
     let msg = t("scrape.test_ok_short");
     if (data.mode === "user") {
@@ -2659,7 +2832,10 @@ async function testSsConfig() {
   }
 }
 
-document.getElementById("btn-ss-save").addEventListener("click", saveSsConfig);
+// Like the language, each ScreenScraper setting is saved as soon as it changes
+["ss-ssid", "ss-sspassword", "ss-region", "ss-type-image", "ss-type-boxart", "ss-type-mix"].forEach(id => {
+  document.getElementById(id).addEventListener("change", () => saveSsConfig());
+});
 document.getElementById("btn-ss-test").addEventListener("click", testSsConfig);
 
 const SCRAPERS = {
@@ -2667,7 +2843,7 @@ const SCRAPERS = {
   arcadeitalia: { label: "Arcade Database", icon: "coin", scrape: "/api/adb/scrape/", apply: "/api/adb/apply/", idKey: "romset" },
   steam: { label: "Steam", icon: "brand-steam", scrape: "/api/steam/scrape/", apply: "/api/steam/apply/", idKey: "appid" },
 };
-const SCRAPER_PREF_KEY = "gme_scraper_by_system";
+const SCRAPER_PREF_KEY = "gme_scraper_by_system";     // where older versions kept it (browser)
 const SCRAPE_MEDIA_ICONS = {
   image: "photo", thumbnail: "photo", marquee: "tag", boxart: "box", boxback: "flip-horizontal",
   cartridge: "device-sd-card", fanart: "wallpaper", mix: "layout-collage", map: "map", bezel: "frame",
@@ -2683,12 +2859,7 @@ let scrapeState = null;     // { source, proposed, rows } while the comparison i
 
 /* --- Source: automatic per system, or forced from the menu --- */
 function scraperPrefs() {
-  try {
-    const v = JSON.parse(localStorage.getItem(SCRAPER_PREF_KEY) || "{}");
-    return v && typeof v === "object" ? v : {};
-  } catch (_) {
-    return {};
-  }
+  return SETTINGS.scrapers || {};
 }
 function autoScraper() {
   const s = currentSystem && currentSystem.scraper;
@@ -2705,11 +2876,11 @@ function chosenScraper() {
 function rememberScraper(source) {
   const folder = currentSystem && currentSystem.folder;
   if (!folder) return;
-  const prefs = scraperPrefs();
-  if (!source || source === autoScraper()) delete prefs[folder];
-  else prefs[folder] = source;
-  try { localStorage.setItem(SCRAPER_PREF_KEY, JSON.stringify(prefs)); } catch (_) {}
+  const value = !source || source === autoScraper() ? null : source;
+  if (value) SETTINGS.scrapers[folder] = value;        // shown at once, saved behind
+  else delete SETTINGS.scrapers[folder];
   updateScrapeButton();
+  saveSettings({ scrapers: { [folder]: value } });
 }
 function updateScrapeButton() {
   const source = chosenScraper();
@@ -2906,11 +3077,11 @@ function showScrapeCompare(source, data, picked) {
   const names = list => list.map(r => escapeHtml(scrapeFieldLabel(r.key))).join(", ");
   let html = "";
   if (media.length) {
-    html += `<section class="ss-section"><h4 class="ss-section-title">${escapeHtml(t("scrape.section_media"))}</h4>` +
+    html += `<section class="ss-section" id="ss-sec-media"><h4 class="ss-section-title">${escapeHtml(t("scrape.section_media"))}</h4>` +
       `<div class="ss-media-grid">${media.map(scrapeMediaCardHtml).join("")}</div></section>`;
   }
   if (meta.length) {
-    html += `<section class="ss-section"><h4 class="ss-section-title">${escapeHtml(t("scrape.section_info"))}</h4>` +
+    html += `<section class="ss-section" id="ss-sec-info"><h4 class="ss-section-title">${escapeHtml(t("scrape.section_info"))}</h4>` +
       `<div class="ss-meta-table"><div class="ss-meta-head" aria-hidden="true"><span></span><span></span>` +
       `<span>${escapeHtml(t("scrape.current"))}</span><span></span><span>${escapeHtml(t("scrape.proposed"))}</span></div>` +
       meta.map(scrapeMetaRowHtml).join("") + `</div></section>`;
@@ -2938,6 +3109,12 @@ function showScrapeCompare(source, data, picked) {
     });
   });
   box.hidden = false;
+  // Both sections: shortcuts to each, the second one is often below the fold
+  document.getElementById("ss-jump").innerHTML = media.length && meta.length
+    ? [["media", "scrape.section_media", media.length], ["info", "scrape.section_info", meta.length]]
+      .map(([k, label, n]) => `<button type="button" class="ss-jump-btn" data-jump="${k}">` +
+        `${escapeHtml(t(label))}<span>${n}</span></button>`).join("")
+    : "";
   document.getElementById("ss-candidates").hidden = true;
   document.getElementById("ss-select-bar").hidden = !actionable.length;
   document.getElementById("ss-hint").hidden = !actionable.length;
@@ -2945,7 +3122,24 @@ function showScrapeCompare(source, data, picked) {
   applyScrapePreset("missing");
   openSsModal();
   box.scrollTop = 0;
+  updateScrapeScrollHint();
 }
+/** A fade at the bottom while there is more below. */
+function updateScrapeScrollHint() {
+  const box = document.getElementById("ss-fields");
+  box.classList.toggle("has-more", box.scrollTop + box.clientHeight < box.scrollHeight - 4);
+}
+document.getElementById("ss-fields").addEventListener("scroll", updateScrapeScrollHint, { passive: true });
+window.addEventListener("resize", () => {
+  if (document.getElementById("ss-modal").classList.contains("open")) updateScrapeScrollHint();
+});
+document.getElementById("ss-jump").addEventListener("click", e => {
+  const btn = e.target.closest("[data-jump]");
+  if (!btn) return;
+  const box = document.getElementById("ss-fields");
+  const section = document.getElementById("ss-sec-" + btn.dataset.jump);
+  box.scrollTo({ top: section.offsetTop - box.offsetTop, behavior: "smooth" });
+});
 
 function showScrapeCandidates(source, data) {
   scrapeState = null;

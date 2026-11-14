@@ -63,6 +63,7 @@ Les fichiers **Pad2Key** (`.keys`) vont **à côté de la ROM**, pas dans `image
 |---|---|
 | `screenscraper_config.json` | Compte membre ScreenScraper, région, types de médias |
 | `recent_gamelists.json` | Les derniers gamelists ouverts (fenêtre Gamelist…) |
+| `ui_settings.json` | Langue, sources de scrape et médias requis par système |
 | `cache\thumbs\` | Miniatures de la liste (recréées à la demande) |
 | `cache\remote\` | Images proposées par un scrape, gardées un jour (pas de second téléchargement) |
 
@@ -70,7 +71,7 @@ Le dossier `cache` peut être supprimé sans risque.
 
 ## Mise à jour 1.3.0 → 1.4.0
 
-- Remplace les fichiers de l’app (garde `screenscraper_config.json` et `recent_gamelists.json`)
+- Remplace les fichiers de l’app (garde `screenscraper_config.json`, `ui_settings.json` et `recent_gamelists.json`)
 - En source : `python -m pip install -r requirements.txt`
 - Aucune migration du `gamelist.xml`
 - Les **Outils** sont devenus **Réglages** (roue dentée) et **Actions** (⋯) : voir [Utilisation](Utilisation)

@@ -30,7 +30,7 @@ Version documentée : **1.4.0**
 
 - **Miniatures** et **compteur de médias** par jeu (survol : ce qui manque)
 - Recherche, **filtre** par média manquant avec compteurs
-- **Suivant incomplet** (`N`)
+- **Médias requis par système** : le compteur de la liste, le filtre et **Suivant incomplet** (`N`) s’en servent
 - Rapide sur de très grosses listes (30 000 jeux MAME s’ouvrent en une seconde environ)
 - Badge système dans l’en-tête
 
