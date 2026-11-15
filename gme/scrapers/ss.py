@@ -59,7 +59,7 @@ SS_MEDIA_PREF = {
     "thumbnail": ["box-2D"],
     "bezel": ["bezel-16-9"],
 }
-# User-configurable type (Outils → ScreenScraper). Only that type is requested.
+# User-configurable type (Settings › ScreenScraper). Only that type is requested.
 SS_MEDIA_CHOICES = {
     "image": ("ss", "sstitle"),
     "boxart": ("box-2D", "box-3D"),
@@ -284,7 +284,7 @@ def ss_request(endpoint, extra_params=None, timeout=25):
             # Plain-text quota messages sometimes without "Erreur" prefix
             if any(k in stripped.lower() for k in ("quota", "thread", "limit")):
                 return False, format_ss_error(stripped, r.status_code), r.status_code
-            return False, f"Réponse non JSON: {stripped[:300]}", r.status_code
+            return False, st("server.source_bad_answer", source="ScreenScraper", detail=stripped[:300]), r.status_code
         header = data.get("header") or {}
         err = (header.get("error") or "").strip()
         if err and err not in ("OK", "0", "none", "null"):
@@ -292,9 +292,9 @@ def ss_request(endpoint, extra_params=None, timeout=25):
                 return False, format_ss_error(err, r.status_code), r.status_code
         return True, data, r.status_code
     except requests.Timeout:
-        return False, "Délai d'attente ScreenScraper dépassé — le serveur est peut-être surchargé.", 504
+        return False, st("server.source_timeout", source="ScreenScraper"), 504
     except requests.RequestException as e:
-        return False, f"Réseau ScreenScraper: {e}", 502
+        return False, st("server.source_network", source="ScreenScraper", detail=e), 502
 
 
 def _ss_pick_text(entries, prefer_region="fr", key_region="region", key_text="text"):

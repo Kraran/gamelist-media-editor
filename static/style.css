@@ -214,7 +214,6 @@ kbd {
 .btn .icon { width: 17px; height: 17px; }
 
 .btn-sm { height: 28px; padding: 0 var(--s2); font-size: var(--fs-sm); gap: 6px; }
-.btn-block { width: 100%; }
 .btn-icon { width: var(--h-control); padding: 0; }
 
 .btn-accent { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
@@ -225,14 +224,6 @@ kbd {
 
 .btn-ghost { background: transparent; border-color: transparent; color: var(--text-2); }
 .btn-ghost:hover:not(:disabled) { background: var(--surface); color: var(--text); }
-
-.btn-ghost-danger { background: transparent; border-color: transparent; color: var(--danger); }
-.btn-ghost-danger:hover:not(:disabled) { background: var(--danger-soft); color: var(--danger); }
-
-/* Save buttons stay quiet until there is something to save */
-.btn-save { color: var(--text-2); }
-.btn-save.has-changes { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
-.btn-save.has-changes:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
 
 input[type="text"], input[type="search"], input[type="number"], input[type="password"], input[type="date"], select, textarea {
   width: 100%;
@@ -1031,7 +1022,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); cur
 .tools-intro { color: var(--text-2); font-size: var(--fs-sm); }
 .tools-hint { margin-right: auto; color: var(--text-3); font-size: var(--fs-xs); }
 
-/* Tools */
+/* Wide dialog (Open gamelist) */
 .tools-modal { width: min(760px, 100%); }
 
 /* Settings: tabs on the left, one pane at a time */

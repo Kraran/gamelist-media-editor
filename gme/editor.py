@@ -1,7 +1,6 @@
-"""Editor routes: game list, gamelist switching, media and metadata editing, tools."""
+"""Editor routes: game list, gamelist switching, media and metadata editing, whole-gamelist actions."""
 
 import os
-import sys
 import threading
 import time
 
@@ -86,20 +85,6 @@ def api_game(index):
     if not (0 <= index < len(games)):
         return api_err(st("server.invalid_index"), 404, code="invalid_index")
     return jsonify(game_fields(games[index], index, LIST_FIELDS | {"desc"}))
-
-
-@bp.route("/api/session")
-def api_session():
-    """Current gamelist path + system badge info (no full game list)."""
-    loaded = has_gamelist()
-    return jsonify({
-        "xml_path": xml_store.XML_PATH if loaded else None,
-        "base_dir": xml_store.BASE_DIR if loaded else None,
-        "system": get_system_info() if loaded else None,
-        "version": APP_VERSION,
-        "loaded": loaded,
-        "frozen": bool(getattr(sys, "frozen", False)),
-    })
 
 
 @bp.route("/api/browse")
@@ -362,70 +347,6 @@ def save_game(index):
         log.exception("save failed")
         return api_err(str(e), 500, code="save_failed")
     return jsonify({"success": True, "updated": updated})
-
-
-@bp.route("/api/desc/<int:index>", methods=["POST"])
-def update_desc(index):
-    err = require_gamelist()
-    if err:
-        return err
-    try:
-        data = request.get_json(silent=True) or {}
-        new_desc = data.get("desc", "") or ""
-        try:
-            tree, game = get_game_elem(index)
-        except IndexError:
-            return api_err(st("server.invalid_index"), 404, code="invalid_index")
-        set_desc(game, new_desc)
-        save_xml(tree)
-        return jsonify({"success": True})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@bp.route("/api/name/<int:index>", methods=["POST"])
-def update_name(index):
-    err = require_gamelist()
-    if err:
-        return err
-    try:
-        data = request.get_json(silent=True) or {}
-        new_name = (data.get("name") or "").strip()
-        if not new_name:
-            return api_err(st("server.empty_name"), 400, code="empty_name")
-        try:
-            tree, game = get_game_elem(index)
-        except IndexError:
-            return api_err(st("server.invalid_index"), 404, code="invalid_index")
-        set_name(game, new_name)
-        save_xml(tree)
-        return jsonify({"success": True, "name": new_name})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@bp.route("/api/meta/<int:index>", methods=["POST"])
-def update_meta(index):
-    err = require_gamelist()
-    if err:
-        return err
-    try:
-        data = request.get_json(silent=True) or {}
-        if not data:
-            return api_err(st("server.no_data"), 400, code="no_data")
-        try:
-            tree, game = get_game_elem(index)
-        except IndexError:
-            return api_err(st("server.invalid_index"), 404, code="invalid_index")
-        try:
-            updated = clean_meta(data)
-        except FieldError as e:
-            return api_err(st(e.key), 400, code=e.code)
-        set_meta(game, updated)
-        save_xml(tree)
-        return jsonify({"success": True, "updated": updated})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
 
 
 @bp.route("/api/backup", methods=["POST"])

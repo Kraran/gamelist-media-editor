@@ -10,6 +10,16 @@ All notable changes to Gamelist Media Editor are documented in this file.
 - **Tick games in the list** for the batch scrape: the box on a row's thumbnail, `Ctrl`+click, or `X` for the open game; `Shift`+click ticks every game shown in between; `Esc` unticks all. The ticks survive a reload of the list
 - ScreenScraper answers that will not change with another game (quota, login, API closed) come back as `source_blocked` (HTTP 503) instead of "not found"
 
+### Changed
+- Removed the per-field routes `/api/name`, `/api/desc`, `/api/meta` and `/api/session`, unused by the interface since 1.4.0 (`POST /api/game/<index>` saves any field in one write)
+- Code clean-up: dead code and styles removed, outdated comments rewritten, early functions re-indented, one list of "come back later" messages for the error toasts and the batch scrape
+
+### Fixed
+- **About 270 texts were still in English** in the other languages (arcade systems menu and dialog, Steam messages, *Open gamelist* dialog, rating errors, `mame.xml` messages…); they are translated, and 16 texts no longer used are removed
+- ScreenScraper and Arcade Database network errors (no answer in time, network down, unexpected answer) were always shown in French; the system tooltip said "dossier" in every language
+- "Label: value" in error messages and exported reports used the French spacing (`Label : value`) in every language
+- *About* used *vous* in French while the rest of the interface uses *tu*
+
 ## [1.5.0] - 2026-11-14
 
 Check ROMs and Check media, required media per system, safer deletions (Recycle Bin, files shared between games kept), settings kept next to the app. Release notes: [docs/release-notes/RELEASE_NOTES_v1.5.0.md](docs/release-notes/RELEASE_NOTES_v1.5.0.md).

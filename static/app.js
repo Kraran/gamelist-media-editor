@@ -31,8 +31,6 @@ function getFields() {
     label: t("fields." + f.key, null, f.key),
   }));
 }
-/** @deprecated use getFields() — kept as live view for older call sites */
-let FIELDS = FIELD_DEFS.map(f => ({ ...f, label: f.key }));
 
 /* ========== i18n (client) ========== */
 /* Keys are dotted paths in locale JSON. applyI18n() writes [data-i18n*] attributes. */
@@ -154,7 +152,6 @@ function applyI18n() {
   });
   const root = document.documentElement;
   if (root) root.lang = currentLocale;
-  FIELDS = getFields();
   // Refresh dynamic bits that depend on locale
   try {
     const mainSel = document.getElementById("meta-genre-main");
@@ -245,7 +242,7 @@ let GENRES = {};
  * games[]          : sorted by name; each item has .index = original XML position
  * currentIndex     : XML index (API routes)
  * currentListIndex : index inside games[] (list selection)
- * mediaFilter      : all | image | video | marquee | manual | boxart | boxback | cartridge | fanart | mix | any
+ * mediaFilter      : all | any (a required media missing) | one media key of FIELD_DEFS
  */
 let games = [];
 let currentIndex = null;
@@ -272,10 +269,6 @@ function setStatus(txt) {
   if (el) el.textContent = txt;
 }
 
-/**
- * Fetch JSON from our API with consistent error handling.
- * Throws Error with a French, user-readable message.
- */
 /**
  * Per-game API URL: appends ?path=<game path> so the server can check that
  * the XML index still designates this game (gamelist.xml may have changed
@@ -357,16 +350,17 @@ async function apiFetch(url, options = {}) {
   return data;
 }
 
+/** "Label : value" with the punctuation of the interface language. */
+function labelValue(label, value) {
+  return t("common.label_value", { label, value });
+}
+
+/** Error toast; a source refusing for now (quota, maintenance) is a warning, not an error. */
 function handleError(e, context) {
   const msg = (e && e.message) ? e.message : String(e);
-  const prefix = context ? context + " : " : "";
-  console.error(prefix, e);
-  const low = msg.toLowerCase();
-  const isQuota = [
-    "quota", "thread", "limite", "limit", "429", "trop de requ",
-    "patiente", "boost", "503", "maintenance", "satur"
-  ].some(k => low.includes(k));
-  toast(prefix + msg, isQuota ? "warning" : "error");
+  console.error(context || "", e);
+  const isQuota = (e && e.code === "source_blocked") || isQuotaMessage(msg);
+  toast(context ? labelValue(context, msg) : msg, isQuota ? "warning" : "error");
   setStatus(isQuota ? t("status.quota") : t("status.error"));
   return msg;
 }
@@ -394,73 +388,73 @@ function escapeHtml(str) {
     .replace(/"/g, "&" + "quot;");
 }
 function initGenreSelects() {
-const mainSel = document.getElementById("meta-genre-main");
-mainSel.innerHTML = '<option value="">' + t("editor.genre_choose") + '</option>';
-Object.keys(GENRES).sort().forEach(main => {
-const opt = document.createElement("option");
-opt.value = main; opt.textContent = main;
-mainSel.appendChild(opt);
-});
+  const mainSel = document.getElementById("meta-genre-main");
+  mainSel.innerHTML = '<option value="">' + t("editor.genre_choose") + '</option>';
+  Object.keys(GENRES).sort().forEach(main => {
+    const opt = document.createElement("option");
+    opt.value = main; opt.textContent = main;
+    mainSel.appendChild(opt);
+  });
 }
 function fillSubGenres(main, selectedSub = "") {
-const subSel = document.getElementById("meta-genre-sub");
-subSel.innerHTML = '<option value="">' + t('editor.genre_none') + '</option>';
-const subs = GENRES[main] || [];
-if (!subs.length) { subSel.disabled = true; return; }
-subSel.disabled = false;
-subs.forEach(sub => {
-const opt = document.createElement("option");
-opt.value = sub; opt.textContent = sub;
-if (sub === selectedSub) opt.selected = true;
-subSel.appendChild(opt);
-});
+  const subSel = document.getElementById("meta-genre-sub");
+  subSel.innerHTML = '<option value="">' + t('editor.genre_none') + '</option>';
+  const subs = GENRES[main] || [];
+  if (!subs.length) { subSel.disabled = true; return; }
+  subSel.disabled = false;
+  subs.forEach(sub => {
+    const opt = document.createElement("option");
+    opt.value = sub; opt.textContent = sub;
+    if (sub === selectedSub) opt.selected = true;
+    subSel.appendChild(opt);
+  });
 }
 function parseGenre(genreStr) {
-if (!genreStr) return { main: "", sub: "" };
-const parts = genreStr.split(/\s*\/\s*/);
-const main = (parts[0] || "").trim().toUpperCase();
-const sub = (parts[1] || "").trim().toUpperCase();
-let foundMain = Object.keys(GENRES).find(k => k.toUpperCase() === main) || "";
-let foundSub = "";
-if (foundMain && sub) {
-foundSub = (GENRES[foundMain] || []).find(s => s.toUpperCase() === sub) || "";
-}
-if (!foundMain && main) {
-for (const [m, subs] of Object.entries(GENRES)) {
-if (subs.some(s => s.toUpperCase() === main)) {
-foundMain = m;
-foundSub = subs.find(s => s.toUpperCase() === main) || "";
-break;
-}
-}
-}
-return { main: foundMain, sub: foundSub };
+  if (!genreStr) return { main: "", sub: "" };
+  const parts = genreStr.split(/\s*\/\s*/);
+  const main = (parts[0] || "").trim().toUpperCase();
+  const sub = (parts[1] || "").trim().toUpperCase();
+  let foundMain = Object.keys(GENRES).find(k => k.toUpperCase() === main) || "";
+  let foundSub = "";
+  if (foundMain && sub) {
+    foundSub = (GENRES[foundMain] || []).find(s => s.toUpperCase() === sub) || "";
+  }
+  if (!foundMain && main) {
+    for (const [m, subs] of Object.entries(GENRES)) {
+      if (subs.some(s => s.toUpperCase() === main)) {
+        foundMain = m;
+        foundSub = subs.find(s => s.toUpperCase() === main) || "";
+        break;
+      }
+    }
+  }
+  return { main: foundMain, sub: foundSub };
 }
 function buildGenreValue() {
-const main = document.getElementById("meta-genre-main").value;
-const sub = document.getElementById("meta-genre-sub").value;
-if (!main) return "";
-return sub ? `${main} / ${sub}` : main;
+  const main = document.getElementById("meta-genre-main").value;
+  const sub = document.getElementById("meta-genre-sub").value;
+  if (!main) return "";
+  return sub ? `${main} / ${sub}` : main;
 }
 function setGenreUI(genreStr) {
-const mainSel = document.getElementById("meta-genre-main");
-mainSel.querySelectorAll("option[data-custom]").forEach(o => o.remove());
-const raw = String(genreStr || "").trim();
-const { main, sub } = parseGenre(raw);
-// Only use the lists when they reproduce the stored value; otherwise keep the
-// value as-is (e.g. "Platform" from ScreenScraper EN): saving must never drop it.
-const rebuilt = main ? (sub ? `${main} / ${sub}` : main) : "";
-const norm = v => v.toUpperCase().replace(/\s*\/\s*/g, " / ");
-if (raw && norm(rebuilt) !== norm(raw)) {
-  const opt = new Option(raw, raw);
-  opt.dataset.custom = "1";
-  mainSel.add(opt, 1);
-  mainSel.value = raw;
-  fillSubGenres("");
-  return;
-}
-mainSel.value = main;
-fillSubGenres(main, sub);
+  const mainSel = document.getElementById("meta-genre-main");
+  mainSel.querySelectorAll("option[data-custom]").forEach(o => o.remove());
+  const raw = String(genreStr || "").trim();
+  const { main, sub } = parseGenre(raw);
+  // Only use the lists when they reproduce the stored value; otherwise keep the
+  // value as-is (e.g. "Platform" from ScreenScraper EN): saving must never drop it.
+  const rebuilt = main ? (sub ? `${main} / ${sub}` : main) : "";
+  const norm = v => v.toUpperCase().replace(/\s*\/\s*/g, " / ");
+  if (raw && norm(rebuilt) !== norm(raw)) {
+    const opt = new Option(raw, raw);
+    opt.dataset.custom = "1";
+    mainSel.add(opt, 1);
+    mainSel.value = raw;
+    fillSubGenres("");
+    return;
+  }
+  mainSel.value = main;
+  fillSubGenres(main, sub);
 }
 function hasMedia(g, key) {
   return !!(g[key] && String(g[key]).trim());
@@ -565,7 +559,7 @@ function updateSystemBadge(system) {
   const bits = [system.label];
   if (system.id != null) bits.push("ScreenScraper id " + system.id);
   if (system.folder && system.folder !== system.label.toLowerCase()) {
-    bits.push("dossier " + system.folder);
+    bits.push(t("header.system_folder", { folder: system.folder }));
   }
   el.title = bits.join(" · ");
 }
@@ -618,35 +612,20 @@ async function loadGames() {
   const pendingValues = pendingKeys.length ? readEditor() : null;
   try {
     const data = await apiFetch("/api/games");
-    // Back-compat: array or { games, system }
-    if (Array.isArray(data)) {
-      games = data;
-      updateSystemBadge(null);
-      window.__gmeLoaded = games.length >= 0;
-    } else {
-      const loaded = data.loaded !== false && !!(data.xml_path);
-      window.__gmeLoaded = loaded;
-      games = data.games || [];
-      if (!loaded) {
-        setNoGamelistUi(false);
-        renderList();
-        setStatus(t("status.no_gamelist"));
-        return;
-      }
-      updateSystemBadge(data.system || null);
-      if (data.xml_path) {
-        window.__gmeXmlPath = data.xml_path;
-      }
-      pruneSelection();
-      setNoGamelistUi(true);
-      // restore empty-state-select visibility (editor still hidden until selection)
-      const emptySelect = document.getElementById("empty-state-select");
-      const emptyOpen = document.getElementById("empty-state-open");
-      if (emptyOpen) emptyOpen.hidden = true;
-      if (emptySelect) emptySelect.hidden = false;
-      const empty = document.getElementById("empty-state");
-      if (empty && currentIndex === null) empty.hidden = false;
+    const loaded = data.loaded !== false && !!data.xml_path;
+    window.__gmeLoaded = loaded;
+    games = data.games || [];
+    if (!loaded) {
+      setNoGamelistUi(false);
+      renderList();
+      setStatus(t("status.no_gamelist"));
+      return;
     }
+    updateSystemBadge(data.system || null);
+    window.__gmeXmlPath = data.xml_path;
+    pruneSelection();
+    setNoGamelistUi(true);          // the editor stays hidden until a game is selected
+    if (currentIndex === null) document.getElementById("empty-state").hidden = false;
     if (keepIndex !== null) {
       // Same game = same <path> (its XML index may have changed on disk)
       const listIdx = keepPath
@@ -1190,23 +1169,23 @@ async function requestSelectGame(listIndex) {
 }
 
 function selectGame(listIndex) {
-const g = games[listIndex];
-if (!g) return;
-currentIndex = g.index;
-currentListIndex = listIndex;
-document.getElementById("empty-state").hidden = true;
-document.getElementById("editor").hidden = false;
-document.getElementById("btn-delete-game").disabled = false;
-setScrapeEnabled(!ssBusy);
-document.getElementById("game-path").textContent = g.path;
-for (const [k, f] of Object.entries(EDITOR_FIELDS)) {
-  const v = g[k] || "";
-  f.set(["favorite", "hidden", "kidgame"].includes(k) ? (v.toLowerCase() === "true" ? "true" : "") : v);
-}
-renderZones(g);
-scrollActiveIntoView();
-snapshotEditor();
-if (!g._detail) loadGameDetail(g);
+  const g = games[listIndex];
+  if (!g) return;
+  currentIndex = g.index;
+  currentListIndex = listIndex;
+  document.getElementById("empty-state").hidden = true;
+  document.getElementById("editor").hidden = false;
+  document.getElementById("btn-delete-game").disabled = false;
+  setScrapeEnabled(!ssBusy);
+  document.getElementById("game-path").textContent = g.path;
+  for (const [k, f] of Object.entries(EDITOR_FIELDS)) {
+    const v = g[k] || "";
+    f.set(["favorite", "hidden", "kidgame"].includes(k) ? (v.toLowerCase() === "true" ? "true" : "") : v);
+  }
+  renderZones(g);
+  scrollActiveIntoView();
+  snapshotEditor();
+  if (!g._detail) loadGameDetail(g);
 }
 
 /**
@@ -1527,7 +1506,7 @@ document.addEventListener("keydown", e => {
   const modal = document.getElementById("confirm-modal");
   if (modal && modal.classList.contains("open")) return;
 
-  // Escape closes SS modal or tools panel
+  // Escape closes the scrape dialog
   const ssModal = document.getElementById("ss-modal");
   if (ssModal && ssModal.classList.contains("open")) {
     if (e.key === "Escape") {
@@ -2240,9 +2219,9 @@ function exportCheck() {
   const { def, report: r, sections } = check;
   const lines = [
     t(def.title) + " — Gamelist Media Editor",
-    `${t("romcheck.report_gamelist")} : ${window.__gmeXmlPath || r.base_dir}`,
-    `${t("romcheck.report_date")} : ${new Date().toLocaleString(currentLocale || "fr")}`,
-    def.stats(r).map(([label, value]) => `${label} : ${value}`).join(" · "),
+    labelValue(t("romcheck.report_gamelist"), window.__gmeXmlPath || r.base_dir),
+    labelValue(t("romcheck.report_date"), new Date().toLocaleString(currentLocale || "fr")),
+    def.stats(r).map(([label, value]) => labelValue(label, value)).join(" · "),
     "",
   ];
   sections.forEach(s => {
@@ -2292,9 +2271,11 @@ function batchTargets() {
   return viewIndices.map(i => games[i]);
 }
 
+/** Arcade Database and Steam have no error code for "come back later": their messages tell. */
 function isQuotaMessage(msg) {
   const low = String(msg || "").toLowerCase();
-  return ["quota", "thread", "429", "trop de requ", "too many", "503", "maintenance", "satur"].some(k => low.includes(k));
+  return ["quota", "thread", "429", "503", "trop de requ", "too many", "maintenance", "satur", "limit"]
+    .some(k => low.includes(k));
 }
 
 async function openBatch() {
@@ -2408,7 +2389,6 @@ document.getElementById("batch-body").addEventListener("click", async e => {
   const mode = e.target.closest("[data-batch-mode]");
   if (mode && batch && batch.phase === "setup") {
     batchPrefs.mode = mode.dataset.batchMode;
-    batch.mode = batchPrefs.mode;
     renderBatch();
     document.querySelector(`[data-batch-mode="${batchPrefs.mode}"]`).focus();
     return;
@@ -2495,8 +2475,8 @@ function exportBatch() {
   const r = batch.results;
   const lines = [
     `${t("batch.title")} — ${SCRAPERS[batch.source].label} — Gamelist Media Editor`,
-    `${t("romcheck.report_gamelist")} : ${window.__gmeXmlPath || ""}`,
-    `${t("romcheck.report_date")} : ${new Date().toLocaleString(currentLocale || "fr")}`,
+    labelValue(t("romcheck.report_gamelist"), window.__gmeXmlPath || ""),
+    labelValue(t("romcheck.report_date"), new Date().toLocaleString(currentLocale || "fr")),
     "",
   ];
   const section = (title, rows, extra) => {
@@ -3013,7 +2993,7 @@ document.getElementById("open-gl-path").addEventListener("drop", (e) => {
 });
 
 
-/* --- About dialog (RomSet Verifier style) --- */
+/* --- About dialog --- */
 // Version / date come from app.py (APP_VERSION, APP_RELEASE_DATE) via <body data-*>
 const APP_ABOUT = {
   version: document.body.dataset.appVersion || "",
@@ -3197,7 +3177,7 @@ async function testSsConfig() {
   } catch (e) {
     st.textContent = e.message;
     st.className = "ss-status err";
-    toast("ScreenScraper : " + e.message, "error");
+    toast(labelValue("ScreenScraper", e.message), "error");
   } finally {
     setSsLoading(false);
   }

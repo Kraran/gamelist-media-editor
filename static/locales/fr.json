@@ -3,11 +3,15 @@
     "code": "fr",
     "name": "Français"
   },
+  "common": {
+    "label_value": "{label} : {value}"
+  },
   "header": {
     "game_count": "{n} jeux",
     "game_count_filtered": "{visible} / {total} jeux",
     "system_title": "Système (dossier du gamelist.xml)",
     "system_unknown": "Système inconnu",
+    "system_folder": "dossier {folder}",
     "delete_game": "Supprimer ce jeu…",
     "reload": "Recharger",
     "reload_title": "Recharger le gamelist.xml depuis le disque",
@@ -55,7 +59,6 @@
     "genre_sub": "Sous-genre",
     "genre_choose": "— Choisir —",
     "genre_none": "— Aucun —",
-    "rating": "Note (0–1)",
     "releasedate": "Date de sortie",
     "developer": "Développeur",
     "publisher": "Éditeur",
@@ -119,8 +122,6 @@
     "bezel": "Bezel"
   },
   "zone": {
-    "drop": "Glisse un fichier ici<br>ou une image depuis le web",
-    "manual_pdf": "Manuel PDF",
     "open": "Ouvrir",
     "preview_unavailable": "Aperçu indisponible",
     "clear_title": "Supprimer",
@@ -136,10 +137,6 @@
     "quota": "Limite API — réessaie plus tard",
     "sending_file": "Envoi du fichier…",
     "downloading": "Téléchargement depuis le web…",
-    "saving_name": "Enregistrement du nom…",
-    "saving_desc": "Enregistrement de la description…",
-    "saving_meta": "Enregistrement des métadonnées…",
-    "reloaded": "Liste rechargée",
     "shutdown_title": "Serveur arrêté",
     "shutdown_msg": "Tu peux fermer cet onglet.<br>La fenêtre de commande devrait se fermer toute seule.",
     "backup_xml": "Sauvegarde du XML…",
@@ -152,7 +149,6 @@
     "opening_gamelist": "Ouverture du gamelist…",
     "no_gamelist": "Aucun gamelist chargé",
     "filling_arcade": "Lecture mame.xml…",
-    "unsaved": "Modifications non enregistrées : {fields}",
     "kbd_navigate": "naviguer",
     "kbd_save": "enregistrer",
     "kbd_next_incomplete": "incomplet suivant",
@@ -164,9 +160,6 @@
     "file_too_large": "Fichier trop volumineux (max {n} Mo)",
     "field_cleared": "Champ retiré du XML",
     "name_empty": "Le nom ne peut pas être vide",
-    "name_saved": "Nom enregistré",
-    "desc_saved": "Description enregistrée",
-    "meta_saved": "Métadonnées enregistrées",
     "upload_ok": "{field} → {filename}",
     "backup_ok": "Sauvegarde créée : {filename}",
     "purge_ok": "{n} balise(s) <region> supprimée(s)",
@@ -191,8 +184,6 @@
     "too_large": "Fichier trop volumineux pour le serveur.",
     "internal": "Erreur interne du serveur ({status}).",
     "load": "Chargement",
-    "upload": "Envoi média",
-    "clear": "Suppression média",
     "genres": "Genres"
   },
   "confirm": {
@@ -226,7 +217,6 @@
     "close": "Fermer",
     "lang_title": "Langue de l’interface",
     "lang_desc": "Change la langue de l’interface. Le choix est mémorisé.",
-    "ss_title": "ScreenScraper",
     "ss_desc": "Le scrape fonctionne <strong>immédiatement</strong> (identifiants logiciel intégrés). Optionnel : ton compte <strong>membre</strong> pour le <strong>boost</strong> de quotas. Stocké en local dans <code>screenscraper_config.json</code>.",
     "ss_ssid": "Identifiant membre (ssid) — optionnel",
     "ss_ssid_ph": "Pseudo ScreenScraper",
@@ -260,7 +250,6 @@
     "current": "Actuel",
     "proposed": "Proposé",
     "similarity": "similarité {pct}%",
-    "test_ok": "Connexion OK",
     "test_loading": "Test ScreenScraper…",
     "no_proposal": "Pas de proposition",
     "test_ok_short": "Connexion OK",
@@ -345,7 +334,6 @@
     "ss_empty_gameid": "Réponse SS vide pour ce gameid",
     "ss_gameid_error": "gameid {id}: {detail}",
     "ss_not_found": "Aucun jeu trouvé sur ScreenScraper pour cette ROM / ce nom",
-    "ss_not_found_detail": "Aucun jeu trouvé sur ScreenScraper pour cette ROM / ce nom. Dossier système : {folder}. CRC : {crc}",
     "ss_candidates": "Plusieurs jeux possibles — choisis le bon dans la liste.",
     "ss_dev_ok": "Identifiants développeur OK (pas de compte utilisateur → quotas de base)",
     "ss_429": "Trop de requêtes vers ScreenScraper (HTTP 429). Patiente 30–60 secondes avant de réessayer.",
@@ -396,7 +384,10 @@
     "rating_range_value": "rating hors plage : {value}",
     "rating_invalid_value": "rating invalide : {value}",
     "stale_game": "Ce jeu a changé dans gamelist.xml (modifié hors de l'application). La liste a été rechargée : vérifie la sélection et recommence.",
-    "rom_not_deleted": "Impossible de supprimer {path} ({detail}). Rien n’a été modifié."
+    "rom_not_deleted": "Impossible de supprimer {path} ({detail}). Rien n’a été modifié.",
+    "source_timeout": "Délai d’attente {source} dépassé : le serveur est peut-être surchargé.",
+    "source_network": "Réseau {source} : {detail}",
+    "source_bad_answer": "Réponse inattendue de {source} : {detail}"
   },
   "open_gl": {
     "title": "Ouvrir un gamelist.xml",
@@ -427,7 +418,7 @@
     "license": "Licence",
     "repo": "Dépôt",
     "stack": "Techno",
-    "note": "Logiciel fourni « tel quel ». Aucune ROM n’est distribuée. Les scrapers accèdent aux services publics ScreenScraper, Arcade Database (Arcade Italia) et Steam — utilisez-les de façon raisonnable.",
+    "note": "Logiciel fourni « tel quel ». Aucune ROM n’est distribuée. Les scrapers accèdent aux services publics ScreenScraper, Arcade Database (Arcade Italia) et Steam — utilise-les de façon raisonnable.",
     "author_page": "Profil Kraran",
     "github": "Dépôt GitHub",
     "close": "Fermer"

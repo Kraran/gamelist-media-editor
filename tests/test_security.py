@@ -8,7 +8,7 @@ SAME = {"Origin": "http://127.0.0.1:5050", "Sec-Fetch-Site": "same-origin"}
 
 @pytest.mark.parametrize("host", ["127.0.0.1:5050", "localhost:5050", "[::1]:5050"])
 def test_ui_same_origin_allowed(gamelist, client, host):
-    r = client.post("/api/name/0", json={"name": "A2"},
+    r = client.post("/api/game/0", json={"name": "A2"},
                     headers={"Host": host, "Origin": f"http://{host}", "Sec-Fetch-Site": "same-origin"})
     assert r.status_code == 200
 

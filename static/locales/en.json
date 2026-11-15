@@ -3,11 +3,15 @@
     "code": "en",
     "name": "English"
   },
+  "common": {
+    "label_value": "{label}: {value}"
+  },
   "header": {
     "game_count": "{n} games",
     "game_count_filtered": "{visible} / {total} games",
     "system_title": "System (gamelist.xml folder)",
     "system_unknown": "Unknown system",
+    "system_folder": "folder {folder}",
     "delete_game": "Delete this game…",
     "reload": "Reload",
     "reload_title": "Reload gamelist.xml from disk",
@@ -55,7 +59,6 @@
     "genre_sub": "Sub-genre",
     "genre_choose": "— Choose —",
     "genre_none": "— None —",
-    "rating": "Rating (0–1)",
     "releasedate": "Release date",
     "developer": "Developer",
     "publisher": "Publisher",
@@ -119,8 +122,6 @@
     "bezel": "Bezel"
   },
   "zone": {
-    "drop": "Drop a file here<br>or an image from the web",
-    "manual_pdf": "PDF manual",
     "open": "Open",
     "preview_unavailable": "Preview unavailable",
     "clear_title": "Remove",
@@ -136,10 +137,6 @@
     "quota": "API limit — try again later",
     "sending_file": "Uploading file…",
     "downloading": "Downloading from the web…",
-    "saving_name": "Saving name…",
-    "saving_desc": "Saving description…",
-    "saving_meta": "Saving metadata…",
-    "reloaded": "List reloaded",
     "shutdown_title": "Server stopped",
     "shutdown_msg": "You can close this tab.<br>The console window should close on its own.",
     "backup_xml": "Backing up XML…",
@@ -152,7 +149,6 @@
     "opening_gamelist": "Opening gamelist…",
     "no_gamelist": "No gamelist loaded",
     "filling_arcade": "Reading mame.xml…",
-    "unsaved": "Unsaved changes: {fields}",
     "kbd_navigate": "navigate",
     "kbd_save": "save",
     "kbd_next_incomplete": "next incomplete",
@@ -164,9 +160,6 @@
     "file_too_large": "File too large (max {n} MB)",
     "field_cleared": "Field removed from XML",
     "name_empty": "Name cannot be empty",
-    "name_saved": "Name saved",
-    "desc_saved": "Description saved",
-    "meta_saved": "Metadata saved",
     "upload_ok": "{field} → {filename}",
     "backup_ok": "Backup created: {filename}",
     "purge_ok": "{n} <region> tag(s) removed",
@@ -191,8 +184,6 @@
     "too_large": "File too large for the server.",
     "internal": "Internal server error ({status}).",
     "load": "Loading",
-    "upload": "Media upload",
-    "clear": "Clear media",
     "genres": "Genres"
   },
   "confirm": {
@@ -226,7 +217,6 @@
     "close": "Close",
     "lang_title": "Interface language",
     "lang_desc": "Change the interface language. Your choice is remembered.",
-    "ss_title": "ScreenScraper",
     "ss_desc": "Scraping works <strong>out of the box</strong> (built-in software credentials). Optional: your <strong>member</strong> account for quota <strong>boost</strong>. Stored locally in <code>screenscraper_config.json</code>.",
     "ss_ssid": "Member id (ssid) — optional",
     "ss_ssid_ph": "ScreenScraper username",
@@ -260,7 +250,6 @@
     "current": "Current",
     "proposed": "Proposed",
     "similarity": "similarity {pct}%",
-    "test_ok": "Connection OK",
     "test_loading": "Testing ScreenScraper…",
     "no_proposal": "No proposal",
     "test_ok_short": "Connection OK",
@@ -345,7 +334,6 @@
     "ss_empty_gameid": "Empty ScreenScraper response for this gameid",
     "ss_gameid_error": "gameid {id}: {detail}",
     "ss_not_found": "No game found on ScreenScraper for this ROM / name",
-    "ss_not_found_detail": "No game found on ScreenScraper for this ROM / name. System folder: {folder}. CRC: {crc}",
     "ss_candidates": "Several possible games — pick the right one from the list.",
     "ss_dev_ok": "Developer credentials OK (no member account → base quotas)",
     "ss_429": "Too many requests to ScreenScraper (HTTP 429). Wait 30–60 seconds before retrying.",
@@ -396,7 +384,10 @@
     "rating_range_value": "rating out of range: {value}",
     "rating_invalid_value": "invalid rating: {value}",
     "stale_game": "This game changed in gamelist.xml (edited outside the app). The list has been reloaded: check the selection and try again.",
-    "rom_not_deleted": "Could not delete {path} ({detail}). Nothing was changed."
+    "rom_not_deleted": "Could not delete {path} ({detail}). Nothing was changed.",
+    "source_timeout": "{source} did not answer in time: the server may be overloaded.",
+    "source_network": "{source} network error: {detail}",
+    "source_bad_answer": "Unexpected answer from {source}: {detail}"
   },
   "open_gl": {
     "title": "Open a gamelist.xml",
