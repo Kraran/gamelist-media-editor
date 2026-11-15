@@ -46,7 +46,36 @@ let currentLocale = DEFAULT_LOCALE;
  * ui_settings.json next to the app (gme/settings.py), not in the browser,
  * whose storage the app window can lose.
  */
-let SETTINGS = { locale: null, scrapers: {}, required_media: {} };
+let SETTINGS = { locale: null, theme: "dark", scrapers: {}, required_media: {} };
+
+/* Theme: dark (default), light, or as the system (follows Windows while open).
+ * The page arrives with the saved theme already applied (templates/index.html). */
+const THEMES = ["dark", "light", "system"];
+const lightQuery = window.matchMedia ? window.matchMedia("(prefers-color-scheme: light)") : null;
+function applyTheme(pref) {
+  const choice = THEMES.includes(pref) ? pref : "dark";
+  const theme = choice === "system" ? (lightQuery && lightQuery.matches ? "light" : "dark") : choice;
+  const root = document.documentElement;
+  root.dataset.theme = theme;
+  root.dataset.themePref = choice;
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.content = theme === "light" ? "#f6f7fa" : "#13141c";
+  document.querySelectorAll("[data-theme-choice]").forEach(b => {
+    b.setAttribute("aria-pressed", b.dataset.themeChoice === choice ? "true" : "false");
+  });
+}
+if (lightQuery) {
+  const follow = () => { if (SETTINGS.theme === "system") applyTheme("system"); };
+  if (lightQuery.addEventListener) lightQuery.addEventListener("change", follow);
+  else if (lightQuery.addListener) lightQuery.addListener(follow);
+}
+document.getElementById("theme-choice").addEventListener("click", e => {
+  const btn = e.target.closest("[data-theme-choice]");
+  if (!btn) return;
+  SETTINGS.theme = btn.dataset.themeChoice;
+  applyTheme(SETTINGS.theme);
+  saveSettings({ theme: SETTINGS.theme });
+});
 
 async function loadSettings() {
   try { SETTINGS = await apiFetch("/api/settings"); } catch (_) {}
@@ -3035,6 +3064,7 @@ document.addEventListener("keydown", (e) => {
 /** App entry: locale → genres → games; auto-open file picker if nothing loaded. */
 async function boot() {
   await loadSettings();
+  applyTheme(SETTINGS.theme);
   await loadLocale(SETTINGS.locale || DEFAULT_LOCALE);
   wireLanguageControls();
   try {

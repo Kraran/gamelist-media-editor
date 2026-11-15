@@ -441,6 +441,11 @@
   "settings": {
     "title": "Einstellungen",
     "tab_general": "Allgemein",
+    "theme_title": "Design",
+    "theme_desc": "Standardmäßig dunkel. „System“ folgt der hellen oder dunklen Einstellung von Windows.",
+    "theme_dark": "Dunkel",
+    "theme_light": "Hell",
+    "theme_system": "System",
     "tab_sources": "Scrape-Quellen",
     "tab_required": "Pflichtmedien",
     "required_title": "Pflichtmedien je System",

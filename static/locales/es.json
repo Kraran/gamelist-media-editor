@@ -441,6 +441,11 @@
   "settings": {
     "title": "Ajustes",
     "tab_general": "General",
+    "theme_title": "Tema",
+    "theme_desc": "Oscuro por defecto. « Sistema » sigue el modo claro u oscuro de Windows.",
+    "theme_dark": "Oscuro",
+    "theme_light": "Claro",
+    "theme_system": "Sistema",
     "tab_sources": "Fuentes de scrape",
     "tab_required": "Medios obligatorios",
     "required_title": "Medios obligatorios por sistema",

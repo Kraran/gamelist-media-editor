@@ -441,6 +441,11 @@
   "settings": {
     "title": "Inställningar",
     "tab_general": "Allmänt",
+    "theme_title": "Tema",
+    "theme_desc": "Mörkt som standard. ”System” följer Windows ljusa eller mörka inställning.",
+    "theme_dark": "Mörkt",
+    "theme_light": "Ljust",
+    "theme_system": "System",
     "tab_sources": "Skrapkällor",
     "tab_required": "Obligatorisk media",
     "required_title": "Obligatorisk media per system",

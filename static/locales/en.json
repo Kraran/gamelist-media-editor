@@ -441,6 +441,11 @@
   "settings": {
     "title": "Settings",
     "tab_general": "General",
+    "theme_title": "Theme",
+    "theme_desc": "Dark by default. “System” follows the light or dark setting of Windows.",
+    "theme_dark": "Dark",
+    "theme_light": "Light",
+    "theme_system": "System",
     "tab_sources": "Scrape sources",
     "tab_required": "Required media",
     "required_title": "Required media per system",

@@ -441,6 +441,11 @@
   "settings": {
     "title": "Instellingen",
     "tab_general": "Algemeen",
+    "theme_title": "Thema",
+    "theme_desc": "Standaard donker. “Systeem” volgt de lichte of donkere instelling van Windows.",
+    "theme_dark": "Donker",
+    "theme_light": "Licht",
+    "theme_system": "Systeem",
     "tab_sources": "Scrapebronnen",
     "tab_required": "Verplichte media",
     "required_title": "Verplichte media per systeem",

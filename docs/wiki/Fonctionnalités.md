@@ -47,7 +47,7 @@ Version documentée : **1.5.0**
 
 ## Interface
 
-- Thème sombre, polices et icônes intégrées (fonctionne hors ligne)
+- Thème **sombre** (par défaut), **clair** ou **comme le système** (Réglages › Général) ; polices et icônes intégrées (fonctionne hors ligne)
 - **Réglages** : langue, ScreenScraper, sources de scrape, médias requis, raccourcis ; gardés dans `ui_settings.json` à côté de l’exe
 - **Clavier** : `J`/`K`, `N`, `S`, `Ctrl+S`, `Ctrl+F`, `?`
 - 13 langues

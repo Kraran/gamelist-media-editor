@@ -441,6 +441,11 @@
   "settings": {
     "title": "Réglages",
     "tab_general": "Général",
+    "theme_title": "Thème",
+    "theme_desc": "Sombre par défaut. « Système » suit le réglage clair ou sombre de Windows.",
+    "theme_dark": "Sombre",
+    "theme_light": "Clair",
+    "theme_system": "Système",
     "tab_sources": "Sources de scrape",
     "tab_required": "Médias requis",
     "required_title": "Médias requis par système",

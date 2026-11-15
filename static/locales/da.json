@@ -441,6 +441,11 @@
   "settings": {
     "title": "Indstillinger",
     "tab_general": "Generelt",
+    "theme_title": "Tema",
+    "theme_desc": "Mørkt som standard. »System« følger Windows’ lyse eller mørke indstilling.",
+    "theme_dark": "Mørkt",
+    "theme_light": "Lyst",
+    "theme_system": "System",
     "tab_sources": "Skrabekilder",
     "tab_required": "Påkrævede medier",
     "required_title": "Påkrævede medier pr. system",

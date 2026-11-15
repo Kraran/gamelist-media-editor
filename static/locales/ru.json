@@ -441,6 +441,11 @@
   "settings": {
     "title": "Настройки",
     "tab_general": "Общие",
+    "theme_title": "Тема",
+    "theme_desc": "По умолчанию тёмная. «Системная» следует светлому или тёмному режиму Windows.",
+    "theme_dark": "Тёмная",
+    "theme_light": "Светлая",
+    "theme_system": "Системная",
     "tab_sources": "Источники",
     "tab_required": "Обязательные медиа",
     "required_title": "Обязательные медиа по системам",

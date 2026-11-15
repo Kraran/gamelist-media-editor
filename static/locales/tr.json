@@ -441,6 +441,11 @@
   "settings": {
     "title": "Ayarlar",
     "tab_general": "Genel",
+    "theme_title": "Tema",
+    "theme_desc": "Varsayılan olarak koyu. “Sistem”, Windows'un açık veya koyu ayarını izler.",
+    "theme_dark": "Koyu",
+    "theme_light": "Açık",
+    "theme_system": "Sistem",
     "tab_sources": "Tarama kaynakları",
     "tab_required": "Gerekli medya",
     "required_title": "Sisteme göre gerekli medya",

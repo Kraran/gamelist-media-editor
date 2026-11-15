@@ -42,7 +42,7 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
 - **Keyboard**: `J`/`K` next/previous game, `N` next incomplete, `S` scrape, `Ctrl+S` save, `Ctrl+F` or `/` search, `?` shows the list
 - **Open another `gamelist.xml`** at any time (file browser, the 10 most recent files in one click), **Reload** after an outside edit
 - **Actions** menu (whole gamelist): `.bak` backup, arcade system names from `mame.xml`, **Check ROMs** (gamelist vs files of the folder: add missing ROMs, remove entries without ROM, merge duplicates, export the report), **Check media** (unused media to the Recycle Bin, links to missing files removed, export the report), purge all `<region>` tags
-- **Settings**: language, ScreenScraper member login, region and media types, scrape source and required media per system, keyboard shortcuts (kept in `ui_settings.json`)
+- **Settings**: theme (dark, light or as the system), language, ScreenScraper member login, region and media types, scrape source and required media per system, keyboard shortcuts (kept in `ui_settings.json`)
 - Game ⋯ menu: copy the ROM path, delete the game (ROM, tracks / discs, media and XML entry, listed before; files another game uses are kept; to the Recycle Bin) with optional backup
 - Application window without address bar when Edge / Chrome / Brave is available; **Quit** stops the server
 - **13 languages**

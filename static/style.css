@@ -15,8 +15,8 @@
  * hairlines, no shadows except overlays); the accent violet only marks the
  * action to take (e.g. Save once something changed).
  *
- * Themes: dark is the default (:root). A light theme only needs a
- * [data-theme="light"] block that redefines the color tokens below.
+ * Themes: dark is the default (:root); [data-theme="light"] below redefines
+ * the color tokens (Settings › General: dark, light or as the system).
  */
 
 /* 1. Design tokens ------------------------------------------------------- */
@@ -48,6 +48,17 @@
   --danger: #ff7a7a;
   --danger-fill: #d43f3f;
   --danger-soft: rgba(255, 122, 122, 0.12);
+  --danger-line: rgba(255, 122, 122, 0.45);
+  --danger-hover: #bd3535;
+  --ok-soft: rgba(79, 209, 160, 0.14);
+  --warn-soft: rgba(242, 193, 78, 0.14);
+  --star: #f2c14e;                          /* rating stars (filled shapes, not text) */
+
+  /* Effects */
+  --overlay: rgba(8, 9, 14, 0.66);          /* behind dialogs */
+  --checker: #171925;                       /* squares behind transparent images */
+  --shimmer: rgba(255, 255, 255, 0.06);     /* loading previews */
+  --shadow-bar: 0 -8px 24px rgba(0, 0, 0, 0.35);
 
   /* Type */
   --font-ui: "IBM Plex Sans", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
@@ -72,6 +83,46 @@
   /* Layout */
   --w-sidebar: clamp(260px, 20vw, 340px);
   --w-inspector: clamp(320px, 24vw, 440px);
+}
+
+/* Light theme: the same roles, on light grey surfaces. Text and outlines keep
+ * the contrasts of the dark theme (text 4.5:1, outlines 3:1 on every surface). */
+[data-theme="light"] {
+  color-scheme: light;
+
+  --stage: #e4e6ee;
+  --bg: #f6f7fa;
+  --surface: #eceef4;
+  --raised: #ffffff;
+  --line: #d9dce6;
+  --line-field: #767c96;
+  --line-soft: #b4b9cb;
+
+  --text: #191b26;
+  --text-2: #464b61;
+  --text-3: #5f6580;
+
+  --accent: #6c5ce7;
+  --accent-hover: #5b4bd6;
+  --accent-text: #5443d1;
+  --accent-soft: rgba(108, 92, 231, 0.12);
+  --on-accent: #ffffff;
+  --ok: #0b6b4a;
+  --warn: #8f5b00;
+  --danger: #ab2f23;
+  --danger-fill: #d43f3f;
+  --danger-soft: rgba(212, 63, 63, 0.10);
+  --danger-line: rgba(171, 47, 35, 0.45);
+  --danger-hover: #bd3535;
+  --ok-soft: rgba(11, 107, 74, 0.12);
+  --warn-soft: rgba(176, 116, 0, 0.14);
+  --star: #e8a400;
+
+  --overlay: rgba(30, 32, 48, 0.42);
+  --checker: #dcdfe8;
+  --shimmer: rgba(255, 255, 255, 0.55);
+  --shadow-overlay: 0 18px 48px rgba(25, 27, 40, 0.22), 0 2px 8px rgba(25, 27, 40, 0.12);
+  --shadow-bar: 0 -6px 18px rgba(25, 27, 40, 0.12);
 }
 
 /* 2. Base ---------------------------------------------------------------- */
@@ -170,7 +221,7 @@ kbd {
 .btn-accent:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
 
 .btn-danger { background: var(--danger-fill); border-color: var(--danger-fill); color: #fff; }
-.btn-danger:hover:not(:disabled) { background: #bd3535; border-color: #bd3535; }
+.btn-danger:hover:not(:disabled) { background: var(--danger-hover); border-color: var(--danger-hover); }
 
 .btn-ghost { background: transparent; border-color: transparent; color: var(--text-2); }
 .btn-ghost:hover:not(:disabled) { background: var(--surface); color: var(--text); }
@@ -633,8 +684,8 @@ input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px;
   /* faint checkerboard: shows the transparency of logos, wheels and 3D boxes */
   background-color: var(--stage);
   background-image:
-    linear-gradient(45deg, #171925 25%, transparent 25%, transparent 75%, #171925 75%),
-    linear-gradient(45deg, #171925 25%, transparent 25%, transparent 75%, #171925 75%);
+    linear-gradient(45deg, var(--checker) 25%, transparent 25%, transparent 75%, var(--checker) 75%),
+    linear-gradient(45deg, var(--checker) 25%, transparent 25%, transparent 75%, var(--checker) 75%);
   background-size: 16px 16px;
   background-position: 0 0, 8px 8px;
 }
@@ -770,7 +821,7 @@ input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px;
   inset: 0 auto 0 0;
   display: inline-flex;
   overflow: hidden;
-  color: var(--warn);
+  color: var(--star);
   white-space: nowrap;
   width: 0;
 }
@@ -813,7 +864,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); cur
   padding: var(--s2) var(--s4) var(--s2) var(--s5);
   border-top: 1px solid var(--accent-text);
   background: var(--raised);
-  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--shadow-bar);
   z-index: 5;
 }
 .save-bar-dot { width: 9px; height: 9px; flex: none; border-radius: 50%; background: var(--accent-text); }
@@ -847,7 +898,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); cur
 .toast.error .icon { color: var(--danger); }
 .toast.warning .icon { color: var(--warn); }
 .toast.info .icon { color: var(--accent-text); }
-.toast.error { border-color: rgba(255, 122, 122, 0.45); }
+.toast.error { border-color: var(--danger-line); }
 
 .ss-loading {
   position: fixed;
@@ -855,7 +906,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); cur
   z-index: 80;
   display: grid;
   place-items: center;
-  background: rgba(8, 9, 14, 0.6);
+  background: var(--overlay);
 }
 .ss-loading-box {
   display: grid;
@@ -902,7 +953,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); cur
   align-items: center;
   justify-content: center;
   padding: var(--s5);
-  background: rgba(8, 9, 14, 0.66);
+  background: var(--overlay);
 }
 .modal-overlay.open { display: flex; }
 .modal {
@@ -1009,6 +1060,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); cur
 .settings-h { margin: 0; font: 700 var(--fs-lg)/1.3 var(--font-ui); }
 .settings-desc { margin: 0; color: var(--text-2); font-size: var(--fs-sm); max-width: 62ch; }
 .settings-field { max-width: 320px; }
+.settings-field + .settings-h { margin-top: var(--s5); }
 .sources-list { display: grid; gap: var(--s2); }
 .sources-empty { color: var(--text-3); font-size: var(--fs-sm); }
 .source-row {
@@ -1137,8 +1189,8 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); cur
   line-height: 1.4;
   white-space: nowrap;
 }
-.ss-badge[data-status="new"] { background: rgba(79, 209, 160, 0.14); color: var(--ok); }
-.ss-badge[data-status="different"], .ss-badge[data-status="replace"] { background: rgba(242, 193, 78, 0.14); color: var(--warn); }
+.ss-badge[data-status="new"] { background: var(--ok-soft); color: var(--ok); }
+.ss-badge[data-status="different"], .ss-badge[data-status="replace"] { background: var(--warn-soft); color: var(--warn); }
 
 /* Media: two frames per field, current on the left, proposed on the right */
 .ss-media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--s3); }
@@ -1195,7 +1247,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); cur
 .ss-shimmer {
   position: absolute;
   inset: 0;
-  background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.06) 50%, transparent 70%) var(--stage);
+  background: linear-gradient(100deg, transparent 30%, var(--shimmer) 50%, transparent 70%) var(--stage);
   background-size: 200% 100%;
   animation: shimmer 1.2s linear infinite;
 }
@@ -1227,7 +1279,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); cur
   -webkit-line-clamp: 5;
 }
 .ss-none { color: var(--text-3); font-style: italic; }
-.ss-star { width: 14px; height: 14px; margin: -2px 4px 0 0; vertical-align: middle; color: var(--warn); fill: currentColor; }
+.ss-star { width: 14px; height: 14px; margin: -2px 4px 0 0; vertical-align: middle; color: var(--star); fill: currentColor; }
 .ss-arrow { color: var(--text-3); }
 
 .ss-nothing { display: grid; justify-items: center; gap: var(--s2); padding: var(--s6) var(--s4); color: var(--text-2); text-align: center; }
