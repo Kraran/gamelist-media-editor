@@ -1,6 +1,6 @@
 # FAQ
 
-Version documentée : **1.5.0**
+Version documentée : **1.6.0**
 
 ### Faut-il Python ?
 
@@ -51,4 +51,4 @@ Le bouton Scraper choisit la source selon le dossier du système (arcade → Arc
 
 Filtre sur un média manquant, puis `N` (jeu incomplet suivant), `S` (scraper), Entrée (appliquer), et ainsi de suite.
 
-**Gamelist Media Editor** · v1.5.0
+**Gamelist Media Editor** · v1.6.0

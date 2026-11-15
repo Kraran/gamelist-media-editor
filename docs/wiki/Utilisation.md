@@ -1,6 +1,6 @@
 # Utilisation
 
-Version documentée : **1.5.0**
+Version documentée : **1.6.0**
 
 ## Démarrage
 
@@ -137,4 +137,4 @@ Les lettres ne font rien pendant la saisie dans un champ.
 
 **Quitter** arrête le serveur. Fermer la fenêtre application l’arrête aussi.
 
-**Gamelist Media Editor** · v1.5.0
+**Gamelist Media Editor** · v1.6.0

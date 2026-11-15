@@ -4,7 +4,7 @@
 
 Local web app to edit the media and metadata of EmulationStation **RetroBat** (and Batocera / Recalbox) `gamelist.xml` files, with drag-and-drop and built-in scrapers.
 
-**Version 1.5.0** · [Documentation (Wiki)](https://github.com/Kraran/gamelist-media-editor/wiki) · [Releases](https://github.com/Kraran/gamelist-media-editor/releases) · [Changelog](CHANGELOG.md)
+**Version 1.6.0** · [Documentation (Wiki)](https://github.com/Kraran/gamelist-media-editor/wiki) · [Releases](https://github.com/Kraran/gamelist-media-editor/releases) · [Changelog](CHANGELOG.md)
 
 ![The editor: game list, media of the selected game, description and metadata](docs/screenshots/editor.png)
 
@@ -34,6 +34,8 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
 
 ![Scrape comparison: current and proposed media side by side, missing fields ticked](docs/screenshots/scrape.png)
 
+![Batch scrape: the report of the updated, uncertain and failed games](docs/screenshots/batch-scrape.png)
+
 **Workflow**
 - Game list with **thumbnails** and a **required media count** per game (hover it to see what is missing); fast with very large gamelists (a 30,000-game MAME list opens in about a second)
 - **Required media per system** (Settings): the media a game needs to be complete (by default image, video, marquee and box art; no box on arcade systems); the count, the *Required media missing* filter and *Next incomplete* follow them
@@ -60,7 +62,7 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
 
 ### Option A — Windows executable (recommended)
 
-1. Download **`GamelistMediaEditor-Windows-v1.5.0.zip`** from the [v1.5.0 release](https://github.com/Kraran/gamelist-media-editor/releases/tag/v1.5.0)
+1. Download **`GamelistMediaEditor-Windows-v1.6.0.zip`** from the [v1.6.0 release](https://github.com/Kraran/gamelist-media-editor/releases/tag/v1.6.0)
 2. Extract anywhere and run **`GamelistMediaEditor.exe`** (no Python needed)
 3. The app window opens on http://127.0.0.1:5050 — use **Gamelist…** to open a `gamelist.xml`
 

@@ -2,7 +2,9 @@
 
 All notable changes to Gamelist Media Editor are documented in this file.
 
-## [Unreleased]
+## [1.6.0] - 2026-11-15
+
+Batch scrape (ticked games or the games shown), light theme, every interface text translated in the 13 languages. Release notes: [docs/release-notes/RELEASE_NOTES_v1.6.0.md](docs/release-notes/RELEASE_NOTES_v1.6.0.md).
 
 ### Added
 - **Light theme** (Settings › General): *Dark* (default), *Light* or *System*, which follows the light or dark setting of Windows, even while the app is open. Kept in `ui_settings.json` and applied before the page is drawn (no dark flash); the light colors keep the contrasts of the dark theme (text 4.5:1, outlines 3:1)
