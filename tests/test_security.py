@@ -39,3 +39,4 @@ def test_dns_rebinding_host_rejected(gamelist, client, method):
 
 def test_page_loads(client):
     assert client.get("/").status_code == 200
+

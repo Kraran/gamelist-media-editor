@@ -1,6 +1,7 @@
 """Editor routes: game list, gamelist switching, media and metadata editing, whole-gamelist actions."""
 
 import os
+import sys
 import threading
 import time
 
@@ -85,6 +86,20 @@ def api_game(index):
     if not (0 <= index < len(games)):
         return api_err(st("server.invalid_index"), 404, code="invalid_index")
     return jsonify(game_fields(games[index], index, LIST_FIELDS | {"desc"}))
+
+
+@bp.route("/api/session")
+def api_session():
+    """Diagnostics: open gamelist, system, version, exe or source (used by the CI exe smoke test)."""
+    loaded = has_gamelist()
+    return jsonify({
+        "xml_path": xml_store.XML_PATH if loaded else None,
+        "base_dir": xml_store.BASE_DIR if loaded else None,
+        "system": get_system_info() if loaded else None,
+        "version": APP_VERSION,
+        "loaded": loaded,
+        "frozen": bool(getattr(sys, "frozen", False)),
+    })
 
 
 @bp.route("/api/browse")

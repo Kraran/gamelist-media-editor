@@ -13,7 +13,7 @@ Batch scrape (ticked games or the games shown), light theme, every interface tex
 - ScreenScraper answers that will not change with another game (quota, login, API closed) come back as `source_blocked` (HTTP 503) instead of "not found"
 
 ### Changed
-- Removed the per-field routes `/api/name`, `/api/desc`, `/api/meta` and `/api/session`, unused by the interface since 1.4.0 (`POST /api/game/<index>` saves any field in one write)
+- Removed the per-field routes `/api/name`, `/api/desc` and `/api/meta`, unused by the interface since 1.4.0 (`POST /api/game/<index>` saves any field in one write)
 - Code clean-up: dead code and styles removed, outdated comments rewritten, early functions re-indented, one list of "come back later" messages for the error toasts and the batch scrape
 
 ### Fixed
