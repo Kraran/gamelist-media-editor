@@ -1,7 +1,8 @@
 """Interface settings, kept on disk next to the .exe / app.py (``ui_settings.json``).
 
-GET  /api/settings   {"locale", "scrapers": {folder: source}, "required_media": {folder: [fields]}}
-POST /api/settings   the same keys, each optional: ``locale`` replaces the language;
+GET  /api/settings   {"locale", "theme", "scrapers": {folder: source}, "required_media": {folder: [fields]}}
+POST /api/settings   the same keys, each optional: ``locale`` and ``theme`` (dark, light,
+                     system) replace the value;
                      ``scrapers`` / ``required_media`` update one system folder at a time,
                      a ``null`` value going back to the automatic choice.
 
@@ -27,6 +28,7 @@ bp = Blueprint("settings", __name__)
 
 SETTINGS_FILE = os.path.join(APP_DIR, "ui_settings.json")
 SCRAPERS = ("screenscraper", "arcadeitalia", "steam")
+THEMES = ("dark", "light", "system")
 MEDIA_FIELDS = tuple(MEDIA_DIRS)
 _LOCALE = re.compile(r"^[a-z]{2}$")
 _FOLDER = re.compile(r"^[^\\/\x00-\x1f]{1,80}$")       # a system folder name, never a path
@@ -36,9 +38,11 @@ _lock = threading.Lock()
 def _clean(data):
     """Only the known settings, with valid values."""
     data = data if isinstance(data, dict) else {}
-    out = {"locale": None, "scrapers": {}, "required_media": {}}
+    out = {"locale": None, "theme": "dark", "scrapers": {}, "required_media": {}}
     if isinstance(data.get("locale"), str) and _LOCALE.match(data["locale"]):
         out["locale"] = data["locale"]
+    if data.get("theme") in THEMES:
+        out["theme"] = data["theme"]
     for folder, source in (data.get("scrapers") or {}).items():
         if isinstance(folder, str) and _FOLDER.match(folder) and source in SCRAPERS:
             out["scrapers"][folder] = source
@@ -66,6 +70,10 @@ def update(patch):
             if not (isinstance(patch["locale"], str) and _LOCALE.match(patch["locale"])):
                 raise ValueError("locale")
             cur["locale"] = patch["locale"]
+        if "theme" in patch:
+            if patch["theme"] not in THEMES:
+                raise ValueError("theme")
+            cur["theme"] = patch["theme"]
         for key, valid in (("scrapers", lambda v: v in SCRAPERS),
                            ("required_media", lambda v: isinstance(v, list) and all(f in MEDIA_FIELDS for f in v))):
             changes = patch.get(key)

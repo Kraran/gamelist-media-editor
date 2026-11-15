@@ -441,6 +441,11 @@
   "settings": {
     "title": "Impostazioni",
     "tab_general": "Generale",
+    "theme_title": "Tema",
+    "theme_desc": "Scuro per impostazione predefinita. « Sistema » segue l’impostazione chiara o scura di Windows.",
+    "theme_dark": "Scuro",
+    "theme_light": "Chiaro",
+    "theme_system": "Sistema",
     "tab_sources": "Fonti di scraping",
     "tab_required": "Media richiesti",
     "required_title": "Media richiesti per sistema",

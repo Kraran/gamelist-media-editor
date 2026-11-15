@@ -9,7 +9,7 @@ import requests
 from flask import Blueprint, jsonify, render_template, request, send_from_directory
 from lxml import etree
 
-from gme import recent, xml_store
+from gme import recent, settings, xml_store
 from gme.arcade import find_mame_listxml, index_mame_listxml, pretty_arcade_system
 from gme.fields import FieldError, clean_meta, set_desc, set_meta, set_name
 from gme.http import api_err
@@ -31,8 +31,9 @@ bp = Blueprint("editor", __name__)
 
 @bp.route("/")
 def index():
+    theme = settings.load()["theme"]
     return render_template("index.html", app_version=APP_VERSION,
-                           app_release_date=APP_RELEASE_DATE)
+                           app_release_date=APP_RELEASE_DATE, theme=theme)
 
 
 @bp.route("/favicon.ico")

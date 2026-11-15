@@ -2,7 +2,7 @@
 <svg class="icon {{ cls }}" aria-hidden="true" focusable="false"><use href="#i-{{ name }}"></use></svg>
 {%- endmacro -%}
 <!DOCTYPE html>
-<html lang="fr" id="html-root" data-theme="dark">
+<html lang="fr" id="html-root" data-theme="{{ 'light' if theme == 'light' else 'dark' }}" data-theme-pref="{{ theme }}">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -12,7 +12,16 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16.png" />
   <link rel="apple-touch-icon" sizes="256x256" href="/static/app-icon.png" />
-  <meta name="theme-color" content="#13141c" />
+  <meta name="theme-color" content="{{ '#f6f7fa' if theme == 'light' else '#13141c' }}" />
+  <script>
+    // "As the system": pick the theme before the page is drawn (no dark flash on a light system)
+    (function () {
+      var r = document.documentElement;
+      if (r.dataset.themePref === "system" && window.matchMedia && matchMedia("(prefers-color-scheme: light)").matches) {
+        r.dataset.theme = "light";
+      }
+    })();
+  </script>
   <link rel="preload" href="/static/fonts/ibm-plex-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="/static/fonts/saira-condensed-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="stylesheet" href="/static/fonts/fonts.css" />
@@ -480,6 +489,16 @@
         </div>
         <div class="settings-panes">
           <section class="settings-pane" role="tabpanel" id="pane-general" aria-labelledby="tab-general">
+            <h4 class="settings-h" id="settings-theme-title" data-i18n="settings.theme_title">Thème</h4>
+            <p class="settings-desc" data-i18n="settings.theme_desc">Sombre par défaut. « Système » suit le réglage clair ou sombre de Windows.</p>
+            <div class="settings-field">
+              <div class="segmented" role="group" aria-labelledby="settings-theme-title" id="theme-choice">
+                <button type="button" class="seg" data-theme-choice="dark" aria-pressed="true"><span data-i18n="settings.theme_dark">Sombre</span></button>
+                <button type="button" class="seg" data-theme-choice="light" aria-pressed="false"><span data-i18n="settings.theme_light">Clair</span></button>
+                <button type="button" class="seg" data-theme-choice="system" aria-pressed="false"><span data-i18n="settings.theme_system">Système</span></button>
+              </div>
+            </div>
+
             <h4 class="settings-h" id="settings-lang-title" data-i18n="tools.lang_title">Langue de l’interface</h4>
             <p class="settings-desc" data-i18n="tools.lang_desc">Change la langue de l’interface. Le choix est mémorisé.</p>
             <div class="settings-field">

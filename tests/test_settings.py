@@ -12,7 +12,7 @@ def post(client, body):
 
 
 def test_defaults_when_nothing_saved(client):
-    assert get(client) == {"locale": None, "scrapers": {}, "required_media": {}}
+    assert get(client) == {"locale": None, "theme": "dark", "scrapers": {}, "required_media": {}}
 
 
 def test_partial_updates_are_merged_and_saved(client, settings_file):
@@ -35,17 +35,17 @@ def test_an_empty_required_list_is_kept(client):
 
 
 def test_bad_values_are_refused(client):
-    for body in ({"locale": "french"}, {"scrapers": {"snes": "google"}}, {"scrapers": {"../x": "steam"}},
+    for body in ({"locale": "french"}, {"theme": "pink"}, {"scrapers": {"snes": "google"}}, {"scrapers": {"../x": "steam"}},
                  {"required_media": {"snes": ["desc"]}}, {"required_media": ["snes"]}, ["locale"]):
         r = post(client, body)
         assert r.status_code == 400, body
-    assert get(client) == {"locale": None, "scrapers": {}, "required_media": {}}
+    assert get(client) == {"locale": None, "theme": "dark", "scrapers": {}, "required_media": {}}
 
 
 def test_a_broken_file_gives_the_defaults(client, settings_file):
     settings_file.write_text('{"locale": 5, "scrapers": {"snes": "nope", "nes": "steam"}, "required_media": {"x": "image"}}',
                              encoding="utf-8")
-    assert get(client) == {"locale": None, "scrapers": {"nes": "steam"}, "required_media": {}}
+    assert get(client) == {"locale": None, "theme": "dark", "scrapers": {"nes": "steam"}, "required_media": {}}
     settings_file.write_text("not json", encoding="utf-8")
     assert settings.load()["scrapers"] == {}
 
@@ -56,3 +56,14 @@ def test_thumbnail_and_bezel_are_in_the_game_list(gamelist, client):
     gamelist.write_text(text, encoding="utf-8")
     alpha = client.get("/api/games", headers=LOCAL).get_json()["games"][0]
     assert (alpha["thumbnail"], alpha["bezel"]) == ("./images/t.png", "./images/b.png")
+
+
+def test_theme_is_saved_and_given_to_the_page(client):
+    assert 'data-theme="dark"' in client.get("/", headers=LOCAL).get_data(as_text=True)
+    post(client, {"theme": "light"})
+    assert get(client)["theme"] == "light"
+    page = client.get("/", headers=LOCAL).get_data(as_text=True)
+    assert 'data-theme="light"' in page and 'data-theme-pref="light"' in page
+    post(client, {"theme": "system"})                   # the page decides before it is drawn
+    page = client.get("/", headers=LOCAL).get_data(as_text=True)
+    assert 'data-theme="dark"' in page and 'data-theme-pref="system"' in page

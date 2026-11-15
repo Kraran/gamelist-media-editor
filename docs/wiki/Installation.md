@@ -63,7 +63,7 @@ Les fichiers **Pad2Key** (`.keys`) vont **à côté de la ROM**, pas dans `image
 |---|---|
 | `screenscraper_config.json` | Compte membre ScreenScraper, région, types de médias |
 | `recent_gamelists.json` | Les derniers gamelists ouverts (fenêtre Gamelist…) |
-| `ui_settings.json` | Langue, sources de scrape et médias requis par système |
+| `ui_settings.json` | Thème, langue, sources de scrape et médias requis par système |
 | `cache\thumbs\` | Miniatures de la liste (recréées à la demande) |
 | `cache\remote\` | Images proposées par un scrape, gardées un jour (pas de second téléchargement) |
 

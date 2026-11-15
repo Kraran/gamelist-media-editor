@@ -106,7 +106,7 @@ Pour tout le gamelist :
 
 | Onglet | Contenu |
 |---|---|
-| Général | Langue de l’interface (appliquée immédiatement) |
+| Général | Thème (sombre, clair ou comme le système) et langue de l’interface, appliqués immédiatement |
 | ScreenScraper | Compte membre (boost), région préférée, types d’images, test de connexion ; chaque réglage est enregistré dès qu’il change |
 | Sources de scrape | Les sources forcées par système depuis le menu ▾ du bouton Scraper, avec retour à l’automatique |
 | Médias requis | Les médias qu’un jeu du système ouvert doit avoir, et les autres systèmes personnalisés |

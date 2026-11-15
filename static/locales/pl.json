@@ -441,6 +441,11 @@
   "settings": {
     "title": "Ustawienia",
     "tab_general": "Ogólne",
+    "theme_title": "Motyw",
+    "theme_desc": "Domyślnie ciemny. „System” podąża za jasnym lub ciemnym ustawieniem Windows.",
+    "theme_dark": "Ciemny",
+    "theme_light": "Jasny",
+    "theme_system": "System",
     "tab_sources": "Źródła danych",
     "tab_required": "Wymagane media",
     "required_title": "Wymagane media dla systemu",
