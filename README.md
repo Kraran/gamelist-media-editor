@@ -6,6 +6,10 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
 
 **Version 1.6.0** · [Documentation (Wiki)](https://github.com/Kraran/gamelist-media-editor/wiki) · [Releases](https://github.com/Kraran/gamelist-media-editor/releases) · [Changelog](CHANGELOG.md)
 
+**▶ Demo video (YouTube)**
+
+[![Gamelist Media Editor demo video](https://img.youtube.com/vi/Wj3KJ_8RePc/maxresdefault.jpg)](https://youtu.be/Wj3KJ_8RePc)
+
 ![The editor: game list, media of the selected game, description and metadata](docs/screenshots/editor.png)
 
 ---
