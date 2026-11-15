@@ -19,9 +19,9 @@ def test_light_then_system(page, settings_file):
     dark_bg = background(page)
     page.click("#btn-settings")
     assert page.get_attribute("[data-theme-choice='dark']", "aria-pressed") == "true"
-    page.click("[data-theme-choice='light']")
+    with page.expect_response("**/api/settings"):                 # saved by the server
+        page.click("[data-theme-choice='light']")
     assert theme(page) == "light" and background(page) != dark_bg
-    page.wait_for_function("SETTINGS.theme === 'light'")
     assert json.loads(settings_file.read_text(encoding="utf-8"))["theme"] == "light"
     page.reload()
     page.wait_for_selector("#game-list .game-item")

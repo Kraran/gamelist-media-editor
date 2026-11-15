@@ -90,10 +90,10 @@ def test_settings_sources_reset(page, settings_file):
     page.click("#btn-settings")
     page.click("#tab-sources")
     assert "snes" in page.inner_text("#sources-list")
-    page.click("#sources-list [data-reset-folder='snes']")
+    with page.expect_response("**/api/settings"):                 # saved by the server
+        page.click("#sources-list [data-reset-folder='snes']")
     assert "Aucun choix forcé" in page.inner_text("#sources-list")
     assert page.inner_text("#scrape-source-name") == "ScreenScraper"
-    page.wait_for_function("SETTINGS.scrapers.snes === undefined")
     assert '"snes"' not in settings_file.read_text(encoding="utf-8")       # saved by the server
 
 
