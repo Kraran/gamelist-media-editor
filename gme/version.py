@@ -2,6 +2,6 @@
 
 
 SS_SOFTNAME = "GamelistMediaEditor"
-APP_VERSION = "1.5.0"          # single source: UI header, About, User-Agent, console
-APP_RELEASE_DATE = "2026-11-14"
+APP_VERSION = "1.6.0"          # single source: UI header, About, User-Agent, console
+APP_RELEASE_DATE = "2026-11-15"
 APP_UA = f"{SS_SOFTNAME}/{APP_VERSION}"

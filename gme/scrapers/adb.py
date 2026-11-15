@@ -88,7 +88,7 @@ def adb_request(ajax, params, timeout=30):
             low = body.lower()
             if any(k in low for k in ("limit", "quota", "maintenance", "503")):
                 return False, format_adb_error(body, r.status_code), r.status_code
-            return False, f"Réponse non JSON: {body[:300]}", r.status_code
+            return False, st("server.source_bad_answer", source="Arcade Database", detail=body[:300]), r.status_code
         # Some error payloads still return 200 with empty/error flag
         if isinstance(data, dict):
             err = data.get("error") or data.get("message") or ""
@@ -96,9 +96,9 @@ def adb_request(ajax, params, timeout=30):
                 return False, format_adb_error(str(err), r.status_code), r.status_code
         return True, data, r.status_code
     except requests.Timeout:
-        return False, "Délai d'attente Arcade Database dépassé — serveur lent ou saturé.", 504
+        return False, st("server.source_timeout", source="Arcade Database"), 504
     except requests.RequestException as e:
-        return False, f"Réseau Arcade Database: {e}", 502
+        return False, st("server.source_network", source="Arcade Database", detail=e), 502
 
 
 def arcade_system_from_adb(item):

@@ -20,6 +20,5 @@ def app_data_dir():
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
-# Writable app dir (config next to .exe); BUNDLE_DIR holds templates/static
+# Writable app dir: config, settings, cache next to the .exe / app.py
 APP_DIR = app_data_dir()
-BUNDLE_DIR = resource_path()

@@ -2,13 +2,25 @@
 
 All notable changes to Gamelist Media Editor are documented in this file.
 
-## [Unreleased]
+## [1.6.0] - 2026-11-15
+
+Batch scrape (ticked games or the games shown), light theme, every interface text translated in the 13 languages. Release notes: [docs/release-notes/RELEASE_NOTES_v1.6.0.md](docs/release-notes/RELEASE_NOTES_v1.6.0.md).
 
 ### Added
 - **Light theme** (Settings › General): *Dark* (default), *Light* or *System*, which follows the light or dark setting of Windows, even while the app is open. Kept in `ui_settings.json` and applied before the page is drawn (no dark flash); the light colors keep the contrasts of the dark theme (text 4.5:1, outlines 3:1)
 - **Batch scrape** (Actions › *Scrape in batch*, or *Scrape…* in the selection bar): scrapes the ticked games, or else every game shown in the list (search and filter, e.g. *Required media missing*), one after the other with the source of the system. Choose *Fill gaps* (only empty fields) or *Replace all*, and which media and information to write (the name and Pad2Key are off by default); a `.bak` is made first. A progress bar shows each game, *Stop* ends after the game in progress, and the report lists the games updated (with their fields), the **uncertain** ones (the source offers several games: nothing is written, *Choose…* opens the game's scrape to pick it), the errors, and can be exported. A refused ScreenScraper (quota, login, API closed) or a stopped server ends the run instead of failing every game
 - **Tick games in the list** for the batch scrape: the box on a row's thumbnail, `Ctrl`+click, or `X` for the open game; `Shift`+click ticks every game shown in between; `Esc` unticks all. The ticks survive a reload of the list
 - ScreenScraper answers that will not change with another game (quota, login, API closed) come back as `source_blocked` (HTTP 503) instead of "not found"
+
+### Changed
+- Removed the per-field routes `/api/name`, `/api/desc` and `/api/meta`, unused by the interface since 1.4.0 (`POST /api/game/<index>` saves any field in one write)
+- Code clean-up: dead code and styles removed, outdated comments rewritten, early functions re-indented, one list of "come back later" messages for the error toasts and the batch scrape
+
+### Fixed
+- **About 270 texts were still in English** in the other languages (arcade systems menu and dialog, Steam messages, *Open gamelist* dialog, rating errors, `mame.xml` messages…); they are translated, and 16 texts no longer used are removed
+- ScreenScraper and Arcade Database network errors (no answer in time, network down, unexpected answer) were always shown in French; the system tooltip said "dossier" in every language
+- "Label: value" in error messages and exported reports used the French spacing (`Label : value`) in every language
+- *About* used *vous* in French while the rest of the interface uses *tu*
 
 ## [1.5.0] - 2026-11-14
 

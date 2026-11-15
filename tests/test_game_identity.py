@@ -6,7 +6,7 @@ from conftest import LOCAL, names
 
 
 def rename(client, index, path, new_name):
-    url = f"/api/name/{index}" + (f"?path={path}" if path is not None else "")
+    url = f"/api/game/{index}" + (f"?path={path}" if path is not None else "")
     return client.post(url, json={"name": new_name}, headers=LOCAL)
 
 
