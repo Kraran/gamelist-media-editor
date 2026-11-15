@@ -29,7 +29,8 @@ def test_light_then_system(page, settings_file):
 
     page.emulate_media(color_scheme="dark")
     page.click("#btn-settings")
-    page.click("[data-theme-choice='system']")
+    with page.expect_response("**/api/settings"):
+        page.click("[data-theme-choice='system']")
     assert theme(page) == "dark"
     page.emulate_media(color_scheme="light")                        # Windows switches: the app follows
     page.wait_for_function("document.documentElement.dataset.theme === 'light'")
