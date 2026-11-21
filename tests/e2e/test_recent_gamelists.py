@@ -52,6 +52,16 @@ def test_recent_opens_in_one_click(page, gamelist, other_gamelist):
     assert page.locator("#game-list .game-item").count() == 3
 
 
+def test_open_does_not_wait_for_the_saved_batch_badge(page, other_gamelist):
+    from .test_async_editor import delay_response
+    delay_response(page, "/api/batch")
+    open_path(page, other_gamelist)
+    page.wait_for_function("typeof window.releaseResponse === 'function'")
+    assert page.inner_text("#system-name") == "nes"
+    assert not page.is_visible("#open-gamelist-modal.open")
+    page.evaluate("window.releaseResponse()")
+
+
 def test_ten_recent_files_are_shown(page, gamelist, tmp_path):
     for i in range(12):
         xml = tmp_path / "many" / f"sys{i:02}" / "gamelist.xml"

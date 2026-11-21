@@ -11,8 +11,8 @@ from gme import fsutil, xml_store
 
 @pytest.mark.skipif(sys.platform == "win32", reason=(
     "Windows cannot replace a file another process holds open; this tight-loop "
-    "reader keeps it open almost constantly, so atomic_write falls back to the "
-    "old in-place write by design (covered by test_locked_file_falls_back...)"))
+    "reader keeps it open almost constantly; locked writes are refused "
+    "without changing the original (covered separately)"))
 def test_reader_never_sees_an_empty_gamelist(gamelist):
     tree = xml_store.load_xml()
     errors, stop = [], threading.Event()
@@ -42,7 +42,7 @@ def test_no_temporary_file_left_behind(gamelist):
     assert sorted(p.name for p in gamelist.parent.iterdir() if p.suffix in (".tmp", ".xml")) == ["gamelist.xml"]
 
 
-def test_locked_file_falls_back_to_a_direct_write(tmp_path, monkeypatch):
+def test_locked_file_keeps_the_original(tmp_path, monkeypatch):
     target = tmp_path / "gamelist.xml"
     target.write_bytes(b"old")
     monkeypatch.setattr(fsutil, "_REPLACE_DELAY", 0)
@@ -51,9 +51,44 @@ def test_locked_file_falls_back_to_a_direct_write(tmp_path, monkeypatch):
         raise PermissionError("file in use")
 
     monkeypatch.setattr(fsutil.os, "replace", locked)
+    with pytest.raises(PermissionError):
+        fsutil.atomic_write(str(target), b"new")
+    assert target.read_bytes() == b"old"
+    assert [p.name for p in tmp_path.iterdir()] == ["gamelist.xml"]
+
+
+def test_transient_lock_retries_then_saves(tmp_path, monkeypatch):
+    target = tmp_path / "gamelist.xml"
+    target.write_bytes(b"old")
+    replace = fsutil.os.replace
+    calls = []
+
+    def transient_lock(source, dest):
+        calls.append(1)
+        if len(calls) < 3:
+            raise PermissionError("file in use")
+        replace(source, dest)
+
+    monkeypatch.setattr(fsutil, "_REPLACE_DELAY", 0)
+    monkeypatch.setattr(fsutil.os, "replace", transient_lock)
     fsutil.atomic_write(str(target), b"new")
     assert target.read_bytes() == b"new"
-    assert [p.name for p in tmp_path.iterdir()] == ["gamelist.xml"]
+    assert len(calls) >= 3   # Windows may also transiently lock the real replace
+
+
+def test_failed_xml_save_does_not_commit_the_cached_edits(gamelist, monkeypatch):
+    tree = xml_store.load_xml()
+    tree.find("game/name").text = "Not saved"
+    before = gamelist.read_bytes()
+
+    def locked(*args):
+        raise PermissionError("file in use")
+
+    monkeypatch.setattr(xml_store, "atomic_write", locked)
+    with pytest.raises(PermissionError):
+        xml_store.save_xml(tree)
+    assert gamelist.read_bytes() == before
+    assert xml_store.load_xml().findtext("game/name") == "Alpha"
 
 
 def test_failed_write_keeps_the_original(tmp_path, monkeypatch):

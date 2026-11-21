@@ -32,6 +32,7 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
 - **Comparison before applying**: current and proposed values side by side, images with their size; only what is missing is ticked, nothing is replaced unless you tick it (*Fill gaps* / *Replace all* / *None*)
 - Proposed images are downloaded once and reused when applied (no second ScreenScraper download)
 - **Batch scrape**: the games ticked in the list (box, `Ctrl`/`Shift`+click, `X`), or all the games shown; fill gaps or replace, chosen fields, progress with *Stop*, report of the updated, uncertain (pick them afterwards) and failed games
+- **Resume / retry**: *Last batch* below the game list reopens the saved report for this gamelist. Resume the remaining games after stopping or reopening the app; once finished, retry only failed games and failed fields of partial updates. A new batch starts from *Actions* or the selection bar and replaces the previous saved report
 - **ScreenScraper**: ROM hash match (also inside `.zip`), then name search with a candidate list; media types configurable; system detected from the RetroBat folder name (all RetroBat systems)
 - **Arcade Database**: MAME / FBNeo / Neo-Geo / Atomiswave (PCB → Support, Cabinet → Boxart, Flyer → Boxback, Decal → Marquee) and arcade hardware name (`cps1.cpp` → CPS1)
 - **Steam**: trailer download (French when available, 720p if ≤ 50 MB, else 480p)
@@ -50,6 +51,7 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
 - **Actions** menu (whole gamelist): `.bak` backup, arcade system names from `mame.xml`, **Check ROMs** (gamelist vs files of the folder: add missing ROMs, remove entries without ROM, merge duplicates, export the report), **Check media** (unused media to the Recycle Bin, links to missing files removed, export the report), purge all `<region>` tags
 - **Settings**: theme (dark, light or as the system), language, ScreenScraper member login, region and media types, scrape source and required media per system, keyboard shortcuts (kept in `ui_settings.json`)
 - Game ⋯ menu: copy the ROM path, delete the game (ROM, tracks / discs, media and XML entry, listed before; files another game uses are kept; to the Recycle Bin) with optional backup
+- **Backups and restoration** (Actions): the last 30 dated XML copies, with confirmation before restoring and a snapshot of the current XML to undo the restoration. ROMs and media are not restored
 - Application window without address bar when Edge / Chrome / Brave is available; **Quit** stops the server
 - **13 languages**
 
@@ -59,6 +61,7 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
 - Server bound to `127.0.0.1`; requests from other websites (CSRF) and foreign `Host` headers (DNS rebinding) are rejected
 - Every action on a game checks the game's `<path>`: if `gamelist.xml` changed meanwhile, the action reaches the right game or is refused, never another one
 - Media paths confined to the gamelist folder, serialized XML writes
+- Gamelist operations finish before switching files; older tabs and batches are refused after a switch. A persistently locked file is kept intact and the failed save is reported.
 
 ---
 
@@ -93,6 +96,8 @@ Tip: drag a `gamelist.xml` onto the `.exe` to open it directly.
 Optional: `Creer-Raccourci.ps1` creates a desktop shortcut to `Lancer.bat` with the app icon.
 
 Your `screenscraper_config.json` (member login, media types), `ui_settings.json` (language, scrape sources, required media) and `recent_gamelists.json` (recently opened gamelists) are stored next to `app.py` / the `.exe`. Keep them when you update.
+
+Keep `state/batches/` next to the app to retain batch progress and reports. XML snapshots travel with the gamelist in `.gme-backups/<XML filename>/`; each backup also updates the traditional `<XML filename>.bak`. After closing the browser, the game already in progress can finish and checkpoint, then the batch waits for an explicit resume. After an abrupt server shutdown, the last interrupted game may be checked again.
 
 ---
 
@@ -138,6 +143,8 @@ Code layout (`app.py` is only the entry point; the overview is in `gme/__init__.
 | `gme/mediacheck.py` | Check media: unused media files and links to missing files, clean-up (`/api/check-media`) |
 | `gme/recent.py` | recently opened gamelists (`recent_gamelists.json` next to `app.py` or the `.exe`) |
 | `gme/settings.py` | interface settings: language, scrape source and required media per system (`ui_settings.json`, `/api/settings`) |
+| `gme/batch_jobs.py` | durable batch plans and per-game checkpoints, resume ownership and selective retry (`/api/batch`) |
+| `gme/backups.py` | dated XML snapshots, bounded history and reversible restoration (`/api/backups`) |
 | `gme/gamedelete.py` | deleting a game: dry run listing its files, then the Recycle Bin (`/api/delete-game`) |
 | `gme/remote_cache.py` | proposed images: previews (`/api/scrape/preview/<key>`), kept in `cache/remote/` and reused when applied |
 | `gme/xml_store.py` | the open `gamelist.xml`: path, cache, writes, game lookup |

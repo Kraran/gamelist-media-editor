@@ -387,7 +387,8 @@
     "rom_not_deleted": "No se pudo eliminar {path} ({detail}). No se ha cambiado nada.",
     "source_timeout": "{source} no respondió a tiempo: puede que el servidor esté saturado.",
     "source_network": "Error de red con {source}: {detail}",
-    "source_bad_answer": "Respuesta inesperada de {source}: {detail}"
+    "source_bad_answer": "Respuesta inesperada de {source}: {detail}",
+    "stale_gamelist": "La lista de juegos activa ha cambiado. Recarga la lista antes de continuar."
   },
   "open_gl": {
     "title": "Abrir un gamelist.xml",
@@ -555,6 +556,27 @@
     "updated_desc": "Los campos escritos para cada juego.",
     "pick": "Elegir…",
     "open": "Abrir",
-    "done_toast": "Scrape por lotes terminado: {n} juego(s) actualizado(s)"
+    "done_toast": "Scrape por lotes terminado: {n} juego(s) actualizado(s)",
+    "partial": "Actualizado parcialmente",
+    "saved": "Último lote · {done}/{total}",
+    "resume": "Reanudar",
+    "retry": "Reintentar fallos",
+    "new_batch": "Nuevo lote",
+    "no_saved": "No hay ningún lote que reanudar.",
+    "invalid": "Opciones de lote no válidas.",
+    "claimed": "Este lote se ha reanudado en otra ventana. Vuelve a abrir el informe para continuar."
+  },
+  "backups": {
+    "title": "Copias y restauración",
+    "menu_hint": "Versiones fechadas de la lista",
+    "intro": "Se conservan las últimas 30 copias del XML. La restauración no recupera ROMs ni medios eliminados.",
+    "empty": "No hay copias fechadas de esta lista.",
+    "restore": "Restaurar",
+    "confirm": "¿Restaurar el XML del {date}? Primero se guardará una copia del XML actual. Las ROMs y los medios no cambian.",
+    "restored": "Lista restaurada. La versión anterior sigue en las copias.",
+    "invalid": "Copia ausente o no válida.",
+    "copy": "Copia de seguridad",
+    "before_restore": "Antes de restaurar",
+    "legacy": "Copia .bak anterior"
   }
 }

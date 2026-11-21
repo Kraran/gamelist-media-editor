@@ -387,7 +387,8 @@
     "rom_not_deleted": "Kon {path} niet verwijderen ({detail}). Er is niets gewijzigd.",
     "source_timeout": "{source} antwoordde niet op tijd: de server is misschien overbelast.",
     "source_network": "Netwerkfout bij {source}: {detail}",
-    "source_bad_answer": "Onverwacht antwoord van {source}: {detail}"
+    "source_bad_answer": "Onverwacht antwoord van {source}: {detail}",
+    "stale_gamelist": "De actieve spellenlijst is gewijzigd. Laad de lijst opnieuw voordat je doorgaat."
   },
   "open_gl": {
     "title": "Open een gamelist.xml",
@@ -555,6 +556,27 @@
     "updated_desc": "De velden die per spel zijn geschreven.",
     "pick": "Kiezen…",
     "open": "Openen",
-    "done_toast": "Scrapen in batch klaar: {n} spel(len) bijgewerkt"
+    "done_toast": "Scrapen in batch klaar: {n} spel(len) bijgewerkt",
+    "partial": "Gedeeltelijk bijgewerkt",
+    "saved": "Laatste batch · {done}/{total}",
+    "resume": "Hervatten",
+    "retry": "Fouten opnieuw proberen",
+    "new_batch": "Nieuwe batch",
+    "no_saved": "Geen batch om te hervatten.",
+    "invalid": "Ongeldige batchopties.",
+    "claimed": "Deze batch is in een ander venster hervat. Open het rapport opnieuw om door te gaan."
+  },
+  "backups": {
+    "title": "Back-ups en herstel",
+    "menu_hint": "Gedateerde versies van de spellenlijst",
+    "intro": "De laatste 30 XML-kopieën blijven bewaard. Herstellen haalt verwijderde ROMs en media niet terug.",
+    "empty": "Geen gedateerde back-ups voor deze spellenlijst.",
+    "restore": "Herstellen",
+    "confirm": "De XML van {date} herstellen? Eerst wordt een back-up van de huidige XML gemaakt. ROMs en media blijven ongewijzigd.",
+    "restored": "Spellenlijst hersteld. De vorige versie blijft in de back-ups.",
+    "invalid": "Back-up ontbreekt of is ongeldig.",
+    "copy": "Back-up",
+    "before_restore": "Vóór het herstel",
+    "legacy": "Vorige .bak-back-up"
   }
 }

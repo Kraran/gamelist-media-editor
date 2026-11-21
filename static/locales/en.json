@@ -387,7 +387,8 @@
     "rom_not_deleted": "Could not delete {path} ({detail}). Nothing was changed.",
     "source_timeout": "{source} did not answer in time: the server may be overloaded.",
     "source_network": "{source} network error: {detail}",
-    "source_bad_answer": "Unexpected answer from {source}: {detail}"
+    "source_bad_answer": "Unexpected answer from {source}: {detail}",
+    "stale_gamelist": "The active gamelist has changed. Reload the list before continuing."
   },
   "open_gl": {
     "title": "Open a gamelist.xml",
@@ -555,6 +556,27 @@
     "updated_desc": "The fields written for each game.",
     "pick": "Choose…",
     "open": "Open",
-    "done_toast": "Batch scrape finished: {n} game(s) updated"
+    "done_toast": "Batch scrape finished: {n} game(s) updated",
+    "partial": "Partially updated",
+    "saved": "Last batch · {done}/{total}",
+    "resume": "Resume",
+    "retry": "Retry failures",
+    "new_batch": "New batch",
+    "no_saved": "No batch to resume.",
+    "invalid": "Invalid batch options.",
+    "claimed": "This batch was resumed in another window. Reopen the report to continue."
+  },
+  "backups": {
+    "title": "Backups and restoration",
+    "menu_hint": "Dated gamelist versions",
+    "intro": "The last 30 XML copies are kept. Restoring does not recover deleted ROMs or media.",
+    "empty": "No dated backups for this gamelist.",
+    "restore": "Restore",
+    "confirm": "Restore the XML from {date}? The current XML will be backed up first. ROMs and media stay unchanged.",
+    "restored": "Gamelist restored. The previous version remains in the backups.",
+    "invalid": "Backup missing or invalid.",
+    "copy": "Backup",
+    "before_restore": "Before restoration",
+    "legacy": "Previous .bak backup"
   }
 }

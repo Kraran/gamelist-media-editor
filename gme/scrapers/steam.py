@@ -341,7 +341,7 @@ def steam_load_app(appid):
 
 
 @bp.route("/api/steam/scrape/<int:index>", methods=["POST"])
-def api_steam_scrape(index):
+def api_steam_scrape(index, body=None):
     """
     Look up a Steam store trailer for the current game.
     Body optional: { "appid": "400" } or { "gameid": "400" } after a candidate pick.
@@ -356,7 +356,7 @@ def api_steam_scrape(index):
     except IndexError:
         return api_err(st("server.invalid_index"), 404, code="invalid_index")
 
-    body = request.get_json(silent=True) or {}
+    body = (request.get_json(silent=True) or {}) if body is None else body
     force_id = str(body.get("appid") or body.get("gameid") or "").strip()
     path_rel = game.findtext("path", "") or ""
     rom_name = os.path.basename(path_rel) if path_rel else ""

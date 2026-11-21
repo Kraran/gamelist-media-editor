@@ -387,7 +387,8 @@
     "rom_not_deleted": "Kunne ikke slette {path} ({detail}). Ingenting ble endret.",
     "source_timeout": "{source} svarte ikke i tide: serveren kan være overbelastet.",
     "source_network": "Nettverksfeil hos {source}: {detail}",
-    "source_bad_answer": "Uventet svar fra {source}: {detail}"
+    "source_bad_answer": "Uventet svar fra {source}: {detail}",
+    "stale_gamelist": "Den aktive spillisten er endret. Last inn listen på nytt før du fortsetter."
   },
   "open_gl": {
     "title": "Åpne en gamelist.xml",
@@ -555,6 +556,27 @@
     "updated_desc": "Feltene som ble skrevet for hvert spill.",
     "pick": "Velg…",
     "open": "Åpne",
-    "done_toast": "Skraping i bunke ferdig: {n} spill oppdatert"
+    "done_toast": "Skraping i bunke ferdig: {n} spill oppdatert",
+    "partial": "Delvis oppdatert",
+    "saved": "Siste kjøring · {done}/{total}",
+    "resume": "Fortsett",
+    "retry": "Prøv feilene igjen",
+    "new_batch": "Ny kjøring",
+    "no_saved": "Ingen kjøring å fortsette.",
+    "invalid": "Ugyldige valg for kjøringen.",
+    "claimed": "Denne kjøringen ble fortsatt i et annet vindu. Åpne rapporten på nytt for å fortsette."
+  },
+  "backups": {
+    "title": "Sikkerhetskopier og gjenoppretting",
+    "menu_hint": "Daterte versjoner av spillisten",
+    "intro": "De siste 30 XML-kopiene beholdes. Gjenoppretting henter ikke tilbake slettede ROM-filer eller medier.",
+    "empty": "Ingen daterte sikkerhetskopier for denne spillisten.",
+    "restore": "Gjenopprett",
+    "confirm": "Gjenopprette XML fra {date}? Den gjeldende XML-filen sikkerhetskopieres først. ROM-filer og medier endres ikke.",
+    "restored": "Spillisten er gjenopprettet. Den forrige versjonen finnes fortsatt i sikkerhetskopiene.",
+    "invalid": "Sikkerhetskopien mangler eller er ugyldig.",
+    "copy": "Sikkerhetskopi",
+    "before_restore": "Før gjenoppretting",
+    "legacy": "Tidligere .bak-sikkerhetskopi"
   }
 }

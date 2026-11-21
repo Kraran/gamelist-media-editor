@@ -2,6 +2,21 @@
 
 All notable changes to Gamelist Media Editor are documented in this file.
 
+## [Unreleased]
+
+### Added
+- **Resume batch scrapes**: the plan, chosen fields and results are kept on disk for each gamelist. The *Last batch* button below the game list reopens its report; *Resume* continues the remaining games after a stop, page reload or app restart. A game checkpoints on the server before its response is sent, and repeated requests cannot accidentally advance the next game. Only one window controls a resumed lot at a time.
+- **Retry failures** in a completed batch report: retries only failed games and failed fields of partial updates, including in *Replace all* mode. Successfully written fields are not selected again. A fresh XML backup is made before retrying.
+- **Backups and restoration** (Actions): each manual or bulk-operation backup also keeps a dated copy next to the gamelist, under `.gme-backups/<XML filename>/` (latest 30). The existing `.bak` is preserved on first use and the compatible `.bak` copy continues to be updated. Restore confirms the selected date, keeps a snapshot of the current XML first, and invalidates older tabs. Only the XML is restored: ROMs and media are not backed up or recovered by this feature.
+- Batch checkpoints append small result records rather than rewriting the complete game plan after each game. Saved reports omit scraper URLs and credentials. A truncated final checkpoint after a crash is ignored and repaired when processing resumes; the interrupted game may be checked again.
+
+### Fixed
+- Gamelist operations now keep the same file and media folder from lookup through saving. Opening another gamelist waits for the operation to finish; requests from an older tab or batch are refused after the active gamelist changes, including when the ROM paths match.
+- A file that remains locked after the save retries is left intact: the app reports the failed save instead of truncating and rewriting the original. Failed XML writes also discard the modified cache. Local media uploads use atomic writes.
+- Typing while a save is pending remains marked as unsaved. An upload or media removal finishing after another game was selected updates its original game, without changing the new game's gallery.
+- Returning to a game whose description was already loaded no longer leaves it read-only while another game's request is pending; refreshing the list preserves an unsaved description.
+- Batch reports and their exports now show every download error for partially updated games, with an explicit warning instead of silently counting the game as a complete success. A batch stops if another tab changes the active gamelist, and its export keeps the original gamelist path.
+
 ## [1.6.0] - 2026-11-15
 
 Batch scrape (ticked games or the games shown), light theme, every interface text translated in the 13 languages. Release notes: [docs/release-notes/RELEASE_NOTES_v1.6.0.md](docs/release-notes/RELEASE_NOTES_v1.6.0.md).

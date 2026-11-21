@@ -387,7 +387,8 @@
     "rom_not_deleted": "{path} konnte nicht gelöscht werden ({detail}). Nichts wurde geändert.",
     "source_timeout": "{source} hat nicht rechtzeitig geantwortet: Der Server ist vielleicht überlastet.",
     "source_network": "Netzwerkfehler bei {source}: {detail}",
-    "source_bad_answer": "Unerwartete Antwort von {source}: {detail}"
+    "source_bad_answer": "Unerwartete Antwort von {source}: {detail}",
+    "stale_gamelist": "Die aktive Spieleliste hat sich geändert. Lade die Liste neu, bevor du fortfährst."
   },
   "open_gl": {
     "title": "gamelist.xml öffnen",
@@ -555,6 +556,27 @@
     "updated_desc": "Die für jedes Spiel geschriebenen Felder.",
     "pick": "Wählen…",
     "open": "Öffnen",
-    "done_toast": "Stapel-Scrape fertig: {n} Spiel(e) aktualisiert"
+    "done_toast": "Stapel-Scrape fertig: {n} Spiel(e) aktualisiert",
+    "partial": "Teilweise aktualisiert",
+    "saved": "Letzter Lauf · {done}/{total}",
+    "resume": "Fortsetzen",
+    "retry": "Fehler erneut versuchen",
+    "new_batch": "Neuer Lauf",
+    "no_saved": "Kein Lauf zum Fortsetzen.",
+    "invalid": "Ungültige Stapeloptionen.",
+    "claimed": "Dieser Lauf wurde in einem anderen Fenster fortgesetzt. Öffne den Bericht erneut, um fortzufahren."
+  },
+  "backups": {
+    "title": "Sicherungen und Wiederherstellung",
+    "menu_hint": "Datierte Versionen der Spieleliste",
+    "intro": "Die letzten 30 XML-Kopien werden aufbewahrt. Gelöschte ROMs und Medien werden nicht wiederhergestellt.",
+    "empty": "Keine datierten Sicherungen für diese Spieleliste.",
+    "restore": "Wiederherstellen",
+    "confirm": "XML vom {date} wiederherstellen? Die aktuelle XML wird vorher gesichert. ROMs und Medien bleiben unverändert.",
+    "restored": "Spieleliste wiederhergestellt. Die vorherige Version bleibt in den Sicherungen.",
+    "invalid": "Sicherung fehlt oder ist ungültig.",
+    "copy": "Sicherung",
+    "before_restore": "Vor der Wiederherstellung",
+    "legacy": "Frühere .bak-Sicherung"
   }
 }

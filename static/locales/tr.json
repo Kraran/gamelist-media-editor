@@ -387,7 +387,8 @@
     "rom_not_deleted": "{path} silinemedi ({detail}). Hiçbir şey değiştirilmedi.",
     "source_timeout": "{source} zamanında yanıt vermedi: sunucu aşırı yüklenmiş olabilir.",
     "source_network": "{source} ağ hatası: {detail}",
-    "source_bad_answer": "{source} kaynağından beklenmeyen yanıt: {detail}"
+    "source_bad_answer": "{source} kaynağından beklenmeyen yanıt: {detail}",
+    "stale_gamelist": "Etkin oyun listesi değişti. Devam etmeden önce listeyi yeniden yükle."
   },
   "open_gl": {
     "title": "gamelist.xml aç",
@@ -555,6 +556,27 @@
     "updated_desc": "Her oyun için yazılan alanlar.",
     "pick": "Seç…",
     "open": "Aç",
-    "done_toast": "Toplu tarama bitti: {n} oyun güncellendi"
+    "done_toast": "Toplu tarama bitti: {n} oyun güncellendi",
+    "partial": "Kısmen güncellendi",
+    "saved": "Son toplu işlem · {done}/{total}",
+    "resume": "Sürdür",
+    "retry": "Hataları yeniden dene",
+    "new_batch": "Yeni toplu işlem",
+    "no_saved": "Sürdürülecek toplu işlem yok.",
+    "invalid": "Toplu işlem seçenekleri geçersiz.",
+    "claimed": "Bu toplu işlem başka bir pencerede sürdürüldü. Devam etmek için raporu yeniden aç."
+  },
+  "backups": {
+    "title": "Yedekler ve geri yükleme",
+    "menu_hint": "Oyun listesinin tarihli sürümleri",
+    "intro": "Son 30 XML kopyası saklanır. Geri yükleme, silinen ROM veya medya dosyalarını kurtarmaz.",
+    "empty": "Bu oyun listesi için tarihli yedek yok.",
+    "restore": "Geri yükle",
+    "confirm": "{date} tarihli XML geri yüklensin mi? Önce mevcut XML yedeklenecek. ROM ve medya dosyaları değişmez.",
+    "restored": "Oyun listesi geri yüklendi. Önceki sürüm yedeklerde saklanıyor.",
+    "invalid": "Yedek eksik veya geçersiz.",
+    "copy": "Yedek",
+    "before_restore": "Geri yüklemeden önce",
+    "legacy": "Önceki .bak yedeği"
   }
 }

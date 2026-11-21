@@ -227,7 +227,7 @@ def parse_adb_game(item):
 
 
 @bp.route("/api/adb/scrape/<int:index>", methods=["POST"])
-def api_adb_scrape(index):
+def api_adb_scrape(index, body=None):
     """
     Look up a game on Arcade Database (MAME romset name).
     Optional body: { "romset": "mslug" } to force a specific set.
@@ -240,7 +240,7 @@ def api_adb_scrape(index):
     except IndexError:
         return api_err(st("server.invalid_index"), 404, code="bad_index")
 
-    body = request.get_json(silent=True) or {}
+    body = (request.get_json(silent=True) or {}) if body is None else body
     force_romset = str(body.get("romset") or body.get("gameid") or "").strip()
 
     path_rel = game.findtext("path", "") or ""

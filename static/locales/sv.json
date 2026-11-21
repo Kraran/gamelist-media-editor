@@ -387,7 +387,8 @@
     "rom_not_deleted": "Kunde inte ta bort {path} ({detail}). Inget har ändrats.",
     "source_timeout": "{source} svarade inte i tid: servern kan vara överbelastad.",
     "source_network": "Nätverksfel hos {source}: {detail}",
-    "source_bad_answer": "Oväntat svar från {source}: {detail}"
+    "source_bad_answer": "Oväntat svar från {source}: {detail}",
+    "stale_gamelist": "Den aktiva spellistan har ändrats. Läs in listan igen innan du fortsätter."
   },
   "open_gl": {
     "title": "Öppna en gamelist.xml",
@@ -555,6 +556,27 @@
     "updated_desc": "Fälten som skrevs för varje spel.",
     "pick": "Välj…",
     "open": "Öppna",
-    "done_toast": "Skrapning i omgång klar: {n} spel uppdaterade"
+    "done_toast": "Skrapning i omgång klar: {n} spel uppdaterade",
+    "partial": "Delvis uppdaterat",
+    "saved": "Senaste omgång · {done}/{total}",
+    "resume": "Återuppta",
+    "retry": "Försök misslyckade igen",
+    "new_batch": "Ny omgång",
+    "no_saved": "Ingen omgång att återuppta.",
+    "invalid": "Ogiltiga alternativ för omgången.",
+    "claimed": "Den här omgången återupptogs i ett annat fönster. Öppna rapporten igen för att fortsätta."
+  },
+  "backups": {
+    "title": "Säkerhetskopior och återställning",
+    "menu_hint": "Daterade versioner av spellistan",
+    "intro": "De senaste 30 XML-kopiorna sparas. Återställning hämtar inte tillbaka raderade ROM-filer eller medier.",
+    "empty": "Inga daterade säkerhetskopior för den här spellistan.",
+    "restore": "Återställ",
+    "confirm": "Återställa XML från {date}? Den aktuella XML-filen säkerhetskopieras först. ROM-filer och medier ändras inte.",
+    "restored": "Spellistan har återställts. Den tidigare versionen finns kvar bland säkerhetskopiorna.",
+    "invalid": "Säkerhetskopian saknas eller är ogiltig.",
+    "copy": "Säkerhetskopia",
+    "before_restore": "Före återställningen",
+    "legacy": "Tidigare .bak-säkerhetskopia"
   }
 }

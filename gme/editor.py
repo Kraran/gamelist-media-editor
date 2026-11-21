@@ -12,6 +12,7 @@ from lxml import etree
 from gme import recent, settings, xml_store
 from gme.arcade import find_mame_listxml, index_mame_listxml, pretty_arcade_system
 from gme.fields import FieldError, clean_meta, set_desc, set_meta, set_name
+from gme.fsutil import atomic_write
 from gme.http import api_err
 from gme.i18n import st
 from gme.log import log
@@ -53,6 +54,7 @@ def api_games():
                 "xml_path": None,
                 "base_dir": None,
                 "loaded": False,
+                "session_id": xml_store.SESSION_ID,
             })
         return jsonify({
             "games": get_games(load_xml()),
@@ -60,6 +62,7 @@ def api_games():
             "xml_path": xml_store.XML_PATH,
             "base_dir": xml_store.BASE_DIR,
             "loaded": True,
+            "session_id": xml_store.SESSION_ID,
         })
     except Exception as e:
         log.exception("api_games failed")
@@ -207,6 +210,7 @@ def api_open_gamelist():
             "system": get_system_info(),
             "games": games,
             "count": len(games),
+            "session_id": xml_store.SESSION_ID,
         })
     except FileNotFoundError as e:
         recent.forget(os.path.abspath(str(raw).strip().strip('"').strip("'")))
@@ -256,7 +260,10 @@ def upload(index, field):
                 file.stream.seek(0)
                 ext = ext_from_magic(head) or default_ext_for_field(field)
             new_filename = media_filename(game, field, ext, media_dir_name)
-            file.save(os.path.join(media_dir, new_filename))
+            data = file.stream.read(MAX_DOWNLOAD_BYTES + 1)
+            if len(data) > MAX_DOWNLOAD_BYTES:
+                return api_err(st("server.file_too_large", n=MAX_DOWNLOAD_BYTES // (1024*1024)), 400, code="file_too_large")
+            atomic_write(os.path.join(media_dir, new_filename), data)
             rel_path = f"./{media_dir_name}/{new_filename}"
         elif url:
             try:

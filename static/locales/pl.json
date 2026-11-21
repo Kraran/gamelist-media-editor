@@ -387,7 +387,8 @@
     "rom_not_deleted": "Nie udało się usunąć {path} ({detail}). Nic nie zostało zmienione.",
     "source_timeout": "{source} nie odpowiedział na czas: serwer może być przeciążony.",
     "source_network": "Błąd sieci {source}: {detail}",
-    "source_bad_answer": "Nieoczekiwana odpowiedź {source}: {detail}"
+    "source_bad_answer": "Nieoczekiwana odpowiedź {source}: {detail}",
+    "stale_gamelist": "Aktywna lista gier uległa zmianie. Wczytaj listę ponownie przed kontynuowaniem."
   },
   "open_gl": {
     "title": "Otwórz gamelist.xml",
@@ -555,6 +556,27 @@
     "updated_desc": "Pola zapisane dla każdej gry.",
     "pick": "Wybierz…",
     "open": "Otwórz",
-    "done_toast": "Zbiorcze pobieranie zakończone: zaktualizowano gier: {n}"
+    "done_toast": "Zbiorcze pobieranie zakończone: zaktualizowano gier: {n}",
+    "partial": "Częściowo zaktualizowano",
+    "saved": "Ostatnia partia · {done}/{total}",
+    "resume": "Wznów",
+    "retry": "Ponów nieudane",
+    "new_batch": "Nowa partia",
+    "no_saved": "Brak partii do wznowienia.",
+    "invalid": "Nieprawidłowe opcje partii.",
+    "claimed": "Ta partia została wznowiona w innym oknie. Otwórz raport ponownie, aby kontynuować."
+  },
+  "backups": {
+    "title": "Kopie i przywracanie",
+    "menu_hint": "Wersje listy gier z datą",
+    "intro": "Zachowywanych jest ostatnich 30 kopii XML. Przywracanie nie odzyskuje usuniętych ROM-ów ani multimediów.",
+    "empty": "Brak kopii z datą dla tej listy gier.",
+    "restore": "Przywróć",
+    "confirm": "Przywrócić XML z {date}? Najpierw zostanie utworzona kopia bieżącego XML. ROM-y i multimedia pozostaną bez zmian.",
+    "restored": "Lista gier przywrócona. Poprzednia wersja pozostaje w kopiach.",
+    "invalid": "Brak kopii lub kopia jest nieprawidłowa.",
+    "copy": "Kopia zapasowa",
+    "before_restore": "Przed przywróceniem",
+    "legacy": "Poprzednia kopia .bak"
   }
 }

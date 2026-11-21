@@ -4,6 +4,8 @@ __pycache__/
 .Python
 .env
 .venv/
+.test-tmp/
+state/
 venv/
 *.xml
 images/

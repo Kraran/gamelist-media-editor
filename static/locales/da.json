@@ -387,7 +387,8 @@
     "rom_not_deleted": "Kunne ikke slette {path} ({detail}). Intet blev ændret.",
     "source_timeout": "{source} svarede ikke i tide: serveren er måske overbelastet.",
     "source_network": "Netværksfejl hos {source}: {detail}",
-    "source_bad_answer": "Uventet svar fra {source}: {detail}"
+    "source_bad_answer": "Uventet svar fra {source}: {detail}",
+    "stale_gamelist": "Den aktive spilliste er ændret. Genindlæs listen, før du fortsætter."
   },
   "open_gl": {
     "title": "Åbn en gamelist.xml",
@@ -555,6 +556,27 @@
     "updated_desc": "Felterne, der blev skrevet for hvert spil.",
     "pick": "Vælg…",
     "open": "Åbn",
-    "done_toast": "Skrabning i batch færdig: {n} spil opdateret"
+    "done_toast": "Skrabning i batch færdig: {n} spil opdateret",
+    "partial": "Delvist opdateret",
+    "saved": "Seneste kørsel · {done}/{total}",
+    "resume": "Genoptag",
+    "retry": "Prøv fejl igen",
+    "new_batch": "Ny kørsel",
+    "no_saved": "Ingen kørsel at genoptage.",
+    "invalid": "Ugyldige indstillinger for kørslen.",
+    "claimed": "Denne kørsel blev genoptaget i et andet vindue. Åbn rapporten igen for at fortsætte."
+  },
+  "backups": {
+    "title": "Sikkerhedskopier og gendannelse",
+    "menu_hint": "Daterede versioner af spillisten",
+    "intro": "De seneste 30 XML-kopier gemmes. Gendannelse henter ikke slettede ROM-filer eller medier tilbage.",
+    "empty": "Ingen daterede sikkerhedskopier til denne spilliste.",
+    "restore": "Gendan",
+    "confirm": "Gendan XML fra {date}? Først sikkerhedskopieres den aktuelle XML-fil. ROM-filer og medier ændres ikke.",
+    "restored": "Spillisten er gendannet. Den forrige version findes stadig i sikkerhedskopierne.",
+    "invalid": "Sikkerhedskopien mangler eller er ugyldig.",
+    "copy": "Sikkerhedskopi",
+    "before_restore": "Før gendannelse",
+    "legacy": "Tidligere .bak-sikkerhedskopi"
   }
 }

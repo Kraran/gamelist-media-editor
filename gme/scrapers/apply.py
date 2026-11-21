@@ -129,12 +129,12 @@ def apply_proposed(game, fields, proposed, headers=None, media_handlers=None, no
     return applied, errors
 
 
-def apply_route(index, source, headers=None, media_handlers=None, no_url_key="server.no_ss_url"):
+def apply_route(index, source, headers=None, media_handlers=None, no_url_key="server.no_ss_url", body=None):
     """The whole ``/api/<source>/apply/<index>`` route."""
     err = require_gamelist()
     if err:
         return err
-    body = request.get_json(silent=True) or {}
+    body = (request.get_json(silent=True) or {}) if body is None else body
     proposed = body.get("proposed") or {}
     if not isinstance(proposed, dict):
         return api_err(st("server.no_fields"), 400, code="no_fields")

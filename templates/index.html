@@ -65,6 +65,9 @@
           <button type="button" class="menu-item" role="menuitem" id="btn-manual-backup">
             {{ icon("device-floppy") }}<span class="menu-item-text"><span class="menu-item-title" data-i18n="tools.backup_btn">Sauvegarder (.bak)</span><span class="menu-item-sub" data-i18n="actions.backup_sub">Copie gamelist.xml.bak à côté du fichier</span></span>
           </button>
+          <button type="button" class="menu-item" role="menuitem" id="btn-backup-history">
+            {{ icon("device-floppy") }}<span class="menu-item-text"><span class="menu-item-title" data-i18n="backups.title">Sauvegardes et restauration</span><span class="menu-item-sub" data-i18n="backups.menu_hint">Versions datées du gamelist</span></span>
+          </button>
           <button type="button" class="menu-item" role="menuitem" id="btn-fill-arcade">
             {{ icon("cpu") }}<span class="menu-item-text"><span class="menu-item-title" data-i18n="tools.arcade_sys_title">Remplir les systèmes arcade</span><span class="menu-item-sub" data-i18n="actions.arcade_sub">Depuis mame.xml : CPS2, Neo-Geo…</span></span>
           </button>
@@ -108,6 +111,7 @@
         <button type="button" class="btn btn-sm btn-ghost btn-icon" id="btn-selection-clear" data-i18n-title="batch.selection_clear" title="Tout désélectionner (Échap)" data-i18n-aria="batch.selection_clear" aria-label="Tout désélectionner">{{ icon("x") }}</button>
       </div>
       <div class="game-list" id="game-list" role="listbox" aria-multiselectable="true" tabindex="0" data-i18n-aria="sidebar.list_aria" aria-label="Liste des jeux"></div>
+      <button type="button" class="btn btn-ghost saved-batch-entry" id="saved-batch-entry" hidden></button>
     </aside>
 
     <section class="content" id="content">
@@ -373,6 +377,9 @@
       <div class="tools-footer">
         <button type="button" class="btn btn-ghost" id="batch-export" hidden>{{ icon("file-text") }}<span data-i18n="romcheck.export">Exporter le rapport</span></button>
         <div class="check-options" id="batch-options"></div>
+        <button type="button" class="btn btn-ghost" id="batch-new" data-i18n="batch.new_batch" hidden>Nouveau lot</button>
+        <button type="button" class="btn" id="batch-retry" data-i18n="batch.retry" hidden>Relancer les échecs</button>
+        <button type="button" class="btn btn-accent" id="batch-resume" data-i18n="batch.resume" hidden>Reprendre</button>
         <button type="button" class="btn" id="batch-cancel"></button>
         <button type="button" class="btn btn-accent" id="batch-start">{{ icon("player-play") }}<span id="batch-start-label"></span></button>
       </div>
@@ -414,6 +421,21 @@
       <div class="tools-footer">
         <button type="button" class="btn" id="open-gl-cancel" data-i18n="confirm.cancel">Annuler</button>
         <button type="button" class="btn btn-accent" id="open-gl-apply" data-i18n="open_gl.apply">Ouvrir</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="backups-modal" role="dialog" aria-modal="true" aria-labelledby="backups-title">
+    <div class="modal check-modal backups-modal">
+      <div class="tools-header">
+        <h3 class="modal-title" id="backups-title" data-i18n="backups.title">Sauvegardes et restauration</h3>
+        <button type="button" class="btn btn-icon" id="backups-close" data-i18n-title="tools.close" title="Fermer">{{ icon("x") }}</button>
+      </div>
+      <p class="tools-intro" data-i18n="backups.intro">Les 30 dernières sauvegardes du XML. Les ROMs et les médias ne sont pas restaurés.</p>
+      <div class="check-body" id="backups-body"></div>
+      <div class="tools-footer">
+        <button type="button" class="btn btn-accent" id="backups-create">{{ icon("device-floppy") }}<span data-i18n="tools.backup_btn">Sauvegarder (.bak)</span></button>
+        <button type="button" class="btn" id="backups-cancel" data-i18n="tools.close">Fermer</button>
       </div>
     </div>
   </div>

@@ -5,6 +5,7 @@ import shutil
 import pytest
 
 from gme import fsutil, recent, settings, xml_store
+from gme import batch_jobs
 from gme.server import app
 
 GAMELIST = """<?xml version="1.0"?>
@@ -16,6 +17,13 @@ GAMELIST = """<?xml version="1.0"?>
 """
 
 LOCAL = {"Host": "127.0.0.1:5050", "Origin": "http://127.0.0.1:5050", "Sec-Fetch-Site": "same-origin"}
+
+
+@pytest.fixture(autouse=True)
+def batch_state_dir(tmp_path, monkeypatch):
+    path = tmp_path / "batch-state"
+    monkeypatch.setattr(batch_jobs, "BATCH_DIR", str(path))
+    return path
 
 
 @pytest.fixture(autouse=True)

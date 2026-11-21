@@ -387,7 +387,8 @@
     "rom_not_deleted": "Impossibile eliminare {path} ({detail}). Nulla è stato modificato.",
     "source_timeout": "{source} non ha risposto in tempo: il server potrebbe essere sovraccarico.",
     "source_network": "Errore di rete con {source}: {detail}",
-    "source_bad_answer": "Risposta inattesa da {source}: {detail}"
+    "source_bad_answer": "Risposta inattesa da {source}: {detail}",
+    "stale_gamelist": "La lista giochi attiva è cambiata. Ricarica la lista prima di continuare."
   },
   "open_gl": {
     "title": "Apri un gamelist.xml",
@@ -555,6 +556,27 @@
     "updated_desc": "I campi scritti per ogni gioco.",
     "pick": "Scegli…",
     "open": "Apri",
-    "done_toast": "Scraping in blocco finito: {n} gioco/i aggiornato/i"
+    "done_toast": "Scraping in blocco finito: {n} gioco/i aggiornato/i",
+    "partial": "Aggiornato parzialmente",
+    "saved": "Ultimo lotto · {done}/{total}",
+    "resume": "Riprendi",
+    "retry": "Riprova gli errori",
+    "new_batch": "Nuovo lotto",
+    "no_saved": "Nessun lotto da riprendere.",
+    "invalid": "Opzioni del lotto non valide.",
+    "claimed": "Questo lotto è stato ripreso in un’altra finestra. Riapri il rapporto per continuare."
+  },
+  "backups": {
+    "title": "Backup e ripristino",
+    "menu_hint": "Versioni datate della lista giochi",
+    "intro": "Vengono conservate le ultime 30 copie XML. Il ripristino non recupera ROM o contenuti multimediali eliminati.",
+    "empty": "Nessun backup datato per questa lista.",
+    "restore": "Ripristina",
+    "confirm": "Ripristinare l’XML del {date}? Prima verrà salvata una copia dell’XML attuale. ROM e contenuti multimediali non cambiano.",
+    "restored": "Lista giochi ripristinata. La versione precedente rimane nei backup.",
+    "invalid": "Backup mancante o non valido.",
+    "copy": "Backup",
+    "before_restore": "Prima del ripristino",
+    "legacy": "Backup .bak precedente"
   }
 }

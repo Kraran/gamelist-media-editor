@@ -5,6 +5,7 @@ import pytest
 from lxml import etree
 
 from gme.scrapers import ss
+from gme.scrapers import apply as scrape_apply
 
 pytestmark = pytest.mark.e2e
 
@@ -126,3 +127,26 @@ def test_stop_after_the_game_in_progress(page, gamelist, fake_sources, monkeypat
     page.wait_for_selector("#batch-export:not([hidden])", timeout=30000)
     assert "Arrêté : 1 / 3" in page.inner_text("#batch-body")
     assert games_by_name(gamelist)["Charlie"].findtext("developer") is None
+
+
+def test_partial_updates_show_and_export_all_download_errors(page, gamelist, fake_sources, monkeypatch, tmp_path):
+    def broken_download(*args, **kwargs):
+        raise OSError("Download failed <image>")
+
+    monkeypatch.setattr(scrape_apply, "download_remote_media", broken_download)
+    page.click("#btn-actions")
+    run(page, "#btn-batch-scrape")
+    start_and_wait(page)
+    assert stats(page) == ["0", "3", "0", "0", "0"]
+    assert page.locator("strong.batch-warning").count() == 3
+    assert "Partiellement mis à jour" in page.inner_text("#batch-body")
+    assert "Download failed <image>" in page.inner_text("#batch-body")
+    assert page.locator(".batch-warning li").count() == 6   # image + marquee per game
+    assert games_by_name(gamelist)["Alpha"].findtext("developer") == "Studio Alpha"
+    with page.expect_download() as downloaded:
+        page.click("#batch-export")
+    report = tmp_path / "report.txt"
+    downloaded.value.save_as(str(report))
+    text = report.read_text(encoding="utf-8-sig")
+    assert "Partiellement mis à jour" in text
+    assert text.count("Download failed <image>") == 6

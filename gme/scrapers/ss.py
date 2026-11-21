@@ -550,7 +550,7 @@ def api_ss_test():
 
 
 @bp.route("/api/ss/scrape/<int:index>", methods=["POST"])
-def api_ss_scrape(index):
+def api_ss_scrape(index, body=None):
     """
     Look up a game on ScreenScraper.
     1) Prefer CRC/MD5 of the ROM (inner file if .zip)
@@ -565,7 +565,7 @@ def api_ss_scrape(index):
     except IndexError:
         return api_err(st("server.invalid_index"), 404, code="invalid_index")
     cfg = load_ss_config()
-    body = request.get_json(silent=True) or {}
+    body = (request.get_json(silent=True) or {}) if body is None else body
     force_id = str(body.get("gameid") or "").strip()
 
     path_rel = game.findtext("path", "") or ""

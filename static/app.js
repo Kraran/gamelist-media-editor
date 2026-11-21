@@ -298,6 +298,9 @@ async function apiFetch(url, options = {}) {
   if (!headers.has("X-Locale")) {
     headers.set("X-Locale", (typeof currentLocale !== "undefined" && currentLocale) ? currentLocale : "fr");
   }
+  if (window.__gmeSession && !headers.has("X-Gamelist-Session")) {
+    headers.set("X-Gamelist-Session", window.__gmeSession);
+  }
   options.headers = headers;
   let res;
   try {
@@ -608,14 +611,20 @@ async function loadGames() {
   const keepIndex = currentIndex;
   const keepGame = games.find(g => g.index === currentIndex);
   const keepPath = keepGame ? keepGame.path : "";
+  const keepSession = window.__gmeSession;
   const pendingKeys = keepPath ? changedFields() : [];
   const pendingValues = pendingKeys.length ? readEditor() : null;
   try {
     const data = await apiFetch("/api/games");
     const loaded = data.loaded !== false && !!data.xml_path;
+    const sameSession = !keepSession || keepSession === data.session_id;
+    window.__gmeSession = data.session_id;
     window.__gmeLoaded = loaded;
     games = data.games || [];
     if (!loaded) {
+      window.__gmeXmlPath = null;
+      savedBatch = null;
+      document.getElementById("saved-batch-entry").hidden = true;
       setNoGamelistUi(false);
       renderList();
       setStatus(t("status.no_gamelist"));
@@ -626,7 +635,11 @@ async function loadGames() {
     pruneSelection();
     setNoGamelistUi(true);          // the editor stays hidden until a game is selected
     if (currentIndex === null) document.getElementById("empty-state").hidden = false;
-    if (keepIndex !== null) {
+    if (!sameSession) {
+      resetEditorSelection();
+      selection.clear();
+      renderList();
+    } else if (keepIndex !== null) {
       // Same game = same <path> (its XML index may have changed on disk)
       const listIdx = keepPath
         ? games.findIndex(g => g.path === keepPath)
@@ -652,6 +665,7 @@ async function loadGames() {
     } else {
       renderList();
     }
+    await refreshSavedBatch();
     setStatus(t("status.ready", { n: games.length }));
   } catch (e) {
     handleError(e, t("errors.load"));
@@ -1047,10 +1061,15 @@ function changedFields(keys) {
   return (keys || Object.keys(now)).filter(k => now[k] !== editorSnapshot[k]);
 }
 
-function markSaved(keys) {
+function markSaved(keys, submitted, updated) {
   if (!editorSnapshot) return;
   const now = readEditor();
-  keys.forEach(k => { editorSnapshot[k] = now[k]; });
+  keys.forEach(k => {
+    const saved = Object.prototype.hasOwnProperty.call(updated, k) ? updated[k] : submitted[k];
+    // Normalize untouched inputs only: typing during the request remains dirty.
+    if (now[k] === submitted[k]) EDITOR_FIELDS[k].set(saved);
+    editorSnapshot[k] = saved;
+  });
   updateUnsavedUi();
 }
 
@@ -1088,6 +1107,8 @@ async function saveAllChanges() {
   if (!keys.length) return true;
   if (_saving) return false;
   const now = readEditor();
+  const target = games.find(g => g.index === currentIndex);
+  const session = window.__gmeSession;
   if (keys.includes("name") && !now.name.trim()) {
     toast(t("toast.name_empty"), "error");
     document.getElementById("game-name-input").focus();
@@ -1103,10 +1124,11 @@ async function saveAllChanges() {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-    const g = games.find(x => x.index === currentIndex);
+    if (session !== window.__gmeSession) return false;
+    const g = games.find(x => x.path === target.path);
     if (g && data.updated) Object.assign(g, data.updated);
-    if (keys.includes("name")) document.getElementById("game-name-input").value = payload.name;
-    markSaved(keys);
+    if (!g || currentIndex !== g.index) return true;
+    markSaved(keys, now, data.updated || payload);
     if (keys.includes("name")) {
       games.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
       currentListIndex = games.findIndex(x => x.index === currentIndex);
@@ -1158,7 +1180,7 @@ async function confirmLeaveEditor() {
     return true;
   }
   if (!choice.confirmed) return false;
-  return saveAllChanges();
+  return await saveAllChanges() && !changedFields().length;
 }
 
 /** User-initiated selection (click, keys): asks before losing changes. */
@@ -1185,6 +1207,10 @@ function selectGame(listIndex) {
   renderZones(g);
   scrollActiveIntoView();
   snapshotEditor();
+  ++_detailToken;
+  const ta = document.getElementById("desc-textarea");
+  ta.readOnly = !g._detail;
+  ta.classList.toggle("is-loading", !g._detail);
   if (!g._detail) loadGameDetail(g);
 }
 
@@ -1197,6 +1223,7 @@ let _detailToken = 0;
 async function loadGameDetail(g) {
   const ta = document.getElementById("desc-textarea");
   const token = ++_detailToken;
+  const session = window.__gmeSession;
   ta.readOnly = true;
   ta.classList.add("is-loading");
   let data;
@@ -1209,11 +1236,12 @@ async function loadGameDetail(g) {
   g.desc = data.desc || "";
   g._detail = true;
   if (data.index !== g.index) queueGameListReload();     // gamelist.xml changed meanwhile
-  if (token !== _detailToken || currentIndex !== g.index) return;
-  ta.value = g.desc;
+  if (session !== window.__gmeSession || token !== _detailToken || currentIndex !== g.index) return;
+  // A list refresh can restore an unsaved description while detail is loading.
+  if (!editorSnapshot || ta.value === editorSnapshot.desc) ta.value = g.desc;
   ta.readOnly = false;
   ta.classList.remove("is-loading");
-  if (editorSnapshot) editorSnapshot.desc = ta.value;
+  if (editorSnapshot) editorSnapshot.desc = g.desc;
   updateUnsavedUi();
 }
 /* --- Media gallery ----------------------------------------------------------
@@ -1385,6 +1413,8 @@ async function onDrop(e, field) {
 
 async function uploadMedia(field, { file, url }) {
   if (currentIndex === null) return;
+  const target = games.find(g => g.index === currentIndex);
+  const session = window.__gmeSession;
   if (file && typeof file.size === "number" && file.size > MAX_UPLOAD_BYTES) {
     toast(t("toast.file_too_large", { n: MAX_UPLOAD_BYTES / (1024 * 1024) }), "error");
     return;
@@ -1395,9 +1425,13 @@ async function uploadMedia(field, { file, url }) {
   if (url) form.append("url", url);
   try {
     const data = await apiFetch(gameUrl(`/api/upload/${currentIndex}/${field}`), { method: "POST", body: form });
-    const g = games.find(x => x.index === currentIndex);
+    if (session !== window.__gmeSession) return;
+    const g = games.find(x => x.path === target.path);
     stampMedia([data.path]);
-    if (g) { g[field] = data.path; renderZones(g); }
+    if (g) {
+      g[field] = data.path;
+      if (currentIndex === g.index) renderZones(g);
+    }
     renderList(document.getElementById("search").value);
     toast(t("toast.upload_ok", { field: fieldLabel(field), filename: data.filename }));
     setStatus(t("status.saved"));
@@ -1407,6 +1441,8 @@ async function uploadMedia(field, { file, url }) {
 }
 
 async function clearField(field) {
+  const target = games.find(g => g.index === currentIndex);
+  const session = window.__gmeSession;
   // Detach media tag in XML only (file kept on disk)
   const choice = await askConfirm({
     title: t("confirm.clear_field_title", { field: fieldLabel(field) }),
@@ -1415,10 +1451,15 @@ async function clearField(field) {
     okLabel: t("zone.clear_title"),
   });
   if (!choice.confirmed) return;
+  if (!target || session !== window.__gmeSession) return;
   try {
-    const data = await apiFetch(gameUrl(`/api/clear/${currentIndex}/${field}`), { method: "POST" });
-    const g = games.find(x => x.index === currentIndex);
-    if (g) { g[field] = ""; renderZones(g); }
+    await apiFetch(`/api/clear/${target.index}/${field}?path=${encodeURIComponent(target.path)}`, { method: "POST" });
+    if (session !== window.__gmeSession) return;
+    const g = games.find(x => x.path === target.path);
+    if (g) {
+      g[field] = "";
+      if (currentIndex === g.index) renderZones(g);
+    }
     renderList(document.getElementById("search").value);
     toast(t("toast.field_cleared"));
   } catch (e) {
@@ -1494,6 +1535,13 @@ document.getElementById("media-lightbox")?.addEventListener("click", e => {
 });
 
 document.addEventListener("keydown", e => {
+  const backupsModal = document.getElementById("backups-modal");
+  const confirmModal = document.getElementById("confirm-modal");
+  if (backupsModal && backupsModal.classList.contains("open") &&
+      !(confirmModal && confirmModal.classList.contains("open"))) {
+    if (e.key === "Escape") { e.preventDefault(); closeBackups(); }
+    return;
+  }
   const lightbox = document.getElementById("media-lightbox");
   if (lightbox && lightbox.classList.contains("open")) {
     if (e.key === "Escape") {
@@ -1655,7 +1703,7 @@ document.addEventListener("keydown", e => {
 /* --- Dialogs: Tab stays inside the open one -----------------------------------
  * The page behind a dialog cannot be reached with the keyboard. The confirm
  * dialog can open above another one, so it is looked at first. */
-const DIALOG_IDS = ["confirm-modal", "media-lightbox", "ss-modal", "batch-modal", "check-modal", "open-gamelist-modal",
+const DIALOG_IDS = ["confirm-modal", "media-lightbox", "ss-modal", "batch-modal", "check-modal", "backups-modal", "open-gamelist-modal",
   "settings-modal", "about-modal"];
 function topDialog() {
   for (const id of DIALOG_IDS) {
@@ -1960,7 +2008,7 @@ document.getElementById("btn-required-media").addEventListener("click", () => op
 /* --- Actions on the whole gamelist (app bar ⋯ menu) ----------------------- */
 setupMenu("actions-menu", "btn-actions");
 function setGamelistActionsEnabled(on) {
-  ["btn-batch-scrape", "btn-manual-backup", "btn-fill-arcade", "btn-rom-check", "btn-media-check", "btn-purge-regions"].forEach(id => {
+  ["btn-batch-scrape", "btn-manual-backup", "btn-backup-history", "btn-fill-arcade", "btn-rom-check", "btn-media-check", "btn-purge-regions"].forEach(id => {
     document.getElementById(id).disabled = !on;
   });
 }
@@ -2265,6 +2313,24 @@ const BATCH_INFO = ["desc", "genre", "rating", "releasedate", "developer", "publ
   "family", "arcadesystemname", "name"];
 const batchPrefs = { mode: "missing", off: new Set(["name", "pad2key"]) };   // kept for the session
 let batch = null;   // { phase, source, targets, i, stop, halted, results }
+let savedBatch = null;
+
+async function refreshSavedBatch() {
+  const session = window.__gmeSession;
+  try {
+    const data = await apiFetch("/api/batch");
+    if (session !== window.__gmeSession) return;
+    savedBatch = data.job;
+    const entry = document.getElementById("saved-batch-entry");
+    entry.hidden = !savedBatch;
+    if (savedBatch) entry.textContent = t("batch.saved", { done: fmtCount(savedBatch.i), total: fmtCount(savedBatch.targets.length) });
+  } catch (_) { /* The next explicit open retries and displays any error. */ }
+}
+
+function savedBatchView(job) {
+  return { ...job, phase: "done", session: window.__gmeSession,
+    stop: job.i < job.targets.length && !job.halted };
+}
 
 function batchTargets() {
   if (selection.size) return games.filter(g => selection.has(g.path));
@@ -2278,15 +2344,26 @@ function isQuotaMessage(msg) {
     .some(k => low.includes(k));
 }
 
-async function openBatch() {
+async function openBatch(forceNew = false) {
   closeMenu(null, false);
   if (!(await confirmLeaveEditor())) return;
+  if (!forceNew) {
+    await refreshSavedBatch();
+    if (savedBatch) {
+      batch = savedBatchView(savedBatch);
+      renderBatch();
+      document.getElementById("batch-modal").classList.add("open");
+      document.getElementById(batch.i < batch.targets.length ? "batch-resume" : "batch-cancel").focus();
+      return;
+    }
+  }
   const targets = batchTargets().map(g => ({ index: g.index, path: g.path, name: g.name }));
   if (!targets.length) {
     toast(t("batch.no_games"), "info");
     return;
   }
-  batch = { phase: "setup", source: chosenScraper(), targets, fromSelection: selection.size > 0, i: 0, stop: false,
+  batch = { phase: "setup", source: chosenScraper(), targets, session: window.__gmeSession,
+    xmlPath: window.__gmeXmlPath, fromSelection: selection.size > 0, i: 0, stop: false,
     halted: "", results: { updated: [], nothing: [], uncertain: [], errors: [] } };
   renderBatch();
   document.getElementById("batch-modal").classList.add("open");
@@ -2319,6 +2396,11 @@ function renderBatch() {
   const options = document.getElementById("batch-options");
   document.getElementById("batch-close").hidden = b.phase === "running";
   document.getElementById("batch-export").hidden = b.phase !== "done";
+  document.getElementById("batch-new").hidden = b.phase !== "done";
+  document.getElementById("batch-resume").hidden = !b.id || b.phase !== "done" || b.i >= b.targets.length;
+  document.getElementById("batch-retry").hidden = b.phase !== "done" ||
+    b.i < b.targets.length ||
+    !(b.results.errors.length || b.results.updated.some(g => g.warnings.length));
   if (b.phase === "setup") {
     body.innerHTML =
       `<div class="ss-toolbar"><div class="segmented" role="group" aria-label="${escapeHtml(t("scrape.selection"))}">` +
@@ -2341,8 +2423,11 @@ function renderBatch() {
   cancel.disabled = b.phase === "running" && b.stop;
   const r = b.results;
   const done = r.updated.length + r.nothing.length + r.uncertain.length + r.errors.length;
+  const partial = r.updated.filter(g => g.warnings.length).length;
+  const complete = r.updated.length - partial;
   const stats = [
-    [t("batch.stat_updated"), r.updated.length, r.updated.length ? "is-ok" : ""],
+    [t("batch.stat_updated"), complete, complete ? "is-ok" : ""],
+    ...(partial ? [[t("batch.partial"), partial, "is-warn"]] : []),
     [t("batch.stat_nothing"), r.nothing.length, ""],
     [t("batch.stat_uncertain"), r.uncertain.length, r.uncertain.length ? "is-warn" : ""],
     [t("batch.stat_errors"), r.errors.length, r.errors.length ? "is-warn" : ""],
@@ -2364,7 +2449,10 @@ function renderBatch() {
       `<div class="batch-row"><span class="rc-name">${escapeHtml(g.name)}</span><span class="batch-msg" title="${escapeHtml(g.message)}">${escapeHtml(g.message)}</span>` +
       `<button type="button" class="btn btn-sm btn-ghost" data-batch-open="${escapeHtml(g.path)}">${escapeHtml(t("batch.open"))}</button></div>`);
     html += list(t("batch.updated_title"), t("batch.updated_desc"), r.updated, g =>
-      `<div class="batch-row"><span class="rc-name">${escapeHtml(g.name)}</span><span class="batch-msg">${escapeHtml(g.fields.map(scrapeFieldLabel).join(", "))}</span>` +
+      `<div class="batch-row"><span class="rc-name">${escapeHtml(g.name)}</span><div class="batch-detail">` +
+      `<span class="batch-msg">${escapeHtml(g.fields.map(scrapeFieldLabel).join(", "))}</span>` +
+      (g.warnings.length ? `<strong class="batch-warning">${escapeHtml(t("batch.partial"))}</strong>` +
+        `<ul class="batch-warning">${g.warnings.map(w => `<li>${escapeHtml(w)}</li>`).join("")}</ul>` : "") + `</div>` +
       `<button type="button" class="btn btn-sm btn-ghost" data-batch-open="${escapeHtml(g.path)}">${escapeHtml(t("batch.open"))}</button></div>`);
   }
   body.innerHTML = html;
@@ -2409,52 +2497,72 @@ document.getElementById("batch-body").addEventListener("click", async e => {
 async function runBatch() {
   const b = batch;
   if (!b || b.phase !== "setup") return;
-  const fields = new Set(batchFields());
-  const wanted = SCRAPE_PRESETS[batchPrefs.mode] || SCRAPE_PRESETS.missing;
+  const fields = batchFields();
+  const mode = batchPrefs.mode;
   const backup = document.getElementById("batch-backup").checked;
-  const sc = SCRAPERS[b.source];
   b.phase = "running";
   renderBatch();
   document.getElementById("batch-cancel").focus();
-  if (backup) {
-    try {
-      await apiFetch("/api/backup", { method: "POST" });
-    } catch (e) {
-      b.halted = e.message;
-    }
+  try {
+    const data = await apiFetch("/api/batch", {
+      method: "POST", headers: { "Content-Type": "application/json", "X-Gamelist-Session": b.session },
+      body: JSON.stringify({ source: b.source, mode, fields, paths: b.targets.map(g => g.path), backup, fromSelection: b.fromSelection }),
+    });
+    Object.assign(b, data.job);
+  } catch (e) {
+    b.halted = e.message;
+    handleError(e);
   }
-  const post = (route, g, body) => apiFetch(`${route}${g.index}?path=${encodeURIComponent(g.path)}`, {
-    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
-  });
-  for (b.i = 0; b.i < b.targets.length && !b.stop && !b.halted; b.i++) {
-    const g = b.targets[b.i];
-    renderBatch();
-    setStatus(t("batch.progress", { done: fmtCount(b.i), total: fmtCount(b.targets.length), name: g.name }));
-    try {
-      const data = await post(sc.scrape, g, {});
-      if (data.need_choice) {
-        b.results.uncertain.push(g);
-        continue;
+  await advanceBatch(b);
+}
+
+async function resumeBatch(retry = false) {
+  const b = batch;
+  if (!b || b.phase !== "done") return;
+  b.phase = "running";
+  b.stop = false;
+  renderBatch();
+  try {
+    const data = await apiFetch("/api/batch/claim", {
+      method: "POST", headers: { "Content-Type": "application/json", "X-Gamelist-Session": b.session },
+      body: JSON.stringify({ id: b.id, retry }),
+    });
+    Object.assign(b, data.job);
+  } catch (e) {
+    b.halted = e.message;
+    handleError(e);
+  }
+  await advanceBatch(b);
+}
+
+async function advanceBatch(b) {
+  try {
+    while (b.id && b.i < b.targets.length && !b.stop && !b.halted) {
+      renderBatch();
+      setStatus(t("batch.progress", { done: fmtCount(b.i), total: fmtCount(b.targets.length), name: b.targets[b.i].name }));
+      const data = await apiFetch("/api/batch/step", {
+        method: "POST", headers: { "Content-Type": "application/json", "X-Gamelist-Session": b.session },
+        body: JSON.stringify({ id: b.id, owner: b.owner, i: b.i }),
+      });
+      if (data.job) Object.assign(b, data.job);  // response to a repeated request
+      else {
+        b.results[data.result.kind].push(data.result.game);
+        b.i = data.i;
+        b.halted = data.halted;
       }
-      const todo = (data.compare || []).filter(r => wanted.includes(r.status) && fields.has(r.key)).map(r => r.key);
-      if (!todo.length) {
-        b.results.nothing.push(g);
-        continue;
-      }
-      const res = await post(sc.apply, g, { fields: todo, proposed: data.proposed });
-      const applied = res.applied || [];
-      const errors = res.errors || [];
-      if (applied.length) b.results.updated.push({ ...g, fields: applied, warnings: errors });
-      else if (errors.length) b.results.errors.push({ ...g, message: errors[0] });
-      else b.results.nothing.push(g);
-    } catch (e) {
-      b.results.errors.push({ ...g, message: e.message });
-      // Quota reached, server stopped: the next games would fail the same way
-      if (e.code === "source_blocked" || e.network || isQuotaMessage(e.message)) b.halted = e.message;
     }
+  } catch (e) {
+    b.halted = e.message;
+    handleError(e);
   }
   b.phase = "done";
   await loadGames();
+  // A response can be lost after the server checkpointed the game.
+  if (savedBatch && savedBatch.id === b.id && b.session === window.__gmeSession) {
+    const halted = b.halted;
+    Object.assign(b, savedBatch);
+    b.halted = halted || b.halted;
+  }
   // New pictures, maybe under the same file names
   b.results.updated.forEach(u => {
     const g = games.find(x => x.path === u.path);
@@ -2475,7 +2583,7 @@ function exportBatch() {
   const r = batch.results;
   const lines = [
     `${t("batch.title")} — ${SCRAPERS[batch.source].label} — Gamelist Media Editor`,
-    labelValue(t("romcheck.report_gamelist"), window.__gmeXmlPath || ""),
+    labelValue(t("romcheck.report_gamelist"), batch.xmlPath || ""),
     labelValue(t("romcheck.report_date"), new Date().toLocaleString(currentLocale || "fr")),
     "",
   ];
@@ -2486,7 +2594,8 @@ function exportBatch() {
   };
   section(t("batch.uncertain_title"), r.uncertain, () => "");
   section(t("batch.errors_title"), r.errors, g => g.message);
-  section(t("batch.updated_title"), r.updated, g => g.fields.map(scrapeFieldLabel).join(", "));
+  section(t("batch.updated_title"), r.updated, g => g.fields.map(scrapeFieldLabel).join(", ") +
+    (g.warnings.length ? ` — ${t("batch.partial")}: ${g.warnings.join("; ")}` : ""));
   section(t("batch.stat_nothing"), r.nothing, () => "");
   const blob = new Blob(["﻿" + lines.join("\r\n")], { type: "text/plain;charset=utf-8" });
   const a = document.createElement("a");
@@ -2498,8 +2607,12 @@ function exportBatch() {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
-document.getElementById("btn-batch-scrape").addEventListener("click", openBatch);
-document.getElementById("btn-batch-selection").addEventListener("click", openBatch);
+document.getElementById("btn-batch-scrape").addEventListener("click", () => openBatch(true));
+document.getElementById("btn-batch-selection").addEventListener("click", () => openBatch(true));
+document.getElementById("saved-batch-entry").addEventListener("click", () => openBatch());
+document.getElementById("batch-new").addEventListener("click", () => openBatch(true));
+document.getElementById("batch-resume").addEventListener("click", () => resumeBatch());
+document.getElementById("batch-retry").addEventListener("click", () => resumeBatch(true));
 document.getElementById("batch-start").addEventListener("click", runBatch);
 document.getElementById("batch-export").addEventListener("click", exportBatch);
 document.getElementById("batch-close").addEventListener("click", closeBatch);
@@ -2607,6 +2720,90 @@ document.getElementById("btn-manual-backup").addEventListener("click", async () 
     setStatus(t("status.backup_ok_status"));
   } catch (e) {
     handleError(e);
+  }
+});
+
+/* --- Dated XML snapshots and reversible restoration ---------------------- */
+let backupSession = null;
+let backupEntries = [];
+let restoringBackup = false;
+
+async function openBackups() {
+  closeMenu(null, false);
+  if (!(await confirmLeaveEditor())) return;
+  try {
+    const data = await apiFetch("/api/backups");
+    backupSession = data.session_id;
+    backupEntries = data.backups;
+    renderBackups();
+    document.getElementById("backups-modal").classList.add("open");
+    document.getElementById("backups-cancel").focus();
+  } catch (e) { handleError(e); }
+}
+
+function renderBackups() {
+  document.getElementById("backups-body").innerHTML = backupEntries.length
+    ? backupEntries.map(entry => `<div class="backup-row"><div><time datetime="${escapeHtml(entry.created)}">` +
+      `${escapeHtml(new Date(entry.created).toLocaleString(currentLocale || "fr"))}</time>` +
+      `<p class="backup-reason">${escapeHtml(t(entry.reason === "restore" ? "backups.before_restore" : entry.reason === "legacy" ? "backups.legacy" : "backups.copy"))}</p></div>` +
+      `<span>${escapeHtml(fmtSize(entry.size))}</span><button type="button" class="btn btn-sm" ` +
+      `data-restore-backup="${escapeHtml(entry.id)}">${escapeHtml(t("backups.restore"))}</button></div>`).join("")
+    : `<p class="tools-intro">${escapeHtml(t("backups.empty"))}</p>`;
+}
+
+function closeBackups() {
+  if (restoringBackup) return;
+  document.getElementById("backups-modal").classList.remove("open");
+  document.getElementById("btn-actions").focus();
+}
+
+document.getElementById("btn-backup-history").addEventListener("click", openBackups);
+document.getElementById("backups-close").addEventListener("click", closeBackups);
+document.getElementById("backups-cancel").addEventListener("click", closeBackups);
+document.getElementById("backups-modal").addEventListener("click", e => {
+  if (e.target.id === "backups-modal") closeBackups();
+});
+document.getElementById("backups-create").addEventListener("click", async () => {
+  const button = document.getElementById("backups-create");
+  button.disabled = true;
+  try {
+    await apiFetch("/api/backup", { method: "POST", headers: { "X-Gamelist-Session": backupSession } });
+    const data = await apiFetch("/api/backups", { headers: { "X-Gamelist-Session": backupSession } });
+    backupEntries = data.backups;
+    renderBackups();
+  } catch (e) { handleError(e); }
+  finally { button.disabled = false; }
+});
+document.getElementById("backups-body").addEventListener("click", async e => {
+  const button = e.target.closest("[data-restore-backup]");
+  if (!button || restoringBackup) return;
+  const entry = backupEntries.find(b => b.id === button.dataset.restoreBackup);
+  if (!entry) return;
+  restoringBackup = true;
+  try {
+    const choice = await askConfirm({
+      title: t("backups.restore"),
+      bodyHtml: escapeHtml(t("backups.confirm", { date: new Date(entry.created).toLocaleString(currentLocale || "fr") })),
+      showBackup: false, okLabel: t("backups.restore"),
+    });
+    if (!choice.confirmed) return;
+    const data = await apiFetch("/api/backups/restore", {
+      method: "POST", headers: { "Content-Type": "application/json", "X-Gamelist-Session": backupSession },
+      body: JSON.stringify({ id: entry.id }),
+    });
+    window.__gmeSession = data.session_id;
+    resetEditorSelection();
+    await loadGames();
+    const history = await apiFetch("/api/backups");
+    backupSession = history.session_id;
+    backupEntries = history.backups;
+    renderBackups();
+    toast(t("backups.restored"));
+    document.getElementById("backups-cancel").focus();
+  } catch (error) { handleError(error); }
+  finally {
+    restoringBackup = false;
+    if (button.isConnected) button.focus();
   }
 });
 
@@ -2926,6 +3123,7 @@ async function applyOpenGamelist() {
       body: JSON.stringify({ path }),
     });
     window.__gmeXmlPath = data.xml_path || path;
+    window.__gmeSession = data.session_id;
     window.__gmeLoaded = true;
     games = data.games || [];
     setNoGamelistUi(true);
@@ -2942,6 +3140,7 @@ async function applyOpenGamelist() {
     const label = (data.system && (data.system.label || data.system.folder)) || path;
     toast(t("toast.gamelist_opened", { name: label, n: data.count != null ? data.count : games.length }));
     setStatus(t("status.ready", { n: games.length }));
+    refreshSavedBatch();
   } catch (e) {
     // A recent file that was moved or deleted: the server dropped it from the list
     if (e && e.code === "open_not_found") renderRecentGamelists();

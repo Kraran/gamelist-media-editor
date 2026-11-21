@@ -12,11 +12,9 @@ import shutil
 import tempfile
 import time
 
-from gme.log import log
-
 # Windows: a reader holding the file open (antivirus, indexer, editor) makes
-# os.replace fail for a moment. Retry briefly, then fall back to a direct write
-# so that saving never fails because of a transient lock.
+# os.replace fail for a moment. Retry briefly, then report the lock without
+# truncating the original file.
 _REPLACE_RETRIES = 10
 _REPLACE_DELAY = 0.05
 
@@ -42,11 +40,8 @@ def atomic_write(path, data):
                 return
             except PermissionError:
                 if attempt == _REPLACE_RETRIES - 1:
-                    break
+                    raise
                 time.sleep(_REPLACE_DELAY)
-        log.warning("Could not replace %s atomically (file locked); writing in place", path)
-        with open(path, "wb") as f:
-            f.write(data)
     finally:
         if os.path.exists(tmp):
             try:

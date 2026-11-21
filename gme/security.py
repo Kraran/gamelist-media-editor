@@ -8,6 +8,7 @@ from flask import request
 from gme.http import api_err
 from gme.i18n import st
 from gme.log import log
+from gme import xml_store
 from gme.xml_store import find_game_index_by_path, has_gamelist, load_xml
 
 
@@ -59,6 +60,37 @@ def guard_local_requests():
     return None
 
 
+def begin_gamelist_request():
+    """Keep the active XML and its media root stable until the request ends.
+
+    Independent assets, previews and settings do not take this lock. A client
+    session also prevents the next request of an old tab/batch from reaching a
+    newly opened gamelist, even when both contain the same ROM path.
+    """
+    endpoint = request.endpoint or ""
+    scoped = (
+        "index" in (request.view_args or {})
+        or request.blueprint in {"gamedelete", "romcheck", "mediacheck", "thumbs", "backups", "batch_jobs"}
+        or (request.blueprint == "editor" and endpoint.rsplit(".", 1)[-1]
+            not in {"index", "favicon", "api_browse", "api_shutdown"})
+    )
+    if not scoped:
+        return None
+    xml_store.operation_lock().acquire()
+    flask_g.gamelist_locked = True
+    expected = request.headers.get("X-Gamelist-Session")
+    if endpoint not in {"editor.api_open_gamelist", "editor.api_games", "editor.api_session"} and expected and expected != xml_store.SESSION_ID:
+        return api_err(st("server.stale_gamelist"), 409, code="stale_gamelist")
+    return None
+
+
+def end_gamelist_request(error=None):
+    if flask_g.pop("gamelist_locked", False):
+        if error is not None:
+            xml_store.invalidate_cache()
+        xml_store.operation_lock().release()
+
+
 def check_game_identity():
     view_args = request.view_args or {}
     if "index" not in view_args or request.method != "POST":
@@ -83,6 +115,8 @@ def check_game_identity():
 
 
 def flag_reindexed(response):
+    if flask_g.get("gamelist_locked") and response.status_code >= 400:
+        xml_store.invalidate_cache()
     new_index = flask_g.get("game_reindexed")
     if new_index is not None:
         response.headers["X-Game-Reindexed"] = str(new_index)

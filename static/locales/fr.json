@@ -387,7 +387,8 @@
     "rom_not_deleted": "Impossible de supprimer {path} ({detail}). Rien n’a été modifié.",
     "source_timeout": "Délai d’attente {source} dépassé : le serveur est peut-être surchargé.",
     "source_network": "Réseau {source} : {detail}",
-    "source_bad_answer": "Réponse inattendue de {source} : {detail}"
+    "source_bad_answer": "Réponse inattendue de {source} : {detail}",
+    "stale_gamelist": "La gamelist active a changé. Recharge la liste avant de continuer."
   },
   "open_gl": {
     "title": "Ouvrir un gamelist.xml",
@@ -555,6 +556,27 @@
     "updated_desc": "Les champs écrits pour chaque jeu.",
     "pick": "Choisir…",
     "open": "Ouvrir",
-    "done_toast": "Scrape par lot terminé : {n} jeu(x) mis à jour"
+    "done_toast": "Scrape par lot terminé : {n} jeu(x) mis à jour",
+    "partial": "Partiellement mis à jour",
+    "saved": "Dernier lot · {done}/{total}",
+    "resume": "Reprendre",
+    "retry": "Relancer les échecs",
+    "new_batch": "Nouveau lot",
+    "no_saved": "Aucun lot à reprendre.",
+    "invalid": "Options du lot invalides.",
+    "claimed": "Ce lot a été repris dans une autre fenêtre. Rouvre le rapport pour continuer."
+  },
+  "backups": {
+    "title": "Sauvegardes et restauration",
+    "menu_hint": "Versions datées du gamelist",
+    "intro": "Les 30 dernières copies du XML sont conservées. La restauration ne remet pas les ROMs ou les médias supprimés.",
+    "empty": "Aucune sauvegarde datée pour ce gamelist.",
+    "restore": "Restaurer",
+    "confirm": "Restaurer le XML du {date} ? Le XML actuel sera sauvegardé avant. Les ROMs et les médias ne changent pas.",
+    "restored": "Gamelist restauré. La version précédente reste dans les sauvegardes.",
+    "invalid": "Sauvegarde absente ou invalide.",
+    "copy": "Sauvegarde",
+    "before_restore": "Avant restauration",
+    "legacy": "Ancienne sauvegarde .bak"
   }
 }

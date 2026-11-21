@@ -6,8 +6,10 @@ the names (they would keep a stale copy)."""
 
 import os
 import re
-import shutil
 import threading
+import uuid
+from urllib.parse import urlparse
+from urllib.request import url2pathname
 
 from lxml import etree
 
@@ -22,15 +24,21 @@ BASE_DIR = APP_DIR
 
 # Active gamelist path (None until the user opens one or passes a CLI arg)
 XML_PATH = None
+SESSION_ID = uuid.uuid4().hex
 
 
 def set_gamelist_path(path):
+    with _xml_io_lock:
+        return _set_gamelist_path(path)
+
+
+def _set_gamelist_path(path):
     """
     Point the editor at another gamelist.xml (absolute path).
     Updates XML_PATH + BASE_DIR, clears the parse cache.
     Raises FileNotFoundError / ValueError on bad input.
     """
-    global XML_PATH, BASE_DIR
+    global XML_PATH, BASE_DIR, SESSION_ID
     if not path or not str(path).strip():
         raise ValueError(st("server.open_empty_path"))
     path = os.path.abspath(str(path).strip().strip('"').strip("'"))
@@ -45,6 +53,7 @@ def set_gamelist_path(path):
         raise ValueError(st("server.open_bad_xml", detail=e)) from e
     XML_PATH = path
     BASE_DIR = os.path.dirname(path)
+    SESSION_ID = uuid.uuid4().hex
     _xml_cache["mtime"] = None
     _xml_cache["tree"] = None
     return {"xml_path": XML_PATH, "base_dir": BASE_DIR}
@@ -52,11 +61,12 @@ def set_gamelist_path(path):
 
 def close_gamelist():
     """Forget the current gamelist (media root back to the app folder)."""
-    global XML_PATH, BASE_DIR
-    XML_PATH = None
-    BASE_DIR = APP_DIR
-    _xml_cache["mtime"] = None
-    _xml_cache["tree"] = None
+    global XML_PATH, BASE_DIR, SESSION_ID
+    with _xml_io_lock:
+        XML_PATH = None
+        BASE_DIR = APP_DIR
+        SESSION_ID = uuid.uuid4().hex
+        invalidate_cache()
 
 
 def has_gamelist():
@@ -87,12 +97,27 @@ BOOL_META_FIELDS = {"kidgame", "hidden", "favorite"}
 P2K_TYPES = ("p2k", "padtokey", "pad2key", "pad-to-key")
 # --- XML cache + process lock -------------------------------------------------
 # Cache avoids re-parsing a large gamelist on every API call.
-# _xml_io_lock serializes backup/save so concurrent requests cannot interleave writes.
+# Request handlers hold this reentrant lock through lookup, downloads and save.
+# Switching gamelists therefore cannot change a running operation's destination.
 _xml_cache = {"mtime": None, "tree": None}
-_xml_io_lock = threading.Lock()  # serialize read-modify-write of the XML file
+_xml_io_lock = threading.RLock()
+
+
+def invalidate_cache():
+    _xml_cache.update(mtime=None, tree=None)
+
+
+def operation_lock():
+    """Lock shared by gamelist requests and direct XML operations."""
+    return _xml_io_lock
 
 
 def load_xml():
+    with _xml_io_lock:
+        return _load_xml()
+
+
+def _load_xml():
     """Parse gamelist.xml; reuse cached tree if file mtime unchanged."""
     if not has_gamelist():
         raise FileNotFoundError(st("server.no_gamelist"))
@@ -111,7 +136,19 @@ def load_xml():
 def save_xml(tree):
     """Write XML to disk (atomically: never empty or half-written) and refresh cache."""
     with _xml_io_lock:
-        atomic_write(XML_PATH, etree.tostring(tree, pretty_print=True, xml_declaration=True, encoding="UTF-8"))
+        source = tree.docinfo.URL
+        if source and source.startswith("file:"):
+            parsed = urlparse(source)
+            source = url2pathname(("//" + parsed.netloc if parsed.netloc else "") + parsed.path)
+        if not XML_PATH or not source or os.path.normcase(os.path.abspath(source)) != os.path.normcase(XML_PATH):
+            raise ValueError(st("server.stale_gamelist"))
+        try:
+            atomic_write(XML_PATH, etree.tostring(tree, pretty_print=True, xml_declaration=True, encoding="UTF-8"))
+        except Exception:
+            # Callers modified the cached tree before saving. A refused write
+            # must not make those unsaved edits appear committed on the next read.
+            invalidate_cache()
+            raise
         try:
             _xml_cache["mtime"] = os.path.getmtime(XML_PATH)
             _xml_cache["tree"] = tree
@@ -121,14 +158,17 @@ def save_xml(tree):
 
 
 def backup_xml():
-    """Copy gamelist.xml → gamelist.xml.bak (same folder). Returns backup path."""
+    """Keep a dated snapshot and the compatible gamelist.xml.bak copy."""
     with _xml_io_lock:
         if not has_gamelist():
             raise FileNotFoundError(st("server.no_gamelist"))
         if not os.path.isfile(XML_PATH):
             raise FileNotFoundError(st("server.xml_missing", path=XML_PATH))
+        from gme.backups import create_snapshot
+        create_snapshot()
         bak_path = XML_PATH + ".bak"
-        shutil.copy2(XML_PATH, bak_path)
+        with open(XML_PATH, "rb") as stream:
+            atomic_write(bak_path, stream.read())
         return bak_path
 
 
