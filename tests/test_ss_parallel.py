@@ -65,8 +65,11 @@ def test_a_waiting_request_is_not_counted():
 
 # --- Threads -------------------------------------------------------------------------
 
-def hammer(gate, n=24, hold=0.03):
-    """n threads try to send a request at once; returns the peak in flight."""
+def hammer(gate, n=24, hold=0.02, fill=8):
+    """n threads try to send a request at once; returns the peak in flight.
+
+    Each request waits (up to 0.5 s) for ``fill`` requests in flight before
+    ending, so a slow CI machine still shows every slot the gate allows."""
     lock, state = threading.Lock(), {"now": 0, "peak": 0}
 
     def one():
@@ -74,6 +77,12 @@ def hammer(gate, n=24, hold=0.03):
             with lock:
                 state["now"] += 1
                 state["peak"] = max(state["peak"], state["now"])
+            deadline = time.monotonic() + 0.5
+            while time.monotonic() < deadline:
+                with lock:
+                    if state["now"] >= fill:
+                        break
+                time.sleep(0.005)
             time.sleep(hold)
             with lock:
                 state["now"] -= 1
@@ -103,7 +112,7 @@ def fast_gate(maxthreads, logged_in=True, user_threads=0):
 def test_concurrency_never_exceeds_maxthreads(maxthreads, logged_in, setting, expected):
     gate = fast_gate(maxthreads, logged_in, setting)
     assert gate.thread_limit() == expected
-    assert hammer(gate) == expected                    # used, and never more
+    assert hammer(gate, fill=expected) == expected     # used, and never more
     assert gate.peak == expected
 
 
@@ -115,10 +124,10 @@ def test_unknown_limits_mean_one_thread():
 
 def test_a_lower_maxthreads_in_an_answer_applies_to_the_next_requests():
     gate = fast_gate(4)
-    assert hammer(gate) == 4
+    assert hammer(gate, fill=4) == 4
     gate.update_from_user({"maxthreads": "2"})
     gate.peak = 0
-    assert hammer(gate) == 2
+    assert hammer(gate, n=8, fill=4) == 2                     # waits for 4, gets 2
 
 
 def test_http_429_drops_to_one_thread_then_recovers():
@@ -349,7 +358,7 @@ def journal(job):
 
 def test_batch_runs_maxthreads_lookups_at_once_and_writes_in_list_order(big_gamelist, client, fake_ss):
     # The first game is the slowest: the others finish first, but are written after it.
-    server = fake_ss(maxthreads=2, delays={"game0.zip": 0.4})
+    server = fake_ss(maxthreads=2, delay=0.1, delays={"game0.zip": 0.5})
     job = start(client)
     responses = run_all(client, job)
     assert server.peak == 2                              # parallel, and never above maxthreads
@@ -372,7 +381,7 @@ def test_batch_runs_maxthreads_lookups_at_once_and_writes_in_list_order(big_game
     (True, 0, 3, 3),
 ])
 def test_batch_peak_follows_the_allowed_threads(big_gamelist, client, fake_ss, member, setting, maxthreads, expected):
-    server = fake_ss(member=member, threads=setting, maxthreads=maxthreads, delay=0.08)
+    server = fake_ss(member=member, threads=setting, maxthreads=maxthreads, delay=0.15)
     run_all(client, start(client))
     assert server.peak == expected
     assert developers(big_gamelist).count(None) == 0
