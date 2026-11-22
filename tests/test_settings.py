@@ -12,7 +12,7 @@ def post(client, body):
 
 
 def test_defaults_when_nothing_saved(client):
-    assert get(client) == {"locale": None, "theme": "dark", "scrapers": {}, "required_media": {}}
+    assert get(client) == {"locale": None, "theme": "dark", "list_width": None, "scrapers": {}, "required_media": {}}
 
 
 def test_partial_updates_are_merged_and_saved(client, settings_file):
@@ -35,17 +35,17 @@ def test_an_empty_required_list_is_kept(client):
 
 
 def test_bad_values_are_refused(client):
-    for body in ({"locale": "french"}, {"theme": "pink"}, {"scrapers": {"snes": "google"}}, {"scrapers": {"../x": "steam"}},
+    for body in ({"locale": "french"}, {"theme": "pink"}, {"list_width": 100}, {"list_width": "500"}, {"list_width": True}, {"list_width": 420.5}, {"scrapers": {"snes": "google"}}, {"scrapers": {"../x": "steam"}},
                  {"required_media": {"snes": ["desc"]}}, {"required_media": ["snes"]}, ["locale"]):
         r = post(client, body)
         assert r.status_code == 400, body
-    assert get(client) == {"locale": None, "theme": "dark", "scrapers": {}, "required_media": {}}
+    assert get(client) == {"locale": None, "theme": "dark", "list_width": None, "scrapers": {}, "required_media": {}}
 
 
 def test_a_broken_file_gives_the_defaults(client, settings_file):
     settings_file.write_text('{"locale": 5, "scrapers": {"snes": "nope", "nes": "steam"}, "required_media": {"x": "image"}}',
                              encoding="utf-8")
-    assert get(client) == {"locale": None, "theme": "dark", "scrapers": {"nes": "steam"}, "required_media": {}}
+    assert get(client) == {"locale": None, "theme": "dark", "list_width": None, "scrapers": {"nes": "steam"}, "required_media": {}}
     settings_file.write_text("not json", encoding="utf-8")
     assert settings.load()["scrapers"] == {}
 
@@ -67,3 +67,13 @@ def test_theme_is_saved_and_given_to_the_page(client):
     post(client, {"theme": "system"})                   # the page decides before it is drawn
     page = client.get("/", headers=LOCAL).get_data(as_text=True)
     assert 'data-theme="dark"' in page and 'data-theme-pref="system"' in page
+
+
+def test_list_width_is_kept_then_reset(client, settings_file):
+    post(client, {"list_width": 520})
+    assert get(client)["list_width"] == 520
+    html = client.get("/", headers=LOCAL).get_data(as_text=True)
+    assert "--w-list: 520px" in html                           # applied before the page is drawn
+    post(client, {"list_width": None})                          # double-click: back to the default
+    assert get(client)["list_width"] is None
+    assert "--w-list:" not in client.get("/", headers=LOCAL).get_data(as_text=True)

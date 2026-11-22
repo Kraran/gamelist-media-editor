@@ -49,7 +49,9 @@
     "filter_bezel": "Zonder bezel",
     "list_aria": "Spellenlijst",
     "media_missing": "Verplicht, ontbreekt: {list}",
-    "media_complete": "Alle verplichte media aanwezig"
+    "media_complete": "Alle verplichte media aanwezig",
+    "resize_aria": "Breedte van de gamelijst",
+    "resize_title": "Sleep om de lijst breder te maken (of pijltjes links/rechts) · dubbelklik: standaardbreedte"
   },
   "editor": {
     "desc_title": "Beschrijving",

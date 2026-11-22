@@ -49,7 +49,9 @@
     "filter_bezel": "No bezel",
     "list_aria": "Game list",
     "media_missing": "Required, missing: {list}",
-    "media_complete": "All required media present"
+    "media_complete": "All required media present",
+    "resize_aria": "Game list width",
+    "resize_title": "Drag to widen the list (or Left/Right arrows) · double-click: default width"
   },
   "editor": {
     "desc_title": "Description",

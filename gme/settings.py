@@ -1,8 +1,10 @@
 """Interface settings, kept on disk next to the .exe / app.py (``ui_settings.json``).
 
-GET  /api/settings   {"locale", "theme", "scrapers": {folder: source}, "required_media": {folder: [fields]}}
+GET  /api/settings   {"locale", "theme", "list_width", "scrapers": {folder: source},
+                     "required_media": {folder: [fields]}}
 POST /api/settings   the same keys, each optional: ``locale`` and ``theme`` (dark, light,
-                     system) replace the value;
+                     system) replace the value; ``list_width`` is the width of the game
+                     list in pixels (dragged by the user), ``null`` for the default;
                      ``scrapers`` / ``required_media`` update one system folder at a time,
                      a ``null`` value going back to the automatic choice.
 
@@ -29,6 +31,7 @@ bp = Blueprint("settings", __name__)
 SETTINGS_FILE = os.path.join(APP_DIR, "ui_settings.json")
 SCRAPERS = ("screenscraper", "arcadeitalia", "steam")
 THEMES = ("dark", "light", "system")
+LIST_WIDTH_MIN, LIST_WIDTH_MAX = 260, 4000     # px; the page also keeps room for the editor
 MEDIA_FIELDS = tuple(MEDIA_DIRS)
 _LOCALE = re.compile(r"^[a-z]{2}$")
 _FOLDER = re.compile(r"^[^\\/\x00-\x1f]{1,80}$")       # a system folder name, never a path
@@ -38,11 +41,13 @@ _lock = threading.Lock()
 def _clean(data):
     """Only the known settings, with valid values."""
     data = data if isinstance(data, dict) else {}
-    out = {"locale": None, "theme": "dark", "scrapers": {}, "required_media": {}}
+    out = {"locale": None, "theme": "dark", "list_width": None, "scrapers": {}, "required_media": {}}
     if isinstance(data.get("locale"), str) and _LOCALE.match(data["locale"]):
         out["locale"] = data["locale"]
     if data.get("theme") in THEMES:
         out["theme"] = data["theme"]
+    if _valid_list_width(data.get("list_width")):
+        out["list_width"] = data["list_width"]
     for folder, source in (data.get("scrapers") or {}).items():
         if isinstance(folder, str) and _FOLDER.match(folder) and source in SCRAPERS:
             out["scrapers"][folder] = source
@@ -50,6 +55,10 @@ def _clean(data):
         if isinstance(folder, str) and _FOLDER.match(folder) and isinstance(fields, list):
             out["required_media"][folder] = [f for f in MEDIA_FIELDS if f in fields]
     return out
+
+
+def _valid_list_width(value):
+    return isinstance(value, int) and not isinstance(value, bool) and LIST_WIDTH_MIN <= value <= LIST_WIDTH_MAX
 
 
 def load():
@@ -74,6 +83,10 @@ def update(patch):
             if patch["theme"] not in THEMES:
                 raise ValueError("theme")
             cur["theme"] = patch["theme"]
+        if "list_width" in patch:
+            if not (patch["list_width"] is None or _valid_list_width(patch["list_width"])):
+                raise ValueError("list_width")
+            cur["list_width"] = patch["list_width"]
         for key, valid in (("scrapers", lambda v: v in SCRAPERS),
                            ("required_media", lambda v: isinstance(v, list) and all(f in MEDIA_FIELDS for f in v))):
             changes = patch.get(key)

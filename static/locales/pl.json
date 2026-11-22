@@ -49,7 +49,9 @@
     "filter_bezel": "Bez bezela",
     "list_aria": "Lista gier",
     "media_missing": "Brak wymaganych: {list}",
-    "media_complete": "Są wszystkie wymagane media"
+    "media_complete": "Są wszystkie wymagane media",
+    "resize_aria": "Szerokość listy gier",
+    "resize_title": "Przeciągnij, aby poszerzyć listę (lub strzałki w lewo/prawo) · dwuklik: domyślna szerokość"
   },
   "editor": {
     "desc_title": "Opis",

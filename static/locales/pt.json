@@ -49,7 +49,9 @@
     "filter_bezel": "Sem bezel",
     "list_aria": "Lista de jogos",
     "media_missing": "Obrigatórias em falta: {list}",
-    "media_complete": "Todas as médias obrigatórias presentes"
+    "media_complete": "Todas as médias obrigatórias presentes",
+    "resize_aria": "Largura da lista de jogos",
+    "resize_title": "Arrasta para alargar a lista (ou setas esquerda/direita) · duplo clique: largura predefinida"
   },
   "editor": {
     "desc_title": "Descrição",

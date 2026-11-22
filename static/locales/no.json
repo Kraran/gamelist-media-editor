@@ -49,7 +49,9 @@
     "filter_bezel": "Uten bezel",
     "list_aria": "Spilliste",
     "media_missing": "Påkrevd, mangler: {list}",
-    "media_complete": "Alle påkrevde medier finnes"
+    "media_complete": "Alle påkrevde medier finnes",
+    "resize_aria": "Bredde på spillisten",
+    "resize_title": "Dra for å gjøre listen bredere (eller venstre/høyre piltast) · dobbeltklikk: standardbredde"
   },
   "editor": {
     "desc_title": "Beskrivelse",

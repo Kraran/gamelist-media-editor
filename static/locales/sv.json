@@ -49,7 +49,9 @@
     "filter_bezel": "Utan bezel",
     "list_aria": "Spellista",
     "media_missing": "Obligatoriska saknas: {list}",
-    "media_complete": "All obligatorisk media finns"
+    "media_complete": "All obligatorisk media finns",
+    "resize_aria": "Spellistans bredd",
+    "resize_title": "Dra för att bredda listan (eller vänster/höger piltangent) · dubbelklicka: standardbredd"
   },
   "editor": {
     "desc_title": "Beskrivning",
