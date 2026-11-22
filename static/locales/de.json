@@ -197,7 +197,8 @@
     "paths_copied": "{n} Pfad(e) kopiert",
     "paths_copy_failed": "Die Zwischenablage ist nicht beschreibbar",
     "csv_exported": "Liste exportiert: {n} Spiel(e)",
-    "csv_empty": "Kein Spiel angezeigt: nichts zu exportieren"
+    "csv_empty": "Kein Spiel angezeigt: nichts zu exportieren",
+    "ss_cache_cleared": "ScreenScraper-Cache geleert"
   },
   "errors": {
     "offline": "Keine Netzwerkverbindung.",
@@ -268,7 +269,13 @@
     "ss_threads": "Gleichzeitige Threads",
     "ss_threads_auto": "Auto (Maximum deines Kontos)",
     "ss_threads_max": "ScreenScraper erlaubt {n} Threads für dein Konto. Diese Einstellung kann die Zahl nur senken.",
-    "ss_threads_unknown": "Ohne Mitgliedskonto oder vor der ersten Antwort von ScreenScraper: 1 Thread. Diese Einstellung kann die erlaubte Zahl nur senken."
+    "ss_threads_unknown": "Ohne Mitgliedskonto oder vor der ersten Antwort von ScreenScraper: 1 Thread. Diese Einstellung kann die erlaubte Zahl nur senken.",
+    "ss_cache": "ScreenScraper-Antworten zwischenspeichern",
+    "ss_cache_hint": "Ein bereits gefundenes Spiel erneut zu scrapen verbraucht dann keine Anfrage aus deinem Kontingent. „Spiel nicht gefunden“ wird nur einen Tag behalten.",
+    "ss_cache_days": "Aufbewahren für",
+    "ss_cache_days_n": "{n} Tage",
+    "ss_cache_clear": "Cache leeren",
+    "ss_cache_stats": "{n} Antworten · {size}"
   },
   "scrape": {
     "loading_sub": "Das kann einige Sekunden dauern",
@@ -343,7 +350,9 @@
     "apply_n": "Übernehmen ({n})",
     "hint": "Fehlendes ist angekreuzt; nichts wird ohne deine Zustimmung ersetzt.",
     "size_mb": "{n} MB",
-    "field_thumbnail": "Vorschaubild"
+    "field_thumbnail": "Vorschaubild",
+    "from_cache": "Zwischengespeicherte Antwort vom {date}: keine Anfrage an ScreenScraper gesendet.",
+    "refresh_cache": "Von ScreenScraper aktualisieren"
   },
   "server": {
     "invalid_field": "Ungültiges Feld",
@@ -604,7 +613,9 @@
     "stopped_short": "Angehalten",
     "threads": "Threads: {active}/{limit}",
     "quota_today": "Anfragen heute: {used} / {max}",
-    "penalty": "ScreenScraper bittet um Verlangsamung: 1 Thread für 2 Minuten."
+    "penalty": "ScreenScraper bittet um Verlangsamung: 1 Thread für 2 Minuten.",
+    "refresh": "ScreenScraper-Cache ignorieren",
+    "refresh_hint": "Fragt jedes Spiel erneut bei ScreenScraper an (verbraucht Kontingent) und aktualisiert den Cache."
   },
   "backups": {
     "title": "Sicherungen und Wiederherstellung",

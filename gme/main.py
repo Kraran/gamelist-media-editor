@@ -11,6 +11,12 @@ from gme.window import open_browser
 from gme.xml_store import close_gamelist, set_gamelist_path
 
 
+def prune_ss_cache():
+    """Remove ScreenScraper answers older than the lifetime set in Settings."""
+    from gme.scrapers import ss, ss_cache
+    ss_cache.prune(ss_cache.normalize_days(ss.load_ss_config().get("cache_days")))
+
+
 def main():
     """Entry point for source runs and the frozen Windows .exe."""
     if getattr(sys, "frozen", False):
@@ -58,6 +64,7 @@ def main():
         threading.Timer(0.9, lambda: open_browser(url)).start()
     threading.Thread(target=prune_cache, daemon=True).start()
     threading.Thread(target=remote_cache.prune_cache, daemon=True).start()
+    threading.Thread(target=prune_ss_cache, daemon=True).start()
 
     # use_reloader=False required for PyInstaller / single process
     app.run(host="127.0.0.1", port=5050, debug=False, use_reloader=False, threaded=True)

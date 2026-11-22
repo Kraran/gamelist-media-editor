@@ -197,7 +197,8 @@
     "paths_copied": "{n} ruta(s) copiada(s)",
     "paths_copy_failed": "No se puede escribir en el portapapeles",
     "csv_exported": "Lista exportada: {n} juego(s)",
-    "csv_empty": "Ningún juego mostrado: nada que exportar"
+    "csv_empty": "Ningún juego mostrado: nada que exportar",
+    "ss_cache_cleared": "Caché de ScreenScraper vaciada"
   },
   "errors": {
     "offline": "Sin conexión de red.",
@@ -268,7 +269,13 @@
     "ss_threads": "Hilos simultáneos",
     "ss_threads_auto": "Auto (máximo de tu cuenta)",
     "ss_threads_max": "ScreenScraper permite {n} hilos para tu cuenta. Este ajuste solo puede reducir ese número.",
-    "ss_threads_unknown": "Sin cuenta de miembro, o antes de la primera respuesta de ScreenScraper: 1 hilo. Este ajuste solo puede reducir el número permitido."
+    "ss_threads_unknown": "Sin cuenta de miembro, o antes de la primera respuesta de ScreenScraper: 1 hilo. Este ajuste solo puede reducir el número permitido.",
+    "ss_cache": "Guardar en caché las respuestas de ScreenScraper",
+    "ss_cache_hint": "Volver a scrapear un juego ya encontrado no gasta entonces ninguna petición de tu cuota. «Juego no encontrado» solo se guarda un día.",
+    "ss_cache_days": "Conservar durante",
+    "ss_cache_days_n": "{n} días",
+    "ss_cache_clear": "Vaciar la caché",
+    "ss_cache_stats": "{n} respuestas · {size}"
   },
   "scrape": {
     "loading_sub": "Puede tardar varios segundos",
@@ -343,7 +350,9 @@
     "apply_n": "Aplicar ({n})",
     "hint": "Lo que falta está marcado; no se reemplaza nada sin tu permiso.",
     "size_mb": "{n} MB",
-    "field_thumbnail": "Miniatura"
+    "field_thumbnail": "Miniatura",
+    "from_cache": "Respuesta en caché del {date}: no se envió ninguna petición a ScreenScraper.",
+    "refresh_cache": "Actualizar desde ScreenScraper"
   },
   "server": {
     "invalid_field": "Campo no válido",
@@ -604,7 +613,9 @@
     "stopped_short": "Detenido",
     "threads": "Hilos: {active}/{limit}",
     "quota_today": "Peticiones hoy: {used} / {max}",
-    "penalty": "ScreenScraper pide ir más despacio: 1 hilo durante 2 minutos."
+    "penalty": "ScreenScraper pide ir más despacio: 1 hilo durante 2 minutos.",
+    "refresh": "Ignorar la caché de ScreenScraper",
+    "refresh_hint": "Vuelve a pedir cada juego a ScreenScraper (gasta cuota) y actualiza la caché."
   },
   "backups": {
     "title": "Copias y restauración",

@@ -197,7 +197,8 @@
     "paths_copied": "{n} path(s) copied",
     "paths_copy_failed": "Could not write to the clipboard",
     "csv_exported": "List exported: {n} game(s)",
-    "csv_empty": "No game shown: nothing to export"
+    "csv_empty": "No game shown: nothing to export",
+    "ss_cache_cleared": "ScreenScraper cache emptied"
   },
   "errors": {
     "offline": "No network connection.",
@@ -268,7 +269,13 @@
     "ss_threads": "Simultaneous threads",
     "ss_threads_auto": "Auto (your account's maximum)",
     "ss_threads_max": "ScreenScraper allows {n} threads for your account. This setting can only lower that number.",
-    "ss_threads_unknown": "Without a member account, or before ScreenScraper's first answer: 1 thread. This setting can only lower the allowed number."
+    "ss_threads_unknown": "Without a member account, or before ScreenScraper's first answer: 1 thread. This setting can only lower the allowed number.",
+    "ss_cache": "Keep ScreenScraper answers in a cache",
+    "ss_cache_hint": "Rescraping a game already found then uses no request from your quota. \"Game not found\" is only kept for one day.",
+    "ss_cache_days": "Keep for",
+    "ss_cache_days_n": "{n} days",
+    "ss_cache_clear": "Empty the cache",
+    "ss_cache_stats": "{n} answers · {size}"
   },
   "scrape": {
     "loading_sub": "This may take several seconds",
@@ -343,7 +350,9 @@
     "apply_n": "Apply ({n})",
     "hint": "What is missing is ticked; nothing is replaced unless you say so.",
     "size_mb": "{n} MB",
-    "field_thumbnail": "Thumbnail"
+    "field_thumbnail": "Thumbnail",
+    "from_cache": "Cached answer from {date}: no request sent to ScreenScraper.",
+    "refresh_cache": "Refresh from ScreenScraper"
   },
   "server": {
     "invalid_field": "Invalid field",
@@ -604,7 +613,9 @@
     "stopped_short": "Stopped",
     "threads": "Threads: {active}/{limit}",
     "quota_today": "Requests today: {used} / {max}",
-    "penalty": "ScreenScraper asked to slow down: 1 thread for 2 minutes."
+    "penalty": "ScreenScraper asked to slow down: 1 thread for 2 minutes.",
+    "refresh": "Ignore the ScreenScraper cache",
+    "refresh_hint": "Asks ScreenScraper again for every game (uses quota) and updates the cache."
   },
   "backups": {
     "title": "Backups and restoration",

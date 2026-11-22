@@ -197,7 +197,8 @@
     "paths_copied": "{n} sökväg(ar) kopierade",
     "paths_copy_failed": "Kunde inte skriva till urklipp",
     "csv_exported": "Listan exporterad: {n} spel",
-    "csv_empty": "Inga spel visas: inget att exportera"
+    "csv_empty": "Inga spel visas: inget att exportera",
+    "ss_cache_cleared": "ScreenScraper-cachen har tömts"
   },
   "errors": {
     "offline": "Ingen nätverksanslutning.",
@@ -268,7 +269,13 @@
     "ss_threads": "Samtidiga trådar",
     "ss_threads_auto": "Auto (kontots maximum)",
     "ss_threads_max": "ScreenScraper tillåter {n} trådar för ditt konto. Den här inställningen kan bara sänka antalet.",
-    "ss_threads_unknown": "Utan medlemskonto, eller före ScreenScrapers första svar: 1 tråd. Den här inställningen kan bara sänka det tillåtna antalet."
+    "ss_threads_unknown": "Utan medlemskonto, eller före ScreenScrapers första svar: 1 tråd. Den här inställningen kan bara sänka det tillåtna antalet.",
+    "ss_cache": "Spara ScreenScraper-svar i cache",
+    "ss_cache_hint": "Då kostar det ingen förfrågan från din kvot att scrapa ett spel som redan hittats. ”Spelet hittades inte” sparas bara en dag.",
+    "ss_cache_days": "Spara i",
+    "ss_cache_days_n": "{n} dagar",
+    "ss_cache_clear": "Töm cachen",
+    "ss_cache_stats": "{n} svar · {size}"
   },
   "scrape": {
     "loading_sub": "Det kan ta några sekunder",
@@ -343,7 +350,9 @@
     "apply_n": "Tillämpa ({n})",
     "hint": "Det som saknas är markerat; inget ersätts utan ditt medgivande.",
     "size_mb": "{n} MB",
-    "field_thumbnail": "Miniatyr"
+    "field_thumbnail": "Miniatyr",
+    "from_cache": "Cachat svar från {date}: ingen förfrågan skickad till ScreenScraper.",
+    "refresh_cache": "Uppdatera från ScreenScraper"
   },
   "server": {
     "invalid_field": "Ogiltigt fält",
@@ -604,7 +613,9 @@
     "stopped_short": "Stoppad",
     "threads": "Trådar: {active}/{limit}",
     "quota_today": "Förfrågningar i dag: {used} / {max}",
-    "penalty": "ScreenScraper ber dig sakta ner: 1 tråd i 2 minuter."
+    "penalty": "ScreenScraper ber dig sakta ner: 1 tråd i 2 minuter.",
+    "refresh": "Ignorera ScreenScraper-cachen",
+    "refresh_hint": "Frågar ScreenScraper igen för varje spel (kostar kvot) och uppdaterar cachen."
   },
   "backups": {
     "title": "Säkerhetskopior och återställning",

@@ -354,6 +354,8 @@
         <button type="button" class="btn btn-icon" id="ss-modal-close" title="Fermer" data-i18n-title="tools.close">{{ icon("x") }}</button>
       </div>
       <p class="tools-intro" id="ss-modal-info"></p>
+      <p class="ss-cache-note" id="ss-cache-note" hidden>{{ icon("info-circle") }}<span id="ss-cache-text"></span>
+        <button type="button" class="btn btn-sm btn-ghost" id="ss-cache-refresh" data-i18n="scrape.refresh_cache">Actualiser depuis ScreenScraper</button></p>
       <div class="ss-toolbar" id="ss-select-bar">
         <div class="segmented" role="group" data-i18n-aria="scrape.selection" aria-label="Sélection">
           <button type="button" class="seg" data-preset="missing" aria-pressed="true" data-i18n-title="scrape.preset_missing_title" title="Coche seulement ce qui manque dans la fiche"><span data-i18n="scrape.preset_missing">Compléter</span></button>
@@ -591,6 +593,18 @@
                 <label for="ss-threads" data-i18n="tools.ss_threads">Threads simultanés</label>
                 <select id="ss-threads" aria-describedby="ss-threads-hint"></select>
                 <p class="ss-hint" id="ss-threads-hint"></p>
+              </div>
+              <div class="ss-form-row ss-cache-row">
+                <label class="check-option"><input type="checkbox" id="ss-cache-enabled" checked /><span data-i18n="tools.ss_cache">Garder en cache les réponses ScreenScraper</span></label>
+                <p class="ss-hint" data-i18n="tools.ss_cache_hint">Rescraper un jeu déjà trouvé ne consomme alors aucune requête de ton quota.</p>
+              </div>
+              <div class="ss-form-row">
+                <label for="ss-cache-days" data-i18n="tools.ss_cache_days">Durée de conservation</label>
+                <select id="ss-cache-days"></select>
+              </div>
+              <div class="ss-form-actions">
+                <button type="button" class="btn" id="btn-ss-cache-clear">{{ icon("trash") }}<span data-i18n="tools.ss_cache_clear">Vider le cache</span></button>
+                <span class="ss-status" id="ss-cache-stats"></span>
               </div>
               <div class="ss-media-prefs">
                 <div class="ss-form-row">

@@ -1178,6 +1178,8 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); cur
 .ss-form { display: grid; gap: var(--s3); margin-top: var(--s3); }
 .ss-form-row { display: grid; gap: 5px; }
 .ss-form-row label { color: var(--text-2); font-size: var(--fs-xs); font-weight: 500; }
+.ss-cache-note { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s2); margin: calc(-1 * var(--s2)) 0 var(--s3); color: var(--text-3); font-size: var(--fs-xs); }
+.ss-cache-note[hidden] { display: none; }
 .ss-hint { margin: 0; color: var(--text-3); font-size: var(--fs-xs); }
 .ss-media-prefs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s3); }
 .ss-form-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); }

@@ -197,7 +197,8 @@
     "paths_copied": "{n} bane(r) kopiert",
     "paths_copy_failed": "Kunne ikke skrive til utklippstavlen",
     "csv_exported": "Listen eksportert: {n} spill",
-    "csv_empty": "Ingen spill vises: ingenting å eksportere"
+    "csv_empty": "Ingen spill vises: ingenting å eksportere",
+    "ss_cache_cleared": "ScreenScraper-hurtigbufferen er tømt"
   },
   "errors": {
     "offline": "Ingen nettverkstilkobling.",
@@ -268,7 +269,13 @@
     "ss_threads": "Samtidige tråder",
     "ss_threads_auto": "Auto (kontoens maksimum)",
     "ss_threads_max": "ScreenScraper tillater {n} tråder for kontoen din. Denne innstillingen kan bare senke tallet.",
-    "ss_threads_unknown": "Uten medlemskonto, eller før ScreenScrapers første svar: 1 tråd. Denne innstillingen kan bare senke det tillatte antallet."
+    "ss_threads_unknown": "Uten medlemskonto, eller før ScreenScrapers første svar: 1 tråd. Denne innstillingen kan bare senke det tillatte antallet.",
+    "ss_cache": "Lagre ScreenScraper-svar i hurtigbuffer",
+    "ss_cache_hint": "Da bruker det ingen forespørsler fra kvoten din å scrape et spill som allerede er funnet. «Spill ikke funnet» lagres bare én dag.",
+    "ss_cache_days": "Behold i",
+    "ss_cache_days_n": "{n} dager",
+    "ss_cache_clear": "Tøm hurtigbufferen",
+    "ss_cache_stats": "{n} svar · {size}"
   },
   "scrape": {
     "loading_sub": "Dette kan ta noen sekunder",
@@ -343,7 +350,9 @@
     "apply_n": "Bruk ({n})",
     "hint": "Det som mangler er krysset av; ingenting erstattes uten at du sier ja.",
     "size_mb": "{n} MB",
-    "field_thumbnail": "Miniatyr"
+    "field_thumbnail": "Miniatyr",
+    "from_cache": "Bufret svar fra {date}: ingen forespørsel sendt til ScreenScraper.",
+    "refresh_cache": "Oppdater fra ScreenScraper"
   },
   "server": {
     "invalid_field": "Ugyldig felt",
@@ -604,7 +613,9 @@
     "stopped_short": "Stoppet",
     "threads": "Tråder: {active}/{limit}",
     "quota_today": "Forespørsler i dag: {used} / {max}",
-    "penalty": "ScreenScraper ber om å senke farten: 1 tråd i 2 minutter."
+    "penalty": "ScreenScraper ber om å senke farten: 1 tråd i 2 minutter.",
+    "refresh": "Ignorer ScreenScraper-hurtigbufferen",
+    "refresh_hint": "Spør ScreenScraper på nytt for hvert spill (bruker kvote) og oppdaterer hurtigbufferen."
   },
   "backups": {
     "title": "Sikkerhetskopier og gjenoppretting",
