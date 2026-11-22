@@ -74,4 +74,12 @@
 <symbol id="i-database" viewBox="0 0 24 24"><path d="M4 6a8 3 0 1 0 16 0a8 3 0 1 0 -16 0" /> <path d="M4 6v6a8 3 0 0 0 16 0v-6" /> <path d="M4 12v6a8 3 0 0 0 16 0v-6" /></symbol>
 <symbol id="i-folder-plus" viewBox="0 0 24 24"><path d="M12 19h-7a2 2 0 0 1 -2 -2v-11a2 2 0 0 1 2 -2h4l3 3h7a2 2 0 0 1 2 2v3.5" /> <path d="M16 19h6" /> <path d="M19 16v6" /></symbol>
 <symbol id="i-player-stop" viewBox="0 0 24 24"><path d="M5 7a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2l0 -10" /></symbol>
+<symbol id="i-crop" viewBox="0 0 24 24"><path d="M8 5v10a1 1 0 0 0 1 1h10" /> <path d="M5 8h10a1 1 0 0 1 1 1v10" /></symbol>
+<symbol id="i-rotate-clockwise" viewBox="0 0 24 24"><path d="M4.05 11a8 8 0 1 1 .5 4m-.5 5v-5h5" /></symbol>
+<symbol id="i-rotate" viewBox="0 0 24 24"><path d="M19.95 11a8 8 0 1 0 -.5 4m.5 5v-5h-5" /></symbol>
+<symbol id="i-flip-vertical" viewBox="0 0 24 24"><path d="M3 12l18 0" /> <path d="M7 16l10 0l-10 5l0 -5" /> <path d="M7 8l10 0l-10 -5l0 5" /></symbol>
+<symbol id="i-photo-edit" viewBox="0 0 24 24"><path d="M15 8h.01" /> <path d="M11 20h-4a3 3 0 0 1 -3 -3v-10a3 3 0 0 1 3 -3h10a3 3 0 0 1 3 3v4" /> <path d="M4 15l4 -4c.928 -.893 2.072 -.893 3 0l3 3" /> <path d="M14 14l1 -1c.31 -.298 .644 -.497 .987 -.596" /> <path d="M18.42 15.61a2.1 2.1 0 0 1 2.97 2.97l-3.39 3.42h-3v-3l3.42 -3.39z" /></symbol>
+<symbol id="i-arrows-minimize" viewBox="0 0 24 24"><path d="M5 9l4 0l0 -4" /> <path d="M3 3l6 6" /> <path d="M5 15l4 0l0 4" /> <path d="M3 21l6 -6" /> <path d="M19 9l-4 0l0 -4" /> <path d="M15 9l6 -6" /> <path d="M19 15l-4 0l0 4" /> <path d="M15 15l6 6" /></symbol>
+<symbol id="i-resize" viewBox="0 0 24 24"><path d="M4 11v8a1 1 0 0 0 1 1h8m-9 -14v-1a1 1 0 0 1 1 -1h1m5 0h2m5 0h1a1 1 0 0 1 1 1v1m0 5v2m0 5v1a1 1 0 0 1 -1 1h-1" /> <path d="M4 12h7a1 1 0 0 1 1 1v7" /></symbol>
+<symbol id="i-wand" viewBox="0 0 24 24"><path d="M6 21l15 -15l-3 -3l-15 15l3 3" /> <path d="M15 6l3 3" /> <path d="M9 3a2 2 0 0 0 2 2a2 2 0 0 0 -2 2a2 2 0 0 0 -2 -2a2 2 0 0 0 2 -2" /> <path d="M19 13a2 2 0 0 0 2 2a2 2 0 0 0 -2 2a2 2 0 0 0 -2 -2a2 2 0 0 0 2 -2" /></symbol>
 </svg>

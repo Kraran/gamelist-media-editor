@@ -487,6 +487,7 @@
           <button type="button" class="seg" role="tab" data-bulk-tab="set" aria-selected="true">{{ icon("pencil") }}<span data-i18n="bulk.tab_set">Champ</span></button>
           <button type="button" class="seg" role="tab" data-bulk-tab="replace" aria-selected="false">{{ icon("replace") }}<span data-i18n="bulk.tab_replace">Rechercher / remplacer</span></button>
           <button type="button" class="seg" role="tab" data-bulk-tab="reset_name" aria-selected="false">{{ icon("heading") }}<span data-i18n="bulk.tab_names">Noms</span></button>
+          <button type="button" class="seg" role="tab" data-bulk-tab="images" aria-selected="false">{{ icon("photo-edit") }}<span data-i18n="imgedit.tab_images">Images</span></button>
           <button type="button" class="seg" role="tab" data-bulk-tab="clear_media" aria-selected="false">{{ icon("photo") }}<span data-i18n="bulk.tab_media">Médias</span></button>
           <button type="button" class="seg" role="tab" data-bulk-tab="delete" aria-selected="false">{{ icon("trash") }}<span data-i18n="bulk.tab_delete">Retirer</span></button>
         </div>
@@ -498,6 +499,117 @@
         <button type="button" class="btn" id="bulk-cancel" data-i18n="confirm.cancel">Annuler</button>
         <button type="button" class="btn" id="bulk-preview-btn">{{ icon("zoom-in") }}<span data-i18n="bulk.preview">Aperçu</span></button>
         <button type="button" class="btn btn-accent" id="bulk-apply" disabled><span id="bulk-apply-label" data-i18n="bulk.apply">Appliquer</span></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="imgedit-modal" role="dialog" aria-modal="true" aria-labelledby="imgedit-title">
+    <div class="modal check-modal imgedit-modal">
+      <div class="tools-header">
+        <h3 class="modal-title" id="imgedit-title">{{ icon("photo-edit") }}<span data-i18n="imgedit.title">Éditer l'image</span><span class="imgedit-sub" id="imgedit-sub"></span></h3>
+        <button type="button" class="btn btn-icon" id="imgedit-close" data-i18n-title="tools.close" title="Fermer">{{ icon("x") }}</button>
+      </div>
+      <div class="imgedit-body">
+        <div class="imgedit-panes">
+          <figure class="imgedit-pane">
+            <figcaption><span data-i18n="imgedit.original">Original</span><span class="imgedit-info" id="imgedit-src-info"></span></figcaption>
+            <div class="imgedit-stage checker" id="imgedit-src-stage">
+              <div class="imgedit-src-wrap" id="imgedit-src-wrap">
+                <img id="imgedit-src" alt="" draggable="false">
+                <div class="imgedit-crop" id="imgedit-crop" hidden>
+                  <span class="imgedit-handle" data-h="nw"></span><span class="imgedit-handle" data-h="ne"></span>
+                  <span class="imgedit-handle" data-h="sw"></span><span class="imgedit-handle" data-h="se"></span>
+                </div>
+              </div>
+            </div>
+          </figure>
+          <figure class="imgedit-pane">
+            <figcaption><span data-i18n="imgedit.result">Résultat</span><span class="imgedit-info" id="imgedit-out-info"></span></figcaption>
+            <div class="imgedit-stage checker" id="imgedit-out-stage">
+              <img id="imgedit-out" alt="">
+              <span class="imgedit-busy" id="imgedit-busy" hidden data-i18n="imgedit.loading">Calcul de l'aperçu…</span>
+            </div>
+            <p class="imgedit-warn" id="imgedit-warn" hidden></p>
+          </figure>
+        </div>
+        <div class="imgedit-tools" id="imgedit-tools">
+          <section class="imgedit-group">
+            <h4>{{ icon("crop") }}<span data-i18n="imgedit.crop">Recadrage</span></h4>
+            <div class="imgedit-row">
+              <label><span data-i18n="imgedit.ratio">Proportions</span>
+                <select id="imgedit-ratio">
+                  <option value="free" data-i18n="imgedit.ratio_free">Libre</option>
+                  <option value="original" data-i18n="imgedit.ratio_original">Originales</option>
+                  <option value="1">1:1</option><option value="1.3333">4:3</option><option value="0.75">3:4</option>
+                  <option value="1.7778">16:9</option><option value="0.5625">9:16</option>
+                  <option value="2">2:1</option><option value="3">3:1</option>
+                </select>
+              </label>
+              <button type="button" class="btn btn-sm" id="imgedit-crop-clear" data-i18n="imgedit.crop_clear">Sans recadrage</button>
+            </div>
+            <p class="imgedit-hint" data-i18n="imgedit.crop_hint">Trace un rectangle sur l'original ; fais-le glisser pour le déplacer.</p>
+          </section>
+          <section class="imgedit-group">
+            <h4>{{ icon("rotate-clockwise") }}<span data-i18n="imgedit.orientation">Orientation</span></h4>
+            <div class="imgedit-row imgedit-buttons">
+              <button type="button" class="btn btn-icon" id="imgedit-rot-left" data-i18n-title="imgedit.rotate_left" title="Pivoter à gauche">{{ icon("rotate") }}</button>
+              <button type="button" class="btn btn-icon" id="imgedit-rot-right" data-i18n-title="imgedit.rotate_right" title="Pivoter à droite">{{ icon("rotate-clockwise") }}</button>
+              <button type="button" class="btn btn-icon" id="imgedit-flip-h" aria-pressed="false" data-i18n-title="imgedit.flip_h" title="Miroir horizontal">{{ icon("flip-horizontal") }}</button>
+              <button type="button" class="btn btn-icon" id="imgedit-flip-v" aria-pressed="false" data-i18n-title="imgedit.flip_v" title="Miroir vertical">{{ icon("flip-vertical") }}</button>
+            </div>
+          </section>
+          <section class="imgedit-group">
+            <h4>{{ icon("wand") }}<span data-i18n="imgedit.bg">Fond transparent</span></h4>
+            <div class="imgedit-row">
+              <select id="imgedit-bg-mode" data-i18n-title="imgedit.bg" title="Fond transparent">
+                <option value="off" data-i18n="imgedit.bg_off">Non</option>
+                <option value="flood" data-i18n="imgedit.bg_flood">Depuis les bords</option>
+                <option value="key" data-i18n="imgedit.bg_key">Cette couleur partout</option>
+              </select>
+              <label class="imgedit-check"><input type="checkbox" id="imgedit-bg-auto" checked> <span data-i18n="imgedit.bg_auto">Couleur des coins</span></label>
+              <input type="color" id="imgedit-bg-color" value="#ffffff" disabled data-i18n-title="imgedit.bg_color" title="Couleur">
+            </div>
+            <label class="imgedit-range"><span data-i18n="imgedit.tolerance">Tolérance</span>
+              <input type="range" id="imgedit-bg-tol" min="0" max="100" value="10"><output id="imgedit-bg-tol-out">10</output></label>
+          </section>
+          <section class="imgedit-group">
+            <h4>{{ icon("arrows-minimize") }}<span data-i18n="imgedit.trim">Rognage automatique</span></h4>
+            <label class="imgedit-check"><input type="checkbox" id="imgedit-trim"> <span data-i18n="imgedit.trim_hint">Retirer les bords transparents ou d'une seule couleur</span></label>
+            <label class="imgedit-range"><span data-i18n="imgedit.tolerance">Tolérance</span>
+              <input type="range" id="imgedit-trim-tol" min="0" max="100" value="5"><output id="imgedit-trim-tol-out">5</output></label>
+          </section>
+          <section class="imgedit-group">
+            <h4>{{ icon("resize") }}<span data-i18n="imgedit.size">Taille maximale</span></h4>
+            <div class="imgedit-row">
+              <label><span data-i18n="imgedit.max_w">Largeur</span><input type="number" id="imgedit-max-w" min="0" max="16384" placeholder="—"></label>
+              <label><span data-i18n="imgedit.max_h">Hauteur</span><input type="number" id="imgedit-max-h" min="0" max="16384" placeholder="—"></label>
+            </div>
+            <label class="imgedit-check"><input type="checkbox" id="imgedit-upscale"> <span data-i18n="imgedit.upscale">Agrandir une image plus petite</span></label>
+          </section>
+          <section class="imgedit-group">
+            <h4>{{ icon("file") }}<span data-i18n="imgedit.format">Format</span></h4>
+            <div class="imgedit-row">
+              <select id="imgedit-format">
+                <option value="keep" data-i18n="imgedit.format_keep">Inchangé</option>
+                <option value="png">PNG</option><option value="jpg">JPG</option><option value="webp">WebP</option>
+              </select>
+              <label class="imgedit-matte" id="imgedit-matte-wrap" hidden><span data-i18n="imgedit.matte">Fond</span><input type="color" id="imgedit-matte" value="#ffffff"></label>
+            </div>
+            <label class="imgedit-range" id="imgedit-quality-wrap" hidden><span data-i18n="imgedit.quality">Qualité</span>
+              <input type="range" id="imgedit-quality" min="1" max="100" value="90"><output id="imgedit-quality-out">90</output></label>
+          </section>
+          <section class="imgedit-group">
+            <h4>{{ icon("device-floppy") }}<span data-i18n="imgedit.save_as">Enregistrement</span></h4>
+            <label class="imgedit-check"><input type="radio" name="imgedit-mode" value="overwrite" checked> <span data-i18n="imgedit.mode_overwrite">Remplacer le fichier (une copie de l'original est gardée)</span></label>
+            <label class="imgedit-check"><input type="radio" name="imgedit-mode" value="new"> <span data-i18n="imgedit.mode_new">Nouveau fichier (l'original reste sur le disque)</span></label>
+          </section>
+        </div>
+      </div>
+      <div class="tools-footer">
+        <span class="bulk-note" data-i18n="imgedit.note">Une copie de l'original est gardée ; « Annuler » la remet en place.</span>
+        <button type="button" class="btn" id="imgedit-reset">{{ icon("arrow-back-up") }}<span data-i18n="imgedit.reset">Réinitialiser</span></button>
+        <button type="button" class="btn" id="imgedit-cancel" data-i18n="confirm.cancel">Annuler</button>
+        <button type="button" class="btn btn-accent" id="imgedit-save" disabled>{{ icon("device-floppy") }}<span data-i18n="imgedit.save">Enregistrer</span></button>
       </div>
     </div>
   </div>

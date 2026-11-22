@@ -70,7 +70,7 @@ def begin_gamelist_request():
     endpoint = request.endpoint or ""
     scoped = (
         "index" in (request.view_args or {})
-        or request.blueprint in {"gamedelete", "romcheck", "mediacheck", "thumbs", "backups", "batch_jobs", "bulk", "stats"}
+        or request.blueprint in {"gamedelete", "romcheck", "mediacheck", "thumbs", "backups", "batch_jobs", "bulk", "stats", "imageedit"}
         or endpoint in {"dattool.api_dat_compare", "newgamelist.api_new_gamelist"}
         or (request.blueprint == "editor" and endpoint.rsplit(".", 1)[-1]
             not in {"index", "favicon", "api_browse", "api_shutdown"})

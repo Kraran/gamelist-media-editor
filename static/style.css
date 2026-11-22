@@ -1782,3 +1782,57 @@ ul.batch-warning { margin: 0; padding-left: var(--s4); }
 .newgl-modal .bulk-table th:nth-child(1) { width: 50%; }
 .open-gl-new { margin-right: auto; display: inline-flex; align-items: center; gap: 6px; }
 .open-gl-new[hidden] { display: none; }
+
+/* --- Image editor ----------------------------------------------------------- */
+.imgedit-modal { width: min(1240px, 100%); height: min(860px, calc(100vh - 48px)); }
+.imgedit-sub { margin-left: var(--s2); color: var(--text-3); font-size: var(--fs-sm); font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.imgedit-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: var(--s4); }
+.imgedit-panes { min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); gap: var(--s3); }
+.imgedit-pane { min-height: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.imgedit-pane figcaption { display: flex; align-items: baseline; gap: var(--s2); font-size: var(--fs-sm); font-weight: 600; color: var(--text-2); }
+.imgedit-info { color: var(--text-3); font-weight: 400; font-family: var(--font-mono); font-size: var(--fs-xs); }
+.imgedit-stage {
+  position: relative; flex: 1; min-height: 0; display: grid; place-items: center; overflow: hidden;
+  border: 1px solid var(--line); border-radius: var(--r-control);
+  background-color: var(--stage);
+  background-image:
+    linear-gradient(45deg, var(--checker) 25%, transparent 25%, transparent 75%, var(--checker) 75%),
+    linear-gradient(45deg, var(--checker) 25%, transparent 25%, transparent 75%, var(--checker) 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 8px 8px;
+}
+.imgedit-src-wrap { position: relative; display: inline-block; max-width: 100%; max-height: 100%; line-height: 0; cursor: crosshair; touch-action: none; user-select: none; }
+.imgedit-src-wrap img { display: block; max-width: none; max-height: none; }
+#imgedit-out { position: absolute; inset: 8px; width: calc(100% - 16px); height: calc(100% - 16px); object-fit: scale-down; }
+#imgedit-out:not([src]) { display: none; }
+.imgedit-crop { position: absolute; border: 2px solid var(--accent); outline: 2000px solid rgba(0, 0, 0, .55); cursor: move; }
+.imgedit-crop[hidden] { display: none; }
+.imgedit-handle { position: absolute; width: 12px; height: 12px; border: 2px solid var(--accent); background: var(--raised); border-radius: 2px; }
+.imgedit-handle[data-h="nw"] { left: -7px; top: -7px; cursor: nwse-resize; }
+.imgedit-handle[data-h="ne"] { right: -7px; top: -7px; cursor: nesw-resize; }
+.imgedit-handle[data-h="sw"] { left: -7px; bottom: -7px; cursor: nesw-resize; }
+.imgedit-handle[data-h="se"] { right: -7px; bottom: -7px; cursor: nwse-resize; }
+.imgedit-busy { position: absolute; right: 8px; bottom: 8px; padding: 2px 8px; border-radius: 999px; background: var(--raised); color: var(--text-2); font-size: var(--fs-xs); line-height: 1.6; }
+.imgedit-busy[hidden], .imgedit-warn[hidden] { display: none; }
+.imgedit-warn { margin: 0; color: var(--warn); font-size: var(--fs-sm); }
+.imgedit-tools { min-height: 0; overflow-y: auto; display: grid; align-content: start; gap: var(--s3); padding-right: 4px; }
+.imgedit-group { display: grid; gap: 6px; padding: var(--s2) var(--s3); border: 1px solid var(--line); border-radius: var(--r-control); background: var(--surface); }
+.imgedit-group h4 { display: flex; align-items: center; gap: 6px; margin: 0; font-size: var(--fs-sm); }
+.imgedit-group h4 .icon { width: 15px; height: 15px; color: var(--text-3); }
+.imgedit-row { display: flex; flex-wrap: wrap; align-items: end; gap: var(--s2); }
+.imgedit-row label { display: grid; gap: 2px; color: var(--text-2); font-size: var(--fs-xs); }
+.imgedit-row input[type="number"] { width: 90px; }
+.imgedit-row select { width: auto; }
+.imgedit-buttons .btn[aria-pressed="true"] { background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.imgedit-check { display: flex; align-items: center; gap: 6px; font-size: var(--fs-sm); cursor: pointer; }
+.imgedit-range { display: grid; grid-template-columns: auto 1fr 2.5em; align-items: center; gap: var(--s2); font-size: var(--fs-xs); color: var(--text-2); }
+.imgedit-range output { font-family: var(--font-mono); text-align: right; }
+.imgedit-range[hidden], .imgedit-matte[hidden] { display: none; }
+.imgedit-hint { margin: 0; color: var(--text-3); font-size: var(--fs-xs); }
+input[type="color"] { width: 36px; height: 28px; padding: 2px; border: 1px solid var(--line); border-radius: var(--r-control); background: var(--surface); }
+input[type="color"]:disabled { opacity: .45; }
+@media (max-width: 900px) {
+  .imgedit-body { grid-template-columns: 1fr; overflow-y: auto; }
+  .imgedit-panes { grid-template-rows: 260px 260px; }
+}
+.imgedit-row .imgedit-check { display: flex; color: var(--text); font-size: var(--fs-sm); }
