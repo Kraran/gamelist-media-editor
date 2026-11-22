@@ -1,4 +1,5 @@
 """Shared fixtures: a throw-away gamelist + Flask test client."""
+import io
 import os
 import shutil
 
@@ -15,6 +16,18 @@ GAMELIST = """<?xml version="1.0"?>
   <game><path>./charlie.zip</path><name>Charlie</name></game>
 </gameList>
 """
+
+def picture(size=(64, 48), color=(40, 120, 200), fmt="PNG"):
+    """A small real picture: ``color`` with a light band, so scrapes accept it
+    (gme.media.check_image refuses one-colour and tiny images)."""
+    from PIL import Image, ImageDraw
+    im = Image.new("RGB", size, color)
+    w, h = size
+    ImageDraw.Draw(im).rectangle([w // 4, h // 3, w * 3 // 4, h * 2 // 3], fill=(240, 230, 210))
+    buf = io.BytesIO()
+    im.save(buf, fmt)
+    return buf.getvalue()
+
 
 LOCAL = {"Host": "127.0.0.1:5050", "Origin": "http://127.0.0.1:5050", "Sec-Fetch-Site": "same-origin"}
 

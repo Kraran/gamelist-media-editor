@@ -1,5 +1,4 @@
 """Scrape comparison, presets, shared apply and the preview cache (no network)."""
-import io
 import os
 
 import pytest
@@ -9,16 +8,13 @@ from gme import remote_cache, xml_store
 from gme.scrapers import steam
 from gme.scrapers.compare import compare_rows, current_from_game, fields_for_preset
 from gme.systems import default_scraper
-from tests.conftest import LOCAL
+from tests.conftest import LOCAL, picture
 
 PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 64
 
 
 def png(color=(200, 30, 30)):
-    from PIL import Image
-    buf = io.BytesIO()
-    Image.new("RGB", (8, 6), color).save(buf, "PNG")
-    return buf.getvalue()
+    return picture((48, 36), color)
 
 
 @pytest.fixture(autouse=True)

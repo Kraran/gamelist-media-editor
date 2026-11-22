@@ -12,7 +12,7 @@ def post(client, body):
 
 
 def test_defaults_when_nothing_saved(client):
-    assert get(client) == {"locale": None, "theme": "dark", "list_width": None, "scrapers": {}, "required_media": {}}
+    assert get(client) == {"locale": None, "theme": "dark", "list_width": None, "search_all_fields": False, "scrapers": {}, "required_media": {}}
 
 
 def test_partial_updates_are_merged_and_saved(client, settings_file):
@@ -39,13 +39,13 @@ def test_bad_values_are_refused(client):
                  {"required_media": {"snes": ["desc"]}}, {"required_media": ["snes"]}, ["locale"]):
         r = post(client, body)
         assert r.status_code == 400, body
-    assert get(client) == {"locale": None, "theme": "dark", "list_width": None, "scrapers": {}, "required_media": {}}
+    assert get(client) == {"locale": None, "theme": "dark", "list_width": None, "search_all_fields": False, "scrapers": {}, "required_media": {}}
 
 
 def test_a_broken_file_gives_the_defaults(client, settings_file):
     settings_file.write_text('{"locale": 5, "scrapers": {"snes": "nope", "nes": "steam"}, "required_media": {"x": "image"}}',
                              encoding="utf-8")
-    assert get(client) == {"locale": None, "theme": "dark", "list_width": None, "scrapers": {"nes": "steam"}, "required_media": {}}
+    assert get(client) == {"locale": None, "theme": "dark", "list_width": None, "search_all_fields": False, "scrapers": {"nes": "steam"}, "required_media": {}}
     settings_file.write_text("not json", encoding="utf-8")
     assert settings.load()["scrapers"] == {}
 
@@ -77,3 +77,12 @@ def test_list_width_is_kept_then_reset(client, settings_file):
     post(client, {"list_width": None})                          # double-click: back to the default
     assert get(client)["list_width"] is None
     assert "--w-list:" not in client.get("/", headers=LOCAL).get_data(as_text=True)
+
+
+def test_search_all_fields_is_kept(client, settings_file):
+    post(client, {"search_all_fields": True})
+    assert get(client)["search_all_fields"] is True
+    for bad in ("yes", 1, None):
+        assert client.post("/api/settings", json={"search_all_fields": bad}, headers=LOCAL).status_code == 400
+    post(client, {"search_all_fields": False})
+    assert get(client)["search_all_fields"] is False

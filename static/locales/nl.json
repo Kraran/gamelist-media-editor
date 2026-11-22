@@ -51,7 +51,22 @@
     "media_missing": "Verplicht, ontbreekt: {list}",
     "media_complete": "Alle verplichte media aanwezig",
     "resize_aria": "Breedte van de gamelijst",
-    "resize_title": "Sleep om de lijst breder te maken (of pijltjes links/rechts) · dubbelklik: standaardbreedte"
+    "resize_title": "Sleep om de lijst breder te maken (of pijltjes links/rechts) · dubbelklik: standaardbreedte",
+    "search_placeholder_all": "Zoeken in alle velden…",
+    "search_all": "Zoeken in alle velden",
+    "search_all_title": "Ook zoeken in genre, ontwikkelaar, uitgever, datum, regio… (anders: naam en ROM-pad)",
+    "genre_filter_title": "Filteren op genre (hoofdgenre, vóór de „/”)",
+    "genre_filter_aria": "Genrefilter",
+    "genre_all": "Genres",
+    "genre_none": "Zonder genre",
+    "flag_filter_title": "Favorieten, verborgen games of kindergames filteren",
+    "flag_filter_aria": "Filter favorieten, verborgen, kinderen",
+    "flag_all": "Alles",
+    "flag_favorite": "Favorieten",
+    "flag_hidden": "Verborgen",
+    "flag_visible": "Niet verborgen",
+    "flag_kidgame": "Voor kinderen",
+    "copy_paths": "Paden van de aangevinkte ROM's kopiëren"
   },
   "editor": {
     "desc_title": "Beschrijving",
@@ -155,7 +170,9 @@
     "kbd_save": "opslaan",
     "kbd_next_incomplete": "volgende onvolledige",
     "kbd_scrape": "scrapen",
-    "kbd_help": "sneltoetsen"
+    "kbd_help": "sneltoetsen",
+    "csv_export": "CSV exporteren…",
+    "csv_exported": "CSV geëxporteerd ({n} games)"
   },
   "toast": {
     "no_file_url": "Geen bestand of URL gevonden",
@@ -176,7 +193,11 @@
     "arcade_sys_ok": "{n} ingevuld · {skip} al ingesteld · {miss} niet gevonden",
     "nothing_to_save": "Niets om op te slaan",
     "path_copied": "Pad gekopieerd: {path}",
-    "no_incomplete": "Geen ander onvolledig spel in de lijst"
+    "no_incomplete": "Geen ander onvolledig spel in de lijst",
+    "paths_copied": "{n} pad(en) gekopieerd",
+    "paths_copy_failed": "Kan niet naar het klembord schrijven",
+    "csv_exported": "Lijst geëxporteerd: {n} game(s)",
+    "csv_empty": "Geen games getoond: niets te exporteren"
   },
   "errors": {
     "offline": "Geen netwerkverbinding.",
@@ -390,7 +411,10 @@
     "source_timeout": "{source} antwoordde niet op tijd: de server is misschien overbelast.",
     "source_network": "Netwerkfout bij {source}: {detail}",
     "source_bad_answer": "Onverwacht antwoord van {source}: {detail}",
-    "stale_gamelist": "De actieve spellenlijst is gewijzigd. Laad de lijst opnieuw voordat je doorgaat."
+    "stale_gamelist": "De actieve spellenlijst is gewijzigd. Laad de lijst opnieuw voordat je doorgaat.",
+    "image_unreadable": "afbeelding onleesbaar of beschadigd, niet opgeslagen",
+    "image_too_small": "afbeelding te klein ({w}×{h} px), niet opgeslagen",
+    "image_uniform": "effen of lege afbeelding, niet opgeslagen"
   },
   "open_gl": {
     "title": "Open een gamelist.xml",
@@ -430,7 +454,9 @@
     "label": "Hele gamelist",
     "backup_sub": "Kopie gamelist.xml.bak naast het bestand",
     "arcade_sub": "Uit mame.xml: CPS2, Neo-Geo…",
-    "purge_sub": "In alle spellen, na bevestiging"
+    "purge_sub": "In alle spellen, na bevestiging",
+    "export_csv": "Lijst exporteren (CSV)",
+    "export_csv_sub": "De games die in de lijst staan, voor Excel of LibreOffice"
   },
   "settings": {
     "title": "Instellingen",

@@ -51,7 +51,22 @@
     "media_missing": "Obligatoriska saknas: {list}",
     "media_complete": "All obligatorisk media finns",
     "resize_aria": "Spellistans bredd",
-    "resize_title": "Dra för att bredda listan (eller vänster/höger piltangent) · dubbelklicka: standardbredd"
+    "resize_title": "Dra för att bredda listan (eller vänster/höger piltangent) · dubbelklicka: standardbredd",
+    "search_placeholder_all": "Sök i alla fält…",
+    "search_all": "Sök i alla fält",
+    "search_all_title": "Sök även i genre, utvecklare, utgivare, datum, region… (annars: namn och ROM-sökväg)",
+    "genre_filter_title": "Filtrera på genre (huvudgenre, före ”/”)",
+    "genre_filter_aria": "Genrefilter",
+    "genre_all": "Genrer",
+    "genre_none": "Utan genre",
+    "flag_filter_title": "Filtrera favoriter, dolda spel eller barnspel",
+    "flag_filter_aria": "Filter favoriter, dolda, barn",
+    "flag_all": "Alla",
+    "flag_favorite": "Favoriter",
+    "flag_hidden": "Dolda",
+    "flag_visible": "Inte dolda",
+    "flag_kidgame": "För barn",
+    "copy_paths": "Kopiera sökvägarna till de markerade ROM:arna"
   },
   "editor": {
     "desc_title": "Beskrivning",
@@ -155,7 +170,9 @@
     "kbd_save": "spara",
     "kbd_next_incomplete": "nästa ofullständiga",
     "kbd_scrape": "skrapa",
-    "kbd_help": "kortkommandon"
+    "kbd_help": "kortkommandon",
+    "csv_export": "Exporterar CSV…",
+    "csv_exported": "CSV exporterad ({n} spel)"
   },
   "toast": {
     "no_file_url": "Ingen fil eller URL upptäcktes",
@@ -176,7 +193,11 @@
     "arcade_sys_ok": "{n} ifyllda · {skip} redan satta · {miss} hittades inte",
     "nothing_to_save": "Inget att spara",
     "path_copied": "Sökväg kopierad: {path}",
-    "no_incomplete": "Inget annat ofullständigt spel i listan"
+    "no_incomplete": "Inget annat ofullständigt spel i listan",
+    "paths_copied": "{n} sökväg(ar) kopierade",
+    "paths_copy_failed": "Kunde inte skriva till urklipp",
+    "csv_exported": "Listan exporterad: {n} spel",
+    "csv_empty": "Inga spel visas: inget att exportera"
   },
   "errors": {
     "offline": "Ingen nätverksanslutning.",
@@ -390,7 +411,10 @@
     "source_timeout": "{source} svarade inte i tid: servern kan vara överbelastad.",
     "source_network": "Nätverksfel hos {source}: {detail}",
     "source_bad_answer": "Oväntat svar från {source}: {detail}",
-    "stale_gamelist": "Den aktiva spellistan har ändrats. Läs in listan igen innan du fortsätter."
+    "stale_gamelist": "Den aktiva spellistan har ändrats. Läs in listan igen innan du fortsätter.",
+    "image_unreadable": "bilden är oläslig eller skadad, sparades inte",
+    "image_too_small": "bilden är för liten ({w}×{h} px), sparades inte",
+    "image_uniform": "enfärgad eller tom bild, sparades inte"
   },
   "open_gl": {
     "title": "Öppna en gamelist.xml",
@@ -430,7 +454,9 @@
     "label": "Hela gamelisten",
     "backup_sub": "Kopia gamelist.xml.bak bredvid filen",
     "arcade_sub": "Från mame.xml: CPS2, Neo-Geo…",
-    "purge_sub": "I alla spel, efter bekräftelse"
+    "purge_sub": "I alla spel, efter bekräftelse",
+    "export_csv": "Exportera listan (CSV)",
+    "export_csv_sub": "Spelen som visas i listan, för Excel eller LibreOffice"
   },
   "settings": {
     "title": "Inställningar",

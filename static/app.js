@@ -44,7 +44,7 @@ let currentLocale = DEFAULT_LOCALE;
  * ui_settings.json next to the app (gme/settings.py), not in the browser,
  * whose storage the app window can lose.
  */
-let SETTINGS = { locale: null, theme: "dark", list_width: null, scrapers: {}, required_media: {} };
+let SETTINGS = { locale: null, theme: "dark", list_width: null, search_all_fields: false, scrapers: {}, required_media: {} };
 
 /* Theme: dark (default), light, or as the system (follows Windows while open).
  * The page arrives with the saved theme already applied (templates/index.html). */
@@ -166,6 +166,7 @@ function applyI18n() {
   try { updateScrapeButton(); } catch (_) {}
   try { fillSsRegions(); } catch (_) {}
   try { selectionChanged(false); } catch (_) {}
+  try { updateSearchModeUi(); } catch (_) {}
   try {
     if (typeof games !== "undefined" && games.length) {
       const badge = document.getElementById("game-count");
@@ -243,11 +244,15 @@ let GENRES = {};
  * currentIndex     : XML index (API routes)
  * currentListIndex : index inside games[] (list selection)
  * mediaFilter      : all | any (a required media missing) | one media key of FIELD_DEFS
+ * genreFilter      : all | none (no genre) | "g:" + main genre in upper case (see genreKey)
+ * flagFilter       : all | favorite | hidden | visible | kidgame
  */
 let games = [];
 let currentIndex = null;
 let currentListIndex = null;
 let mediaFilter = "all";
+let genreFilter = "all";
+let flagFilter = "all";
 let searchDebounceTimer = null;
 const SEARCH_DEBOUNCE_MS = 180;
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // 50 Mo — aligné serveur
@@ -294,6 +299,8 @@ function queueGameListReload() {
 /** Fetch JSON API; attaches X-Locale so server messages match the UI language. */
 async function apiFetch(url, options = {}) {
   options = { ...options };
+  const raw = !!options.raw;             // return the body as a Blob (file downloads)
+  delete options.raw;
   const headers = new Headers(options.headers || {});
   if (!headers.has("X-Locale")) {
     headers.set("X-Locale", (typeof currentLocale !== "undefined" && currentLocale) ? currentLocale : "fr");
@@ -314,6 +321,7 @@ async function apiFetch(url, options = {}) {
 
   let data = null;
   const ct = (res.headers.get("content-type") || "").toLowerCase();
+  if (raw && res.ok && !ct.includes("application/json")) return res.blob();
   if (ct.includes("application/json")) {
     try {
       data = await res.json();
@@ -489,13 +497,63 @@ function matchesMediaFilter(g, filterKey) {
   return !hasMedia(g, key);
 }
 
+/* Search: name and ROM path by default (fast on 30 000 games); with the
+ * "all fields" toggle, every metadata of the list too. The description is not
+ * sent with the list (see LIST_FIELDS in gme/xml_store.py), so it is not searched. */
+const SEARCH_EXTRA_FIELDS = ["genre", "developer", "publisher", "family", "players", "lang",
+  "region", "releasedate", "arcadesystemname", "rating"];
+let searchHay = new WeakMap();          // game → its lower-case text of every field, built once
+function searchText(g) {
+  let hay = searchHay.get(g);
+  if (hay === undefined) {
+    hay = [g.name, g.path, ...SEARCH_EXTRA_FIELDS.map(k => g[k] || "")].join("\n").toLowerCase();
+    searchHay.set(g, hay);
+  }
+  return hay;
+}
 function matchesSearch(g, query) {
   if (!query) return true;
   const q = query.toLowerCase();
+  if (SETTINGS.search_all_fields) return searchText(g).includes(q);
   return g.name.toLowerCase().includes(q) || g.path.toLowerCase().includes(q);
 }
+function updateSearchModeUi() {
+  const on = !!SETTINGS.search_all_fields;
+  const btn = document.getElementById("btn-search-all");
+  btn.setAttribute("aria-pressed", String(on));
+  btn.classList.toggle("is-on", on);
+  const input = document.getElementById("search");
+  input.dataset.i18nPlaceholder = on ? "sidebar.search_placeholder_all" : "sidebar.search_placeholder";
+  input.placeholder = t(input.dataset.i18nPlaceholder);
+}
 
-/** List indexes of the games shown under the current search + media filter. */
+/* Genre and flag filters. The genre filter groups by main genre (the part
+ * before " / ", as the genre lists of the editor), case-insensitively. */
+function genreKey(g) {
+  const main = String(g.genre || "").split("/")[0].trim();
+  return main ? "g:" + main.toUpperCase() : "none";
+}
+function isTrue(v) {
+  return /^(true|1|yes)$/i.test(String(v || "").trim());
+}
+function matchesGenreFilter(g) {
+  return genreFilter === "all" || genreKey(g) === genreFilter;
+}
+const FLAG_FILTERS = ["all", "favorite", "hidden", "visible", "kidgame"];
+function matchesFlagFilter(g, key = flagFilter) {
+  switch (key) {
+    case "favorite": return isTrue(g.favorite);
+    case "hidden": return isTrue(g.hidden);
+    case "visible": return !isTrue(g.hidden);
+    case "kidgame": return isTrue(g.kidgame);
+    default: return true;
+  }
+}
+function filtersActive() {
+  return mediaFilter !== "all" || genreFilter !== "all" || flagFilter !== "all";
+}
+
+/** List indexes of the games shown under the current search + filters. */
 function getFilteredGames(searchQuery) {
   const q = (searchQuery !== undefined
     ? searchQuery
@@ -505,6 +563,8 @@ function getFilteredGames(searchQuery) {
     const g = games[i];
     if (q && !matchesSearch(g, q)) continue;
     if (mediaFilter !== "all" && !matchesMediaFilter(g)) continue;
+    if (genreFilter !== "all" && !matchesGenreFilter(g)) continue;
+    if (flagFilter !== "all" && !matchesFlagFilter(g)) continue;
     out.push(i);
   }
   return out;
@@ -512,28 +572,60 @@ function getFilteredGames(searchQuery) {
 
 function updateGameCount(visibleCount) {
   const el = document.getElementById("game-count");
-  if (mediaFilter === "all" && !document.getElementById("search").value.trim()) {
+  if (!filtersActive() && !document.getElementById("search").value.trim()) {
     el.textContent = t("header.game_count", { n: games.length });
   } else {
     el.textContent = t("header.game_count_filtered", { visible: visibleCount, total: games.length });
   }
 }
 
-/** Filter menu: one option per media, each with the number of games missing it. */
+/** Filter menus, each option with its number of games. A menu counts the games
+ * left by the search and the OTHER filters (what choosing that option would show). */
 function updateFilterCounts(q) {
   const query = (q || "").toLowerCase().trim();
   const keys = FIELD_DEFS.map(f => f.key);
   const required = requiredKeys();
   const counts = { all: 0, any: 0 };
   keys.forEach(k => { counts[k] = 0; });
+  const genres = new Map();             // key → { label, n }
+  const flags = Object.fromEntries(FLAG_FILTERS.map(k => [k, 0]));
+  let genreNone = 0;
   for (const g of games) {
-    if (query && !matchesSearch(g, query)) continue;
-    counts.all++;
-    for (const k of keys) {
-      if (!hasMedia(g, k)) counts[k]++;
+    const gk = genreKey(g);
+    if (gk !== "none" && !genres.has(gk)) {   // label: first spelling in the list, whatever is shown
+      genres.set(gk, { label: String(g.genre).split("/")[0].trim(), n: 0 });
     }
-    if (missingRequired(g, required).length) counts.any++;
+    if (query && !matchesSearch(g, query)) continue;
+    const okMedia = mediaFilter === "all" || matchesMediaFilter(g);
+    const okGenre = matchesGenreFilter(g);
+    const okFlag = matchesFlagFilter(g);
+    if (okGenre && okFlag) {
+      counts.all++;
+      for (const k of keys) {
+        if (!hasMedia(g, k)) counts[k]++;
+      }
+      if (missingRequired(g, required).length) counts.any++;
+    }
+    if (okMedia && okFlag) {
+      if (gk === "none") genreNone++;
+      else genres.get(gk).n++;
+    }
+    if (okMedia && okGenre) {
+      for (const k of FLAG_FILTERS) if (matchesFlagFilter(g, k)) flags[k]++;
+    }
   }
+  fillGenreFilter(genres, genreNone);
+  const flagSel = document.getElementById("flag-filter");
+  if (flagSel.options.length !== FLAG_FILTERS.length) {
+    flagSel.innerHTML = FLAG_FILTERS.map(k => `<option value="${k}"></option>`).join("");
+  }
+  // "All" carries no count (the header has it): the two menus share one row
+  FLAG_FILTERS.forEach((k, i) => {
+    flagSel.options[i].textContent = k === "all" ? t("sidebar.flag_all") : `${t("sidebar.flag_" + k)} (${fmtCount(flags[k])})`;
+  });
+  flagSel.value = flagFilter;
+  flagSel.title = flagSel.selectedOptions[0] ? flagSel.selectedOptions[0].textContent : "";
+  updateFilterHighlights();
   const sel = document.getElementById("media-filter");
   if (!sel) return;
   const labels = { all: t("sidebar.filter_all"), any: t("sidebar.filter_any") };
@@ -544,6 +636,31 @@ function updateFilterCounts(q) {
   }
   order.forEach((k, i) => { sel.options[i].textContent = `${labels[k]} (${counts[k]})`; });
   sel.value = mediaFilter;
+}
+
+/** Genre menu: the genres of this gamelist, sorted, plus "No genre". The chosen
+ * one stays listed even when the search leaves no game in it. */
+function fillGenreFilter(genres, none) {
+  const sel = document.getElementById("genre-filter");
+  if (genreFilter.startsWith("g:") && !genres.has(genreFilter)) {
+    genres.set(genreFilter, { label: (sel.selectedOptions[0] && sel.selectedOptions[0].dataset.label) || genreFilter.slice(2), n: 0 });
+  }
+  const sorted = [...genres.entries()].filter(([k, e]) => e.n || k === genreFilter).sort((a, b) => a[1].label.localeCompare(b[1].label, currentLocale || "fr", { sensitivity: "base" }));
+  const opt = (value, label, n, raw) =>
+    `<option value="${escapeHtml(value)}"${raw ? ` data-label="${escapeHtml(raw)}"` : ""}>${escapeHtml(label)}${n === null ? "" : ` (${fmtCount(n)})`}</option>`;
+  sel.innerHTML = opt("all", t("sidebar.genre_all"), null) +
+    sorted.map(([k, e]) => opt(k, e.label, e.n, e.label)).join("") +
+    (none || genreFilter === "none" ? opt("none", t("sidebar.genre_none"), none) : "");
+  sel.value = genreFilter;
+  sel.title = sel.selectedOptions[0] ? sel.selectedOptions[0].textContent : "";   // full text when cut
+}
+
+/** A filter that hides games is outlined, so a short list is never a surprise. */
+function updateFilterHighlights() {
+  [["media-filter", mediaFilter], ["genre-filter", genreFilter], ["flag-filter", flagFilter]].forEach(([id, v]) => {
+    const el = document.getElementById(id);
+    if (el) el.closest(".list-filter").classList.toggle("is-active", v !== "all");
+  });
 }
 
 function updateSystemBadge(system) {
@@ -848,6 +965,9 @@ function selectionChanged(redraw = true) {
   bar.hidden = !selection.size;
   document.getElementById("list-selection-count").textContent = t("batch.selected", { n: fmtCount(selection.size) });
   document.getElementById("game-list").classList.toggle("has-selection", selection.size > 0);
+  const copyItem = document.getElementById("btn-copy-selection-paths");
+  copyItem.hidden = !selection.size;
+  document.getElementById("copy-selection-sub").textContent = t("batch.selected", { n: fmtCount(selection.size) });
   if (redraw) renderListWindow(true);
 }
 document.getElementById("btn-selection-clear").addEventListener("click", clearSelection);
@@ -1126,7 +1246,7 @@ async function saveAllChanges() {
     });
     if (session !== window.__gmeSession) return false;
     const g = games.find(x => x.path === target.path);
-    if (g && data.updated) Object.assign(g, data.updated);
+    if (g && data.updated) { Object.assign(g, data.updated); searchHay.delete(g); }
     if (!g || currentIndex !== g.index) return true;
     markSaved(keys, now, data.updated || payload);
     if (keys.includes("name")) {
@@ -1134,6 +1254,8 @@ async function saveAllChanges() {
       currentListIndex = games.findIndex(x => x.index === currentIndex);
       renderList(document.getElementById("search").value);
       scrollActiveIntoView();
+    } else if (keys.some(k => k !== "desc")) {
+      renderList(document.getElementById("search").value);      // genre, favorite… change the filters
     }
     invalidateSuggestions(keys);
     toast(t("editor.saved"));
@@ -1487,6 +1609,24 @@ document.getElementById("media-filter").addEventListener("change", e => {
   mediaFilter = e.target.value || "all";
   listEls().list.scrollTop = 0;
   renderList();
+});
+document.getElementById("genre-filter").addEventListener("change", e => {
+  genreFilter = e.target.value || "all";
+  listEls().list.scrollTop = 0;
+  renderList();
+});
+document.getElementById("flag-filter").addEventListener("change", e => {
+  flagFilter = FLAG_FILTERS.includes(e.target.value) ? e.target.value : "all";
+  listEls().list.scrollTop = 0;
+  renderList();
+});
+document.getElementById("btn-search-all").addEventListener("click", async () => {
+  const on = !SETTINGS.search_all_fields;
+  SETTINGS.search_all_fields = on;             // at once: the list follows the button
+  updateSearchModeUi();
+  renderList();
+  await saveSettings({ search_all_fields: on });
+  updateSearchModeUi();
 });
 (() => {
   const list = document.getElementById("game-list");
@@ -2735,7 +2875,9 @@ setupMenu("game-menu", "btn-game-menu");
 
 /** Full path of the selected game's ROM, with the separators of the gamelist path. */
 function currentRomPath() {
-  const g = games.find(x => x.index === currentIndex);
+  return romFullPath(games.find(x => x.index === currentIndex));
+}
+function romFullPath(g) {
   if (!g) return "";
   if (/^([a-zA-Z]:)?[\\/]/.test(g.path)) return g.path;     // already absolute
   const xml = window.__gmeXmlPath || "";
@@ -2754,6 +2896,52 @@ document.getElementById("btn-copy-path").addEventListener("click", async () => {
     toast(path, "info");
   }
 });
+
+/** Ticked games: their full ROM paths, one per line, in the order of the list. */
+async function copySelectionPaths() {
+  if (!selection.size) return;
+  const paths = games.filter(g => selection.has(g.path)).map(romFullPath).filter(Boolean);
+  if (!paths.length) return;
+  const text = paths.join(navigator.platform && /win/i.test(navigator.platform) ? "\r\n" : "\n");
+  try {
+    await navigator.clipboard.writeText(text);
+    toast(t("toast.paths_copied", { n: fmtCount(paths.length) }));
+  } catch (_) {
+    toast(t("toast.paths_copy_failed"), "warning");
+  }
+}
+document.getElementById("btn-selection-copy").addEventListener("click", copySelectionPaths);
+document.getElementById("btn-copy-selection-paths").addEventListener("click", copySelectionPaths);
+
+/* --- Actions › Export the list (CSV) ---------------------------------------
+ * The games shown (search and filters applied), in the order of the list. The
+ * server writes the file from gamelist.xml (gme/csv_export.py): UTF-8 with a
+ * BOM; ";" as separator except in English, as Excel expects in each language. */
+async function exportCsv() {
+  if (!window.__gmeLoaded) { toast(t("server.no_gamelist"), "warning"); return; }
+  const shown = getVisibleListIndices().map(i => games[i].path);
+  if (!shown.length) { toast(t("toast.csv_empty"), "info"); return; }
+  setStatus(t("status.csv_export"));
+  try {
+    const blob = await apiFetch("/api/export-csv", {
+      method: "POST", headers: { "Content-Type": "application/json" }, raw: true,
+      body: JSON.stringify({ paths: shown, required: requiredKeys(), sep: (currentLocale || "fr") === "en" ? "," : ";" }),
+    });
+    const a = document.createElement("a");
+    const system = (currentSystem && currentSystem.folder) || "gamelist";
+    a.href = URL.createObjectURL(blob);
+    a.download = `gamelist-${system}-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    toast(t("toast.csv_exported", { n: fmtCount(shown.length) }));
+    setStatus(t("status.csv_exported", { n: fmtCount(shown.length) }));
+  } catch (e) {
+    handleError(e);
+  }
+}
+document.getElementById("btn-export-csv").addEventListener("click", exportCsv);
 
 /** A game the "Next incomplete" button stops on: missing media (or matching the media filter). */
 function isIncomplete(g) {
@@ -3235,6 +3423,7 @@ async function applyOpenGamelist() {
     if (sysEl && data.xml_path) sysEl.title = data.xml_path;
     const searchEl = document.getElementById("search");
     if (searchEl) searchEl.value = "";
+    genreFilter = "all";                     // the genres of another system differ
     selection.clear();
     selectionChanged(false);
     renderList("");
@@ -3346,6 +3535,7 @@ document.addEventListener("keydown", (e) => {
 async function boot() {
   await loadSettings();
   applyTheme(SETTINGS.theme);
+  updateSearchModeUi();
   await loadLocale(SETTINGS.locale || DEFAULT_LOCALE);
   wireLanguageControls();
   try {

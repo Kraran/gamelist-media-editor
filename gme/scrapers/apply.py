@@ -21,13 +21,15 @@ from gme import xml_store
 from gme.fields import FieldError, clean_meta, set_desc, set_name
 from gme.http import api_err
 from gme.i18n import st
-from gme.media import MAX_DOWNLOAD_BYTES, discard_old_media, download_pad2key, download_remote_media, media_filename, pad2key_dest
+from gme.media import MAX_DOWNLOAD_BYTES, MediaRejected, discard_old_media, download_pad2key, download_remote_media, media_filename, pad2key_dest
 from gme.scrapers.compare import compare_rows, current_from_game, fields_for_preset
 from gme.xml_store import MEDIA_DIRS, get_base_name, get_game_elem, require_gamelist, save_xml
 
 
 def _download_error(field, e):
     """User message for a failed media download, or None to skip silently."""
+    if isinstance(e, MediaRejected):      # broken, tiny or one-colour image: not written
+        return f"{field}: {st('server.' + e.code, **e.params)}"
     code = str(e)
     if code == "green_placeholder":       # ScreenScraper's empty boxback
         return None
@@ -104,7 +106,7 @@ def apply_proposed(game, fields, proposed, headers=None, media_handlers=None, no
                 media_dir = os.path.join(xml_store.BASE_DIR, media_dir_name)
                 os.makedirs(media_dir, exist_ok=True)
                 filename = download_remote_media(
-                    url, media_dir, base_name, field, headers=headers, timeout=40,
+                    url, media_dir, base_name, field, headers=headers, timeout=40, check=True,
                     filename_for=lambda ext, f=field, d=media_dir_name: media_filename(game, f, ext, d))
                 rel_path = f"./{media_dir_name}/{filename}"
         except ValueError as e:

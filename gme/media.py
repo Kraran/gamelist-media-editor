@@ -343,13 +343,68 @@ def _png_is_solid_green(data):
     return g >= 170 and r <= 60 and b <= 60
 
 
-def download_remote_media(url, media_dir, base_name, field, headers=None, timeout=40, filename_for=None):
+# --- Downloaded image check (scrapes) ------------------------------------------
+# A source sometimes answers with a broken file, an HTML error page, a 1x1
+# pixel or a flat placeholder instead of a real picture. A scrape must not
+# write it (nor point the gamelist at it): the media is reported as failed.
+MIN_IMAGE_SIDE = 16            # px: a smaller width or height is a placeholder, not art
+MIN_IMAGE_PIXELS = 32 * 32     # px²: same for the area (a 600x1 strip is not a picture)
+UNIFORM_MAX_RANGE = 10         # 0-255: every channel varies less than this → one colour
+_NOT_IMAGE_FIELDS = {"video", "manual"}
+_NOT_IMAGE_EXTS = {".mp4", ".webm", ".avi", ".mkv", ".mp3", ".pdf"}
+
+
+class MediaRejected(ValueError):
+    """A downloaded image is not usable: ``code`` is image_unreadable, image_too_small or image_uniform."""
+
+    def __init__(self, code, **params):
+        super().__init__(code)
+        self.code, self.params = code, params
+
+
+def check_image(data):
+    """Raise MediaRejected unless ``data`` decodes as a real, non-uniform picture."""
+    import io
+    import warnings
+    from PIL import Image
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", Image.DecompressionBombWarning)
+            with Image.open(io.BytesIO(data)) as im:
+                im.load()                         # decodes the pixels: truncated files fail here
+                width, height = im.size
+                if width < MIN_IMAGE_SIDE or height < MIN_IMAGE_SIDE or width * height < MIN_IMAGE_PIXELS:
+                    raise MediaRejected("image_too_small", w=width, h=height)
+                rgba = im.convert("RGBA")
+    except MediaRejected:
+        raise
+    except Exception as e:                        # not an image, corrupt, truncated, bomb
+        raise MediaRejected("image_unreadable") from e
+    # On a small copy (averaging removes JPEG noise): fully transparent, or one colour
+    rgba.thumbnail((64, 64), Image.Resampling.BOX)
+    (amin, amax) = rgba.getextrema()[3]
+    if amax == 0:
+        raise MediaRejected("image_uniform")
+    rgb_ranges = [hi - lo for lo, hi in rgba.convert("RGB").getextrema()]
+    if amax - amin <= UNIFORM_MAX_RANGE and max(rgb_ranges) <= UNIFORM_MAX_RANGE:
+        raise MediaRejected("image_uniform")
+
+
+def must_check_image(field, data):
+    """Image fields are checked; videos, manuals (and a video or PDF file) are not."""
+    return field not in _NOT_IMAGE_FIELDS and ext_from_magic(data[:64]) not in _NOT_IMAGE_EXTS
+
+
+def download_remote_media(url, media_dir, base_name, field, headers=None, timeout=40, filename_for=None,
+                          check=False):
     """Download a remote media file and save it with a real image/video/pdf extension.
 
     A copy already downloaded for the scrape preview (``remote_cache``) is
     reused, so applying a previewed image costs no second download.
     ScreenScraper URLs often end with ``image.php`` — that suffix is ignored.
     ``filename_for(ext)`` names the file (default ``<base_name>-<field><ext>``).
+    ``check`` (scrapes): an image that fails ``check_image`` raises MediaRejected
+    and nothing is written.
     Returns the dest filename (not a path).
     """
     if urlparse(url).scheme not in ("http", "https"):
@@ -365,6 +420,8 @@ def download_remote_media(url, media_dir, base_name, field, headers=None, timeou
         )
     if field == "boxback" and is_ss_green_placeholder(data):
         raise ValueError("green_placeholder")
+    if check and must_check_image(field, data):
+        check_image(data)
     ext = resolve_media_ext(url, content_type, field, data[:64])
     filename = filename_for(ext) if filename_for else f"{base_name}-{field}{ext}"
     atomic_write(os.path.join(media_dir, filename), data)

@@ -7,7 +7,7 @@ from PIL import Image
 
 from gme import remote_cache, xml_store
 from gme.scrapers.apply import apply_proposed
-from tests.conftest import LOCAL
+from tests.conftest import LOCAL, picture
 
 GAMELIST = """<?xml version="1.0"?>
 <gameList>
@@ -20,9 +20,7 @@ GAMELIST = """<?xml version="1.0"?>
 
 
 def png(color=(0, 200, 0)):
-    buf = io.BytesIO()
-    Image.new("RGB", (8, 8), color).save(buf, "PNG")
-    return buf.getvalue()
+    return picture((32, 32), color)
 
 
 def jpg():

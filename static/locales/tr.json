@@ -51,7 +51,22 @@
     "media_missing": "Eksik gerekli medya: {list}",
     "media_complete": "Tüm gerekli medyalar mevcut",
     "resize_aria": "Oyun listesi genişliği",
-    "resize_title": "Listeyi genişletmek için sürükle (veya sol/sağ ok tuşları) · çift tıklama: varsayılan genişlik"
+    "resize_title": "Listeyi genişletmek için sürükle (veya sol/sağ ok tuşları) · çift tıklama: varsayılan genişlik",
+    "search_placeholder_all": "Tüm alanlarda ara…",
+    "search_all": "Tüm alanlarda ara",
+    "search_all_title": "Tür, geliştirici, yayıncı, tarih, bölge… içinde de ara (aksi halde: ad ve ROM yolu)",
+    "genre_filter_title": "Türe göre filtrele (ana tür, “/” öncesi)",
+    "genre_filter_aria": "Tür filtresi",
+    "genre_all": "Türler",
+    "genre_none": "Türsüz",
+    "flag_filter_title": "Favorileri, gizli oyunları veya çocuk oyunlarını filtrele",
+    "flag_filter_aria": "Favori, gizli, çocuk filtresi",
+    "flag_all": "Tümü",
+    "flag_favorite": "Favoriler",
+    "flag_hidden": "Gizli",
+    "flag_visible": "Gizli olmayan",
+    "flag_kidgame": "Çocuklar için",
+    "copy_paths": "İşaretli ROM'ların yollarını kopyala"
   },
   "editor": {
     "desc_title": "Açıklama",
@@ -155,7 +170,9 @@
     "kbd_save": "kaydet",
     "kbd_next_incomplete": "sonraki eksik",
     "kbd_scrape": "tara",
-    "kbd_help": "kısayollar"
+    "kbd_help": "kısayollar",
+    "csv_export": "CSV dışa aktarılıyor…",
+    "csv_exported": "CSV dışa aktarıldı ({n} oyun)"
   },
   "toast": {
     "no_file_url": "Dosya veya URL algılanmadı",
@@ -176,7 +193,11 @@
     "arcade_sys_ok": "{n} dolduruldu · {skip} zaten ayarlı · {miss} bulunamadı",
     "nothing_to_save": "Kaydedilecek değişiklik yok",
     "path_copied": "Yol kopyalandı: {path}",
-    "no_incomplete": "Listede başka eksik oyun yok"
+    "no_incomplete": "Listede başka eksik oyun yok",
+    "paths_copied": "{n} yol kopyalandı",
+    "paths_copy_failed": "Panoya yazılamadı",
+    "csv_exported": "Liste dışa aktarıldı: {n} oyun",
+    "csv_empty": "Gösterilen oyun yok: dışa aktarılacak bir şey yok"
   },
   "errors": {
     "offline": "Ağ bağlantısı yok.",
@@ -390,7 +411,10 @@
     "source_timeout": "{source} zamanında yanıt vermedi: sunucu aşırı yüklenmiş olabilir.",
     "source_network": "{source} ağ hatası: {detail}",
     "source_bad_answer": "{source} kaynağından beklenmeyen yanıt: {detail}",
-    "stale_gamelist": "Etkin oyun listesi değişti. Devam etmeden önce listeyi yeniden yükle."
+    "stale_gamelist": "Etkin oyun listesi değişti. Devam etmeden önce listeyi yeniden yükle.",
+    "image_unreadable": "görüntü okunamıyor veya bozuk, kaydedilmedi",
+    "image_too_small": "görüntü çok küçük ({w}×{h} px), kaydedilmedi",
+    "image_uniform": "tek renkli veya boş görüntü, kaydedilmedi"
   },
   "open_gl": {
     "title": "gamelist.xml aç",
@@ -430,7 +454,9 @@
     "label": "Tüm gamelist",
     "backup_sub": "Dosyanın yanına gamelist.xml.bak kopyası",
     "arcade_sub": "mame.xml'den: CPS2, Neo-Geo…",
-    "purge_sub": "Tüm oyunlarda, onaydan sonra"
+    "purge_sub": "Tüm oyunlarda, onaydan sonra",
+    "export_csv": "Listeyi dışa aktar (CSV)",
+    "export_csv_sub": "Listede gösterilen oyunlar, Excel veya LibreOffice için"
   },
   "settings": {
     "title": "Ayarlar",

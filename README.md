@@ -31,6 +31,7 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
 - **One Scrape button**: the right source for the system (Arcade Database for arcade folders, Steam for `steam`, ScreenScraper otherwise); the ▾ menu forces another one, remembered per system
 - **Comparison before applying**: current and proposed values side by side, images with their size; only what is missing is ticked, nothing is replaced unless you tick it (*Fill gaps* / *Replace all* / *None*)
 - Proposed images are downloaded once and reused when applied (no second ScreenScraper download)
+- **Downloaded images are checked** before they are written: an unreadable or corrupt file (or an error page), a picture under 16 px or 32×32 px, or a single-colour / fully transparent image is refused and reported as failed in the scrape and batch reports; the game keeps its previous media (videos and manuals are not checked)
 - **Batch scrape**: the games ticked in the list (box, `Ctrl`/`Shift`+click, `X`), or all the games shown; fill gaps or replace, chosen fields, progress with *Stop*, report of the updated, uncertain (pick them afterwards) and failed games
 - **Resume / retry**: *Last batch* below the game list reopens the saved report for this gamelist. Resume the remaining games after stopping or reopening the app; once finished, retry only failed games and failed fields of partial updates. A new batch starts from *Actions* or the selection bar and replaces the previous saved report
 - **ScreenScraper**: ROM hash match (also inside `.zip`), then name search with a candidate list; media types configurable; system detected from the RetroBat folder name (all RetroBat systems)
@@ -45,7 +46,10 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
 - Game list with **thumbnails** and a **required media count** per game (hover it to see what is missing); fast with very large gamelists (a 30,000-game MAME list opens in about a second)
 - **Resizable game list**: drag its right edge to read long names (arrow keys on the focused edge, double-click for the default width); the media tiles shrink as you drag to make room, and the width is kept in `ui_settings.json`
 - **Required media per system** (Settings): the media a game needs to be complete (by default image, video, marquee and box art; no box on arcade systems); the count, the *Required media missing* filter and *Next incomplete* follow them
-- Filter games by **missing media** (counts per media), search
+- Filter games by **missing media** (counts per media), by **genre** (main genre, before the `/`) and by **favorite / hidden / not hidden / kids**; each menu counts what its options would show with the other filters
+- **Search** in the name and ROM path, or in **every field** (genre, developer, publisher, date, region…) with the toggle at the end of the search box (kept in `ui_settings.json`)
+- **Export the list (CSV)** (Actions): the games shown, in the order of the list, for Excel or LibreOffice (UTF-8 with BOM; `;` separator, `,` in English): path, name, genre, date, developer, publisher, players, rating, favorite, hidden, kidgame, region, language, number of media, required media present and missing
+- **Copy the ROM paths of the ticked games** (selection bar or game ⋯ menu), one full path per line
 - **Next incomplete** (`N`): jumps to the next game in the list that is missing a required media (or that matches the media filter)
 - **Keyboard**: `J`/`K` next/previous game, `N` next incomplete, `S` scrape, `Ctrl+S` save, `Ctrl+F` or `/` search, `?` shows the list
 - **Open another `gamelist.xml`** at any time (file browser, the 10 most recent files in one click), **Reload** after an outside edit

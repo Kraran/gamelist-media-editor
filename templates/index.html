@@ -77,6 +77,9 @@
           <button type="button" class="menu-item" role="menuitem" id="btn-media-check">
             {{ icon("photo") }}<span class="menu-item-text"><span class="menu-item-title" data-i18n="mediacheck.title">Vérifier les médias</span><span class="menu-item-sub" data-i18n="mediacheck.action_sub">Médias inutilisés, liens vers des fichiers absents</span></span>
           </button>
+          <button type="button" class="menu-item" role="menuitem" id="btn-export-csv">
+            {{ icon("file-spreadsheet") }}<span class="menu-item-text"><span class="menu-item-title" data-i18n="actions.export_csv">Exporter la liste (CSV)</span><span class="menu-item-sub" data-i18n="actions.export_csv_sub">Les jeux affichés dans la liste, pour Excel ou LibreOffice</span></span>
+          </button>
           <div class="menu-sep" role="separator"></div>
           <button type="button" class="menu-item is-danger" role="menuitem" id="btn-purge-regions">
             {{ icon("eraser") }}<span class="menu-item-text"><span class="menu-item-title" data-i18n="tools.purge_title">Supprimer toutes les balises &lt;region&gt;</span><span class="menu-item-sub" data-i18n="actions.purge_sub">Dans tous les jeux, après confirmation</span></span>
@@ -95,19 +98,35 @@
 
   <div class="main" id="main"{% if list_width %} style="--w-list: {{ list_width }}px"{% endif %}>
     <aside class="sidebar" id="sidebar">
-      <label class="search-box">
+      <div class="search-box">
         {{ icon("search") }}
         <input type="search" id="search" placeholder="Rechercher un jeu…" data-i18n-placeholder="sidebar.search_placeholder" autocomplete="off" aria-label="Rechercher un jeu" data-i18n-aria="sidebar.search_aria" />
-      </label>
+        <button type="button" class="search-scope" id="btn-search-all" aria-pressed="false" data-i18n-title="sidebar.search_all_title" title="Chercher aussi dans le genre, le développeur, l’éditeur, la date, la région… (sinon : nom et chemin de la ROM)" data-i18n-aria="sidebar.search_all" aria-label="Rechercher dans tous les champs">{{ icon("list-search") }}</button>
+      </div>
       <label class="list-filter" data-i18n-title="sidebar.filters_title" title="Filtrer les jeux selon les médias manquants">
         {{ icon("filter") }}
         <select id="media-filter" data-i18n-aria="sidebar.filters_aria" aria-label="Filtres médias manquants">
           <option value="all">Tous</option>
         </select>
       </label>
+      <div class="list-filter-row">
+        <label class="list-filter" data-i18n-title="sidebar.genre_filter_title" title="Filtrer par genre (genre principal, avant le « / »)">
+          {{ icon("tag") }}
+          <select id="genre-filter" data-i18n-aria="sidebar.genre_filter_aria" aria-label="Filtre par genre">
+            <option value="all">Genres</option>
+          </select>
+        </label>
+        <label class="list-filter" data-i18n-title="sidebar.flag_filter_title" title="Filtrer les favoris, les jeux cachés ou pour enfants">
+          {{ icon("heart") }}
+          <select id="flag-filter" data-i18n-aria="sidebar.flag_filter_aria" aria-label="Filtre favoris, cachés, enfants">
+            <option value="all">Tous</option>
+          </select>
+        </label>
+      </div>
       <div class="list-selection" id="list-selection" hidden>
         <span class="list-selection-count" id="list-selection-count"></span>
         <button type="button" class="btn btn-sm btn-accent" id="btn-batch-selection">{{ icon("cloud-download") }}<span data-i18n="batch.scrape_selection">Scraper…</span></button>
+        <button type="button" class="btn btn-sm btn-ghost btn-icon" id="btn-selection-copy" data-i18n-title="sidebar.copy_paths" title="Copier les chemins des ROMs cochées" data-i18n-aria="sidebar.copy_paths" aria-label="Copier les chemins des ROMs cochées">{{ icon("copy") }}</button>
         <button type="button" class="btn btn-sm btn-ghost btn-icon" id="btn-selection-clear" data-i18n-title="batch.selection_clear" title="Tout désélectionner (Échap)" data-i18n-aria="batch.selection_clear" aria-label="Tout désélectionner">{{ icon("x") }}</button>
       </div>
       <div class="game-list" id="game-list" role="listbox" aria-multiselectable="true" tabindex="0" data-i18n-aria="sidebar.list_aria" aria-label="Liste des jeux"></div>
@@ -171,6 +190,9 @@
                   <div class="menu menu-right" id="game-menu" role="menu" aria-labelledby="btn-game-menu" hidden>
                     <button type="button" class="menu-item" role="menuitem" id="btn-copy-path">
                       {{ icon("copy") }}<span class="menu-item-text"><span class="menu-item-title" data-i18n="editor.copy_path">Copier le chemin de la ROM</span></span>
+                    </button>
+                    <button type="button" class="menu-item" role="menuitem" id="btn-copy-selection-paths" hidden>
+                      {{ icon("copy") }}<span class="menu-item-text"><span class="menu-item-title" id="copy-selection-title" data-i18n="sidebar.copy_paths">Copier les chemins des ROMs cochées</span><span class="menu-item-sub" id="copy-selection-sub"></span></span>
                     </button>
                     <div class="menu-sep" role="separator"></div>
                     <button type="button" class="menu-item is-danger" role="menuitem" id="btn-delete-game" disabled>
