@@ -78,6 +78,30 @@ def create_snapshot(reason="backup"):
     return name
 
 
+def restore_snapshot(name):
+    """Put snapshot ``name`` back as the gamelist (under the operation lock).
+
+    Returns the id of the snapshot taken of the replaced gamelist, or None
+    when ``name`` does not exist. Raises ValueError / XMLSyntaxError when it
+    is not a gamelist, OSError when it cannot be written. Opens a new session.
+    """
+    directory = backup_dir()
+    path = os.path.join(directory, name)
+    if not _ID.fullmatch(name) or os.path.islink(path) or not os.path.isfile(path):
+        return None
+    with open(path, "rb") as stream:
+        data = stream.read()
+    parser = etree.XMLParser(resolve_entities=False, no_network=True)
+    tree = etree.parse(io.BytesIO(data), parser)
+    if tree.getroot().tag != "gameList":
+        raise ValueError(st("backups.invalid"))
+    # Read the selected bytes first: pruning can remove the oldest snapshot.
+    previous = create_snapshot("restore")
+    atomic_write(xml_store.XML_PATH, data)
+    xml_store.set_gamelist_path(xml_store.XML_PATH)
+    return previous
+
+
 @bp.route("/api/backups")
 def list_backups():
     err = xml_store.require_gamelist()
@@ -100,20 +124,9 @@ def restore_backup():
     if not isinstance(name, str) or not _ID.fullmatch(name):
         return api_err(st("backups.invalid"), 400, code="invalid_backup")
     try:
-        directory = backup_dir()
-        path = os.path.join(directory, name)
-        if os.path.islink(path) or not os.path.isfile(path):
+        previous = restore_snapshot(name)
+        if previous is None:
             return api_err(st("backups.invalid"), 404, code="backup_missing")
-        with open(path, "rb") as stream:
-            data = stream.read()
-        parser = etree.XMLParser(resolve_entities=False, no_network=True)
-        tree = etree.parse(io.BytesIO(data), parser)
-        if tree.getroot().tag != "gameList":
-            raise ValueError(st("backups.invalid"))
-        # Read the selected bytes first: pruning can remove the oldest snapshot.
-        previous = create_snapshot("restore")
-        atomic_write(xml_store.XML_PATH, data)
-        xml_store.set_gamelist_path(xml_store.XML_PATH)
         return jsonify({"success": True, "previous": previous, "session_id": xml_store.SESSION_ID})
     except (ValueError, etree.XMLSyntaxError):
         return api_err(st("backups.invalid"), 422, code="invalid_backup")

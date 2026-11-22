@@ -21,6 +21,7 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
 - Drag-and-drop (file or image from a web page) or click to choose a file, for **image**, **video**, **marquee**, **manual**, **boxback**, **support** (`cartridge`), **boxart**, **fanart**, **mix**, **maps**, **thumbnail**, **bezel**, **wheel**, **titleshot** (title screen) and **music** (MP3, OGG, WAV, FLAC, with an audio player)
 - RetroBat extra from ScreenScraper: **Pad2Key** (`.keys`)
 - Image lightbox, upload limit 50 MB; a replaced file goes to the Recycle Bin, never when another game still uses it
+- **Image editor** (the pen-on-picture button of any image tile: image, thumbnail, marquee, wheel, titleshot, boxart, cartridge, mix, fanart…): crop (free or 1:1, 4:3, 3:4, 16:9, 9:16, 2:1, 3:1, original), rotate 90° and flip, **transparent background** for logos (the colour touching the edges, or one colour everywhere, with a tolerance; shown over a checkerboard), **auto-trim** of transparent or single-colour borders, maximum width / height (keeps the proportions), PNG / JPG / WebP with a quality setting. The preview is rendered by the app (Pillow) as you change a setting; *Save* replaces the file (a copy of the original is kept; a new format gets the new extension and the gamelist path follows) or writes a new `-edit` file next to it. A file another media also uses is never overwritten. The toast's **Undo** puts the original back
 
 **Metadata**
 - Name, description, genre, rating (**stars**), release date (**date picker**), developer, publisher, family, players, language and region (**named lists**), `arcadesystemname`; suggestions from the values already in the gamelist
@@ -59,6 +60,7 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
   - *Field*: one value for genre, developer, publisher, date (`YYYY`, `YYYY-MM` or `YYYY-MM-DD`), rating, players, language, region, family, arcade system, favorite / hidden / kids (empty clears)
   - *Find / replace* in the name, the description or any text field (or all of them): plain text or regular expression (`\1` for a group), case-sensitive or not; a name never becomes empty
   - *Names*: the name becomes the ROM file name without its extension, or the full name a DAT or a MAME list gives (`pacman.zip` → `Pac-Man (Midway)`), optionally without the `(Europe)`, `[!]`… tags
+  - *Images*: for one media of the games (e.g. every wheel), auto-trim, maximum width / height and/or PNG / JPG / WebP conversion; the preview shows before → after (size, format, weight) for the first 40, images that already fit are left alone; **Undo** puts the originals and the gamelist back
   - *Media*: remove media tags (the files stay on disk)
   - *Remove*: take games out of `gamelist.xml` after a confirmation; their media can also go to the Recycle Bin (off by default, files another game uses are kept); **ROMs are never deleted**
   - Every apply makes a dated backup first and its toast has **Undo**, which restores it (files sent to the Recycle Bin are recovered from the Recycle Bin)
@@ -169,6 +171,7 @@ Code layout (`app.py` is only the entry point; the overview is in `gme/__init__.
 | `gme/scrapers/ss_limits.py` | ScreenScraper limits for the whole process: `maxthreads` semaphore, requests-per-minute limiter, daily quotas, 429/430/431 handling |
 | `gme/scrapers/ss_cache.py` | On-disk cache of ScreenScraper game lookups (`cache/ss-api/`): keys without credentials, TTL, never caches errors |
 | `gme/backups.py` | dated XML snapshots, bounded history and reversible restoration (`/api/backups`) |
+| `gme/imageedit.py` | image editor and batch image edits (Pillow): preview, save with a copy of the original, undo (`/api/image-edit`) |
 | `gme/bulk.py` | edit in bulk and removing many games: preview then one backup and one write (`/api/bulk`, `/api/bulk-delete`) |
 | `gme/datfile.py`, `gme/dattool.py` | DAT reading (Logiqx XML, MAME listxml, ClrMamePro) and the DAT tool: background load and comparison, report (`/api/dat`) |
 | `gme/newgamelist.py` | new gamelist from a ROM folder, extensions per system (`/api/new-gamelist`) |

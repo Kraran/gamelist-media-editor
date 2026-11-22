@@ -1486,6 +1486,7 @@ function mediaTileHtml(g, f) {
     <figcaption class="tile-head">
       <span class="tile-title">${icon(f.icon)}<span>${escapeHtml(f.label)}</span></span>
       <span class="tile-actions">
+${isImageField(f.key) ? `<button type="button" class="btn btn-icon btn-sm" data-action="edit" title="${escapeHtml(t("imgedit.title"))}" aria-label="${escapeHtml(t("imgedit.title"))}">${icon("photo-edit")}</button>` : ""}
         <button type="button" class="btn btn-icon btn-sm" data-action="pick" title="${escapeHtml(t("editor.replace"))}" aria-label="${escapeHtml(t("editor.replace"))}">${icon("upload")}</button>
         <button type="button" class="btn btn-icon btn-sm tile-delete" data-action="clear" title="${t("zone.clear_title")}" aria-label="${t("zone.clear_title")}">${icon("trash")}</button>
       </span>
@@ -1582,6 +1583,7 @@ function mediaDropTarget(e) {
     if (!tile) return;
     const field = tile.dataset.field;
     if (actionBtn && actionBtn.dataset.action === "clear") clearField(field);
+    else if (actionBtn && actionBtn.dataset.action === "edit") openImageEditor(field);
     else if (tile.classList.contains("missing-chip") || (actionBtn && actionBtn.dataset.action === "pick")) pickMediaFile(field);
   });
   document.getElementById("media-file-input").addEventListener("change", e => {
@@ -1927,7 +1929,7 @@ document.addEventListener("keydown", e => {
     }
     return;
   }
-  for (const [id, close] of [["bulk-modal", () => closeBulk()], ["stats-modal", () => closeStats()],
+  for (const [id, close] of [["imgedit-modal", () => closeImageEditor()], ["bulk-modal", () => closeBulk()], ["stats-modal", () => closeStats()],
     ["dat-modal", () => closeDatTool()], ["newgl-modal", () => closeNewGamelist()]]) {
     const el = document.getElementById(id);
     if (el && el.classList.contains("open")) {
@@ -2079,7 +2081,7 @@ document.addEventListener("keydown", e => {
  * The page behind a dialog cannot be reached with the keyboard. The confirm
  * dialog can open above another one, so it is looked at first. */
 const DIALOG_IDS = ["confirm-modal", "media-lightbox", "ss-modal", "batch-modal", "check-modal", "backups-modal", "bulk-modal",
-  "stats-modal", "dat-modal", "newgl-modal", "open-gamelist-modal",
+  "imgedit-modal", "stats-modal", "dat-modal", "newgl-modal", "open-gamelist-modal",
   "settings-modal", "about-modal"];
 function topDialog() {
   for (const id of DIALOG_IDS) {
@@ -4413,7 +4415,7 @@ const BULK_SET_FIELDS = ["genre", "developer", "publisher", "releasedate", "rati
 const BULK_FLAGS = ["favorite", "hidden", "kidgame"];
 const BULK_REPLACE_FIELDS = ["name", "desc", "genre", "developer", "publisher", "players", "lang", "region",
   "family", "arcadesystemname"];
-const BULK_TABS = ["set", "replace", "reset_name", "clear_media", "delete"];
+const BULK_TABS = ["set", "replace", "reset_name", "images", "clear_media", "delete"];
 let bulk = null;   // { tab, preview: {...} | null, busy, form: {...} }
 
 function bulkFieldLabel(key) {
@@ -4494,6 +4496,17 @@ function renderBulkForm() {
       <p class="bulk-hint">${escapeHtml(t(src === "dat" ? "bulk.names_dat_hint" : "bulk.names_hint"))}</p>
       ${src === "dat" ? `<div class="bulk-dat" id="bulk-dat"><span class="bulk-dat-info" id="bulk-dat-info">${escapeHtml(t("stats.loading"))}</span><div class="dat-load" id="bulk-dat-load"></div></div>` : ""}
       <div class="bulk-checks">${check("bulk-name-tags", "bulk.strip_tags", src !== "dat")}</div>`;
+  } else if (bulk.tab === "images") {
+    const fields = getFields().filter(f => isImageField(f.key));
+    html = `<p class="bulk-hint">${escapeHtml(t("imgedit.batch_hint"))}</p>
+      <div class="bulk-grid bulk-img-grid">
+        <label><span>${escapeHtml(t("imgedit.batch_field"))}</span><select id="bulk-img-field">${fields.map(f => opt(f.key, f.label)).join("")}</select></label>
+        <label><span>${escapeHtml(t("imgedit.max_w"))}</span><input type="number" id="bulk-img-max-w" min="0" max="16384" placeholder="—"></label>
+        <label><span>${escapeHtml(t("imgedit.max_h"))}</span><input type="number" id="bulk-img-max-h" min="0" max="16384" placeholder="—"></label>
+        <label><span>${escapeHtml(t("imgedit.format"))}</span><select id="bulk-img-format">${opt("keep", t("imgedit.format_keep"))}${opt("png", "PNG")}${opt("jpg", "JPG")}${opt("webp", "WebP")}</select></label>
+        <label><span>${escapeHtml(t("imgedit.quality"))}</span><input type="number" id="bulk-img-quality" min="1" max="100" value="90"></label>
+      </div>
+      <div class="bulk-checks">${check("bulk-img-trim", "imgedit.trim_hint", false)}${check("bulk-img-upscale", "imgedit.upscale", false)}</div>`;
   } else if (bulk.tab === "clear_media") {
     html = `<p class="bulk-hint">${escapeHtml(t("bulk.media_hint"))}</p>
       <div class="bulk-checks bulk-media-list">${getFields().map(f =>
@@ -4563,6 +4576,13 @@ function bulkOp() {
   if (bulk.tab === "reset_name") {
     return { kind: bulk.nameSource === "dat" ? "dat_name" : "reset_name", strip_tags: v("bulk-name-tags").checked };
   }
+  if (bulk.tab === "images") {
+    const ops = { format: v("bulk-img-format").value, quality: Number(v("bulk-img-quality").value) || 90 };
+    if (v("bulk-img-trim").checked) ops.trim = { tolerance: 5 };
+    const mw = parseInt(v("bulk-img-max-w").value, 10) || 0, mh = parseInt(v("bulk-img-max-h").value, 10) || 0;
+    if (mw > 0 || mh > 0) ops.resize = { max_w: Math.max(0, mw), max_h: Math.max(0, mh), upscale: v("bulk-img-upscale").checked };
+    return { kind: "images", field: v("bulk-img-field").value, ops };
+  }
   if (bulk.tab === "clear_media") {
     return { kind: "clear_media", fields: [...document.querySelectorAll("[data-bulk-media]:checked")].map(c => c.dataset.bulkMedia) };
   }
@@ -4576,6 +4596,7 @@ function invalidateBulkPreview() {
   apply.classList.toggle("btn-danger", bulk.tab === "delete");
   apply.classList.toggle("btn-accent", bulk.tab !== "delete");
   document.getElementById("bulk-apply-label").textContent = t(bulk.tab === "delete" ? "bulk.remove" : "bulk.apply");
+  document.getElementById("bulk-note").textContent = t(bulk.tab === "images" ? "imgedit.batch_note" : "bulk.backup_note");
   document.getElementById("bulk-preview").innerHTML = `<p class="bulk-empty">${escapeHtml(t("bulk.preview_first"))}</p>`;
 }
 async function runBulkPreview() {
@@ -4598,6 +4619,16 @@ async function runBulkPreview() {
       if (!bulk || bulk.tab !== tab) return;
       bulk.preview = { paths, media, data };
       box.innerHTML = bulkDeletePreviewHtml(data, media);
+    } else if (tab === "images") {
+      const op = bulkOp();
+      data = await apiFetch("/api/image-edit/batch/preview", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paths, field: op.field, ops: op.ops }),
+      });
+      if (!bulk || bulk.tab !== tab) return;
+      const worth = data.total && (data.rows.length || data.checked < data.total);
+      bulk.preview = worth ? { paths, op, data } : null;
+      box.innerHTML = bulkImagesPreviewHtml(data);
     } else {
       const op = bulkOp();
       data = await apiFetch("/api/bulk/preview", {
@@ -4607,11 +4638,11 @@ async function runBulkPreview() {
       bulk.preview = data.total ? { paths, op, data } : null;
       box.innerHTML = bulkPreviewHtml(data, op);
     }
-    const n = tab === "delete" ? data.games : data.total;
+    const n = tab === "delete" ? data.games : tab === "images" ? (bulk.preview ? data.total : 0) : data.total;
     const apply = document.getElementById("bulk-apply");
     apply.disabled = !n;
     document.getElementById("bulk-apply-label").textContent = n
-      ? t(tab === "delete" ? "bulk.remove_n" : "bulk.apply_n", { n: fmtCount(n) })
+      ? t(tab === "delete" ? "bulk.remove_n" : tab === "images" ? "imgedit.batch_apply_n" : "bulk.apply_n", { n: fmtCount(n) })
       : t(tab === "delete" ? "bulk.remove" : "bulk.apply");
   } catch (e) {
     if (bulk) {
@@ -4640,6 +4671,27 @@ function bulkPreviewHtml(data, op) {
     <table class="bulk-table"><thead><tr><th>${escapeHtml(t("bulk.col_game"))}</th><th>${escapeHtml(t("bulk.field"))}</th>
     <th>${escapeHtml(t("bulk.col_before"))}</th><th></th><th>${escapeHtml(t("bulk.col_after"))}</th></tr></thead>
     <tbody>${rows}</tbody></table>${more}`;
+}
+function bulkImgSide(s) {
+  return `${s.width} × ${s.height} · ${escapeHtml(String(s.format).toUpperCase())} · ${escapeHtml(fmtSize(s.bytes))}`;
+}
+function bulkImagesPreviewHtml(data) {
+  let html = `<p class="bulk-summary">${escapeHtml(t("imgedit.batch_summary", { n: fmtCount(data.total), checked: fmtCount(data.checked),
+    changed: fmtCount(data.rows.length), same: fmtCount(data.unchanged) }))}</p>`;
+  if (data.missing) html += `<p class="bulk-hint">${escapeHtml(t("imgedit.batch_missing", { n: fmtCount(data.missing) }))}</p>`;
+  if (data.failed) html += `<p class="bulk-hint bulk-warn">${icon("alert-triangle")}<span>${escapeHtml(t("imgedit.batch_failed", { n: fmtCount(data.failed) }))}</span></p>`;
+  if (!data.rows.length) return html + (data.checked >= data.total ? `<p class="bulk-empty">${escapeHtml(t("bulk.nothing"))}</p>` : "");
+  const rows = data.rows.map(r => `<tr>
+      <td class="bulk-game" title="${escapeHtml(r.path)}">${escapeHtml(r.name || r.path)}</td>
+      <td class="bulk-field" title="${escapeHtml(r.file)}">${escapeHtml(baseName(r.file))}</td>
+      <td class="bulk-before">${bulkImgSide(r.before)}</td>
+      <td class="bulk-arrow" aria-hidden="true">→</td>
+      <td class="bulk-after">${bulkImgSide(r.after)}</td>
+    </tr>`).join("");
+  return html + `<table class="bulk-table"><thead><tr><th>${escapeHtml(t("bulk.col_game"))}</th><th>${escapeHtml(t("imgedit.col_file"))}</th>
+    <th>${escapeHtml(t("bulk.col_before"))}</th><th></th><th>${escapeHtml(t("bulk.col_after"))}</th></tr></thead>
+    <tbody>${rows}</tbody></table>` +
+    (data.checked < data.total ? `<p class="bulk-more">${escapeHtml(t("bulk.more", { n: fmtCount(data.total - data.checked) }))}</p>` : "");
 }
 function bulkDeletePreviewHtml(data, media) {
   const list = items => `<ul class="bulk-list">${items.join("")}</ul>`;
@@ -4685,6 +4737,22 @@ async function applyBulk() {
       msg = t("bulk.removed", { n: fmtCount(res.removed) });
       if (res.deleted_files.length) msg += " " + t("bulk.removed_files", { n: fmtCount(res.deleted_files.length) });
       if (res.failed_files.length) msg += " " + t("bulk.failed_files", { n: fmtCount(res.failed_files.length) });
+    } else if (tab === "images") {
+      const op = bulk.preview.op;
+      res = await apiFetch("/api/image-edit/batch", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paths, field: op.field, ops: op.ops }),
+      });
+      stampMedia(res.paths);
+      msg = t("imgedit.batch_applied", { n: fmtCount(res.changed) });
+      if (res.renamed) msg += " " + t("imgedit.batch_renamed", { n: fmtCount(res.renamed) });
+      if (res.failed.length) msg += " " + t("imgedit.batch_failed", { n: fmtCount(res.failed.length) });
+      closeBulk();
+      await loadGames();
+      const undo = res.undo, renamed = !!res.renamed;
+      toast(msg, res.failed.length ? "warning" : "success",
+        undo ? { label: t("bulk.undo"), run: () => undoImageEdit(undo, renamed) } : null);
+      return;
     } else {
       res = await apiFetch("/api/bulk", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -4752,6 +4820,343 @@ document.getElementById("bulk-form").addEventListener("keydown", e => {
 });
 document.getElementById("bulk-preview-btn").addEventListener("click", runBulkPreview);
 document.getElementById("bulk-apply").addEventListener("click", applyBulk);
+
+/* ========== Image editor (tile button "Edit image") ==========
+ * Crop on the original (free or a fixed ratio), rotate / flip, transparent
+ * background (flood from the edges or one colour everywhere), auto-trim,
+ * maximum size, format and quality. The server (gme/imageedit.py, Pillow)
+ * renders the live preview and writes nothing until "Save"; saving keeps a
+ * copy of the original, and the toast's "Undo" puts it back.
+ */
+const IMG_EDIT_FIELDS_SKIP = ["video", "manual", "music"];
+let imgEdit = null;   // { path, index, field, rel, nat: {w, h}, crop, rotate, flipH, flipV, seq, timer }
+
+function isImageField(key) { return !IMG_EDIT_FIELDS_SKIP.includes(key); }
+function imgEditEl(id) { return document.getElementById("imgedit-" + id); }
+
+function openImageEditor(field) {
+  const g = games.find(x => x.index === currentIndex);
+  if (!g || !g[field] || !isImageField(field)) return;
+  imgEdit = { path: g.path, index: g.index, field, rel: g[field], nat: null, crop: null, rotate: 0,
+    flipH: false, flipV: false, seq: 0, timer: null, busy: false };
+  imgEditEl("sub").textContent = `${fieldLabel(field)} · ${baseName(g[field])}`;
+  resetImageEditorForm();
+  const src = imgEditEl("src");
+  src.onload = () => {
+    if (!imgEdit) return;
+    imgEdit.nat = { w: src.naturalWidth, h: src.naturalHeight };
+    drawImgEditCrop();
+    scheduleImgEditPreview(0);
+  };
+  src.src = mediaUrl(g[field]);
+  imgEditEl("out").removeAttribute("src");
+  imgEditEl("out-info").textContent = "";
+  imgEditEl("src-info").textContent = "";
+  imgEditEl("save").disabled = true;
+  document.getElementById("imgedit-modal").classList.add("open");
+  imgEditEl("ratio").focus();
+}
+function closeImageEditor() {
+  const modal = document.getElementById("imgedit-modal");
+  if (!modal.classList.contains("open")) return;
+  modal.classList.remove("open");
+  if (imgEdit) clearTimeout(imgEdit.timer);
+  imgEdit = null;
+  const src = imgEditEl("src");
+  src.removeAttribute("src");
+  src.style.width = src.style.height = "";
+  imgEditEl("out").removeAttribute("src");
+}
+function resetImageEditorForm() {
+  imgEditEl("ratio").value = "free";
+  imgEditEl("bg-mode").value = "off";
+  imgEditEl("bg-auto").checked = true;
+  imgEditEl("bg-color").disabled = true;
+  imgEditEl("bg-tol").value = 10;
+  imgEditEl("trim").checked = false;
+  imgEditEl("trim-tol").value = 5;
+  imgEditEl("max-w").value = "";
+  imgEditEl("max-h").value = "";
+  imgEditEl("upscale").checked = false;
+  imgEditEl("format").value = "keep";
+  imgEditEl("quality").value = 90;
+  imgEditEl("matte").value = "#ffffff";
+  document.querySelector('input[name="imgedit-mode"][value="overwrite"]').checked = true;
+  if (imgEdit) Object.assign(imgEdit, { crop: null, rotate: 0, flipH: false, flipV: false });
+  syncImageEditorForm();
+}
+function syncImageEditorForm() {
+  const fmt = imgEditEl("format").value;
+  imgEditEl("quality-wrap").hidden = !(fmt === "jpg" || fmt === "webp");
+  imgEditEl("matte-wrap").hidden = fmt !== "jpg";
+  imgEditEl("bg-color").disabled = imgEditEl("bg-auto").checked || imgEditEl("bg-mode").value === "off";
+  imgEditEl("bg-auto").disabled = imgEditEl("bg-mode").value === "off";
+  imgEditEl("bg-tol").disabled = imgEditEl("bg-mode").value === "off";
+  imgEditEl("trim-tol").disabled = !imgEditEl("trim").checked;
+  ["bg-tol", "trim-tol", "quality"].forEach(id => { imgEditEl(id + "-out").textContent = imgEditEl(id).value; });
+  imgEditEl("flip-h").setAttribute("aria-pressed", String(!!(imgEdit && imgEdit.flipH)));
+  imgEditEl("flip-v").setAttribute("aria-pressed", String(!!(imgEdit && imgEdit.flipV)));
+}
+function imageEditOps() {
+  const v = id => imgEditEl(id);
+  const ops = { rotate: imgEdit.rotate, flip_h: imgEdit.flipH, flip_v: imgEdit.flipV,
+    format: v("format").value, quality: Number(v("quality").value), matte: v("matte").value };
+  if (imgEdit.crop) ops.crop = { ...imgEdit.crop };
+  if (v("bg-mode").value !== "off") {
+    ops.bg = { mode: v("bg-mode").value, color: v("bg-auto").checked ? null : v("bg-color").value,
+      tolerance: Number(v("bg-tol").value) };
+  }
+  if (v("trim").checked) ops.trim = { tolerance: Number(v("trim-tol").value) };
+  const mw = parseInt(v("max-w").value, 10) || 0, mh = parseInt(v("max-h").value, 10) || 0;
+  if (mw > 0 || mh > 0) ops.resize = { max_w: Math.max(0, mw), max_h: Math.max(0, mh), upscale: v("upscale").checked };
+  return ops;
+}
+function imgEditUrl(suffix) {
+  return `/api/image-edit/${imgEdit.index}/${encodeURIComponent(imgEdit.field)}${suffix}?path=${encodeURIComponent(imgEdit.path)}`;
+}
+function scheduleImgEditPreview(delay) {
+  if (!imgEdit || !imgEdit.nat) return;
+  syncImageEditorForm();
+  clearTimeout(imgEdit.timer);
+  imgEditEl("save").disabled = true;
+  imgEdit.timer = setTimeout(runImgEditPreview, delay === undefined ? 250 : delay);
+}
+async function runImgEditPreview() {
+  if (!imgEdit) return;
+  const seq = ++imgEdit.seq;
+  const state = imgEdit;
+  imgEditEl("busy").hidden = false;
+  try {
+    const d = await apiFetch(imgEditUrl("/preview"), {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ops: imageEditOps() }),
+    });
+    if (imgEdit !== state || seq !== state.seq) return;
+    imgEditEl("out").src = d.data;
+    const src = d.source;
+    imgEditEl("src-info").textContent = t("imgedit.info", { w: src.width, h: src.height, fmt: src.format.toUpperCase(), size: fmtSize(src.bytes) });
+    imgEditEl("out-info").textContent = d.exact
+      ? t("imgedit.info", { w: d.width, h: d.height, fmt: d.format.toUpperCase(), size: fmtSize(d.bytes) })
+      : t("imgedit.info_approx", { w: d.width, h: d.height, fmt: d.format.toUpperCase() });
+    const warn = imgEditEl("warn");
+    const note = d.empty ? t("imgedit.empty_result") : d.alpha_lost ? t("imgedit.alpha_lost") : "";
+    warn.hidden = !note;
+    warn.textContent = note;
+    const webp = imgEditEl("format").querySelector('option[value="webp"]');
+    webp.disabled = !d.webp;
+    imgEditEl("save").disabled = !!d.empty;
+  } catch (e) {
+    if (imgEdit !== state || seq !== state.seq) return;
+    imgEditEl("out").removeAttribute("src");
+    imgEditEl("out-info").textContent = "";
+    const warn = imgEditEl("warn");
+    warn.hidden = false;
+    warn.textContent = e.message || String(e);
+  } finally {
+    if (imgEdit === state && seq === state.seq) imgEditEl("busy").hidden = true;
+  }
+}
+
+/* --- Crop rectangle on the original (natural pixels) --- */
+function imgEditRatio() {
+  const v = imgEditEl("ratio").value;
+  if (v === "free" || !imgEdit || !imgEdit.nat) return null;
+  let r = v === "original" ? imgEdit.nat.w / imgEdit.nat.h : Number(v);
+  // The ratio is the one of the result: a quarter turn swaps it on the original
+  if (v !== "original" && imgEdit.rotate % 180) r = 1 / r;
+  return r > 0 ? r : null;
+}
+function fitCropToRatio() {
+  const r = imgEditRatio();
+  if (!r || !imgEdit.nat) return;
+  const { w: W, h: H } = imgEdit.nat;
+  const base = imgEdit.crop || { x: 0, y: 0, w: W, h: H };
+  let w = base.w, h = Math.round(w / r);
+  if (h > base.h) { h = base.h; w = Math.round(h * r); }
+  w = Math.max(1, Math.min(W, w)); h = Math.max(1, Math.min(H, h));
+  const x = Math.round(base.x + (base.w - w) / 2), y = Math.round(base.y + (base.h - h) / 2);
+  imgEdit.crop = { x: Math.max(0, Math.min(W - w, x)), y: Math.max(0, Math.min(H - h, y)), w, h };
+}
+/** The original fills its pane (the crop box is drawn over the image itself). */
+function fitImgEditSrc() {
+  const img = imgEditEl("src"), stage = imgEditEl("src-stage");
+  if (!imgEdit || !imgEdit.nat) return;
+  const k = Math.min((stage.clientWidth - 16) / imgEdit.nat.w, (stage.clientHeight - 16) / imgEdit.nat.h, 4);
+  img.style.width = Math.max(1, Math.floor(imgEdit.nat.w * k)) + "px";
+  img.style.height = Math.max(1, Math.floor(imgEdit.nat.h * k)) + "px";
+}
+function drawImgEditCrop() {
+  const box = imgEditEl("crop");
+  const img = imgEditEl("src");
+  fitImgEditSrc();
+  if (!imgEdit || !imgEdit.crop || !imgEdit.nat || !img.clientWidth) { box.hidden = true; return; }
+  const s = img.clientWidth / imgEdit.nat.w;
+  const c = imgEdit.crop;
+  Object.assign(box.style, { left: c.x * s + "px", top: c.y * s + "px", width: c.w * s + "px", height: c.h * s + "px" });
+  box.hidden = false;
+}
+(() => {
+  const wrap = imgEditEl("src-wrap");
+  let drag = null;
+  const point = e => {
+    const img = imgEditEl("src");
+    const rect = img.getBoundingClientRect();
+    const s = imgEdit.nat.w / rect.width;
+    return { x: Math.max(0, Math.min(imgEdit.nat.w, (e.clientX - rect.left) * s)),
+      y: Math.max(0, Math.min(imgEdit.nat.h, (e.clientY - rect.top) * s)) };
+  };
+  // A rectangle from an anchor corner to the pointer, at the chosen ratio
+  const rectFrom = (a, p) => {
+    const { w: W, h: H } = imgEdit.nat;
+    let w = Math.abs(p.x - a.x), h = Math.abs(p.y - a.y);
+    const r = imgEditRatio();
+    if (r) {
+      if (w / r > h) h = w / r; else w = h * r;
+      const maxW = p.x >= a.x ? W - a.x : a.x, maxH = p.y >= a.y ? H - a.y : a.y;
+      const k = Math.min(1, maxW / w || 1, maxH / h || 1);
+      w *= k; h *= k;
+    }
+    const x = p.x >= a.x ? a.x : a.x - w, y = p.y >= a.y ? a.y : a.y - h;
+    return { x: Math.round(x), y: Math.round(y), w: Math.round(w), h: Math.round(h) };
+  };
+  wrap.addEventListener("pointerdown", e => {
+    if (!imgEdit || !imgEdit.nat || e.button !== 0) return;
+    e.preventDefault();
+    const p = point(e);
+    const handle = e.target.closest(".imgedit-handle");
+    const c = imgEdit.crop;
+    if (handle && c) {
+      const h = handle.dataset.h;
+      drag = { kind: "size", anchor: { x: h.includes("w") ? c.x + c.w : c.x, y: h.includes("n") ? c.y + c.h : c.y } };
+    } else if (c && e.target.closest(".imgedit-crop")) {
+      drag = { kind: "move", start: p, from: { ...c } };
+    } else {
+      drag = { kind: "size", anchor: p };
+    }
+    wrap.setPointerCapture(e.pointerId);
+  });
+  wrap.addEventListener("pointermove", e => {
+    if (!drag || !imgEdit) return;
+    const p = point(e);
+    if (drag.kind === "move") {
+      const { w: W, h: H } = imgEdit.nat, f = drag.from;
+      imgEdit.crop = { ...f, x: Math.round(Math.max(0, Math.min(W - f.w, f.x + p.x - drag.start.x))),
+        y: Math.round(Math.max(0, Math.min(H - f.h, f.y + p.y - drag.start.y))) };
+    } else {
+      imgEdit.crop = rectFrom(drag.anchor, p);
+    }
+    drawImgEditCrop();
+  });
+  const end = () => {
+    if (!drag || !imgEdit) return;
+    drag = null;
+    const c = imgEdit.crop;
+    if (c && (c.w < 4 || c.h < 4)) imgEdit.crop = null;   // a click is not a crop
+    drawImgEditCrop();
+    scheduleImgEditPreview(0);
+  };
+  wrap.addEventListener("pointerup", end);
+  wrap.addEventListener("pointercancel", end);
+  window.addEventListener("resize", () => { if (imgEdit) drawImgEditCrop(); });
+})();
+
+async function saveImageEdit() {
+  if (!imgEdit || imgEditEl("save").disabled) return;
+  const state = imgEdit;
+  const session = window.__gmeSession;
+  const mode = document.querySelector('input[name="imgedit-mode"]:checked').value;
+  imgEditEl("save").disabled = true;
+  try {
+    const d = await apiFetch(imgEditUrl(""), {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ops: imageEditOps(), mode }),
+    });
+    if (session !== window.__gmeSession) return;
+    stampMedia([d.path, d.old_path]);
+    const g = games.find(x => x.path === state.path);
+    if (g) {
+      g[state.field] = d.path;
+      if (currentIndex === g.index) renderZones(g);
+    }
+    renderList(document.getElementById("search").value);
+    closeImageEditor();
+    const msg = d.shared ? t("imgedit.saved_shared", { file: baseName(d.path) }) : t("imgedit.saved", { file: baseName(d.path) });
+    toast(msg, d.shared ? "info" : "success",
+      { label: t("bulk.undo"), run: () => undoImageEdit(d.undo, d.path_changed) });
+    setStatus(t("status.saved"));
+  } catch (e) {
+    handleError(e);
+    if (imgEdit === state) imgEditEl("save").disabled = false;
+  }
+}
+/** Puts the originals back; when the gamelist changed (new file, new format)
+ * its snapshot is restored too, which reloads the list. */
+async function undoImageEdit(id, xmlChanged) {
+  if (xmlChanged && changedFields().length) {
+    const choice = await askConfirm({ title: t("bulk.undo"), bodyHtml: `<p>${escapeHtml(t("bulk.undo_unsaved"))}</p>`,
+      showBackup: false, okLabel: t("bulk.undo") });
+    if (!choice.confirmed) return;
+  }
+  try {
+    const d = await apiFetch("/api/image-edit/undo", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }),
+    });
+    stampMedia(d.paths);
+    if (d.session_id) {
+      window.__gmeSession = d.session_id;
+      resetEditorSelection();
+      await loadGames();
+    } else {
+      const g = games.find(x => x.index === currentIndex);
+      if (g) renderZones(g);
+      renderList(document.getElementById("search").value);
+    }
+    toast(t("imgedit.undone"));
+  } catch (e) { handleError(e); }
+}
+
+imgEditEl("close").addEventListener("click", closeImageEditor);
+imgEditEl("cancel").addEventListener("click", closeImageEditor);
+imgEditEl("save").addEventListener("click", saveImageEdit);
+imgEditEl("reset").addEventListener("click", () => {
+  resetImageEditorForm();
+  drawImgEditCrop();
+  scheduleImgEditPreview(0);
+});
+document.getElementById("imgedit-modal").addEventListener("click", e => { if (e.target.id === "imgedit-modal") closeImageEditor(); });
+imgEditEl("crop-clear").addEventListener("click", () => {
+  if (!imgEdit) return;
+  imgEdit.crop = null;
+  imgEditEl("ratio").value = "free";
+  drawImgEditCrop();
+  scheduleImgEditPreview(0);
+});
+imgEditEl("ratio").addEventListener("change", () => {
+  if (!imgEdit) return;
+  fitCropToRatio();
+  drawImgEditCrop();
+  scheduleImgEditPreview(0);
+});
+imgEditEl("rot-left").addEventListener("click", () => {
+  if (!imgEdit) return;
+  imgEdit.rotate = (imgEdit.rotate + 270) % 360;
+  if (imgEdit.crop && imgEditRatio()) fitCropToRatio();
+  drawImgEditCrop();
+  scheduleImgEditPreview(0);
+});
+imgEditEl("rot-right").addEventListener("click", () => {
+  if (!imgEdit) return;
+  imgEdit.rotate = (imgEdit.rotate + 90) % 360;
+  if (imgEdit.crop && imgEditRatio()) fitCropToRatio();
+  drawImgEditCrop();
+  scheduleImgEditPreview(0);
+});
+imgEditEl("flip-h").addEventListener("click", () => { if (imgEdit) { imgEdit.flipH = !imgEdit.flipH; scheduleImgEditPreview(0); } });
+imgEditEl("flip-v").addEventListener("click", () => { if (imgEdit) { imgEdit.flipV = !imgEdit.flipV; scheduleImgEditPreview(0); } });
+imgEditEl("tools").addEventListener("input", e => {
+  if (e.target.type === "range") syncImageEditorForm();
+  scheduleImgEditPreview();
+});
+imgEditEl("tools").addEventListener("change", () => scheduleImgEditPreview());
 
 /* ========== Statistics (Actions › Statistics) ==========
  * Read-only figures for the open gamelist (/api/stats, gme/stats.py): media
