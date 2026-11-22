@@ -62,6 +62,12 @@
           <button type="button" class="menu-item" role="menuitem" id="btn-batch-scrape">
             {{ icon("cloud-download") }}<span class="menu-item-text"><span class="menu-item-title" data-i18n="batch.title">Scraper par lot</span><span class="menu-item-sub" data-i18n="batch.action_sub">Les jeux cochés, sinon ceux affichés dans la liste</span></span>
           </button>
+          <button type="button" class="menu-item" role="menuitem" id="btn-bulk">
+            {{ icon("pencil") }}<span class="menu-item-text"><span class="menu-item-title" data-i18n="bulk.title">Modifier en masse</span><span class="menu-item-sub" data-i18n="bulk.action_sub">Champ, rechercher/remplacer, noms, médias, retirer des jeux</span></span>
+          </button>
+          <button type="button" class="menu-item" role="menuitem" id="btn-stats">
+            {{ icon("chart-bar") }}<span class="menu-item-text"><span class="menu-item-title" data-i18n="stats.title">Statistiques</span><span class="menu-item-sub" data-i18n="stats.action_sub">Jeux, médias présents ou manquants, genres, parties</span></span>
+          </button>
           <button type="button" class="menu-item" role="menuitem" id="btn-manual-backup">
             {{ icon("device-floppy") }}<span class="menu-item-text"><span class="menu-item-title" data-i18n="tools.backup_btn">Sauvegarder (.bak)</span><span class="menu-item-sub" data-i18n="actions.backup_sub">Copie gamelist.xml.bak à côté du fichier</span></span>
           </button>
@@ -103,12 +109,22 @@
         <input type="search" id="search" placeholder="Rechercher un jeu…" data-i18n-placeholder="sidebar.search_placeholder" autocomplete="off" aria-label="Rechercher un jeu" data-i18n-aria="sidebar.search_aria" />
         <button type="button" class="search-scope" id="btn-search-all" aria-pressed="false" data-i18n-title="sidebar.search_all_title" title="Chercher aussi dans le genre, le développeur, l’éditeur, la date, la région… (sinon : nom et chemin de la ROM)" data-i18n-aria="sidebar.search_all" aria-label="Rechercher dans tous les champs">{{ icon("list-search") }}</button>
       </div>
-      <label class="list-filter" data-i18n-title="sidebar.filters_title" title="Filtrer les jeux selon les médias manquants">
-        {{ icon("filter") }}
-        <select id="media-filter" data-i18n-aria="sidebar.filters_aria" aria-label="Filtres médias manquants">
-          <option value="all">Tous</option>
-        </select>
-      </label>
+      <div class="list-filter-row list-filter-main">
+        <label class="list-filter" data-i18n-title="sidebar.filters_title" title="Filtrer les jeux selon les médias manquants">
+          {{ icon("filter") }}
+          <select id="media-filter" data-i18n-aria="sidebar.filters_aria" aria-label="Filtres médias manquants">
+            <option value="all">Tous</option>
+          </select>
+        </label>
+        <button type="button" class="btn btn-icon list-tool" id="btn-col-filter" aria-pressed="false" aria-controls="col-filter" data-i18n-title="colfilter.toggle" title="Filtre personnalisé par colonne" data-i18n-aria="colfilter.toggle" aria-label="Filtre personnalisé par colonne">{{ icon("adjustments-horizontal") }}</button>
+        <button type="button" class="btn btn-icon list-tool" id="btn-select-shown" data-i18n-title="sidebar.select_shown" title="Cocher tous les jeux affichés (Ctrl+A)" data-i18n-aria="sidebar.select_shown" aria-label="Cocher tous les jeux affichés">{{ icon("checkbox") }}</button>
+      </div>
+      <div class="col-filter" id="col-filter" hidden>
+        <select id="col-field" data-i18n-aria="colfilter.field" aria-label="Colonne"></select>
+        <select id="col-op" data-i18n-aria="colfilter.op" aria-label="Condition"></select>
+        <input type="text" id="col-value" autocomplete="off" spellcheck="false" data-i18n-placeholder="colfilter.value" placeholder="Valeur" data-i18n-aria="colfilter.value" aria-label="Valeur" />
+        <button type="button" class="btn btn-icon btn-sm btn-ghost" id="col-clear" data-i18n-title="colfilter.clear" title="Retirer ce filtre" data-i18n-aria="colfilter.clear" aria-label="Retirer ce filtre">{{ icon("x") }}</button>
+      </div>
       <div class="list-filter-row">
         <label class="list-filter" data-i18n-title="sidebar.genre_filter_title" title="Filtrer par genre (genre principal, avant le « / »)">
           {{ icon("tag") }}
@@ -126,6 +142,7 @@
       <div class="list-selection" id="list-selection" hidden>
         <span class="list-selection-count" id="list-selection-count"></span>
         <button type="button" class="btn btn-sm btn-accent" id="btn-batch-selection">{{ icon("cloud-download") }}<span data-i18n="batch.scrape_selection">Scraper…</span></button>
+        <button type="button" class="btn btn-sm btn-ghost btn-icon" id="btn-bulk-selection" data-i18n-title="bulk.edit_selection" title="Modifier en masse les jeux cochés…" data-i18n-aria="bulk.edit_selection" aria-label="Modifier en masse les jeux cochés…">{{ icon("pencil") }}</button>
         <button type="button" class="btn btn-sm btn-ghost btn-icon" id="btn-selection-copy" data-i18n-title="sidebar.copy_paths" title="Copier les chemins des ROMs cochées" data-i18n-aria="sidebar.copy_paths" aria-label="Copier les chemins des ROMs cochées">{{ icon("copy") }}</button>
         <button type="button" class="btn btn-sm btn-ghost btn-icon" id="btn-selection-clear" data-i18n-title="batch.selection_clear" title="Tout désélectionner (Échap)" data-i18n-aria="batch.selection_clear" aria-label="Tout désélectionner">{{ icon("x") }}</button>
       </div>
@@ -452,6 +469,48 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="bulk-modal" role="dialog" aria-modal="true" aria-labelledby="bulk-title">
+    <div class="modal check-modal bulk-modal">
+      <div class="tools-header">
+        <h3 class="modal-title" id="bulk-title">{{ icon("pencil") }}<span data-i18n="bulk.title">Modifier en masse</span></h3>
+        <button type="button" class="btn btn-icon" id="bulk-close" data-i18n-title="tools.close" title="Fermer">{{ icon("x") }}</button>
+      </div>
+      <div class="bulk-top">
+        <label class="bulk-scope"><span data-i18n="bulk.scope">Jeux</span>
+          <select id="bulk-scope"></select>
+        </label>
+        <div class="segmented bulk-tabs" id="bulk-tabs" role="tablist">
+          <button type="button" class="seg" role="tab" data-bulk-tab="set" aria-selected="true">{{ icon("pencil") }}<span data-i18n="bulk.tab_set">Champ</span></button>
+          <button type="button" class="seg" role="tab" data-bulk-tab="replace" aria-selected="false">{{ icon("replace") }}<span data-i18n="bulk.tab_replace">Rechercher / remplacer</span></button>
+          <button type="button" class="seg" role="tab" data-bulk-tab="reset_name" aria-selected="false">{{ icon("heading") }}<span data-i18n="bulk.tab_names">Noms</span></button>
+          <button type="button" class="seg" role="tab" data-bulk-tab="clear_media" aria-selected="false">{{ icon("photo") }}<span data-i18n="bulk.tab_media">Médias</span></button>
+          <button type="button" class="seg" role="tab" data-bulk-tab="delete" aria-selected="false">{{ icon("trash") }}<span data-i18n="bulk.tab_delete">Retirer</span></button>
+        </div>
+      </div>
+      <div class="bulk-form" id="bulk-form"></div>
+      <div class="check-body bulk-preview" id="bulk-preview" aria-live="polite"></div>
+      <div class="tools-footer">
+        <span class="bulk-note" id="bulk-note" data-i18n="bulk.backup_note">Une sauvegarde datée est faite avant d'appliquer ; « Annuler » la restaure.</span>
+        <button type="button" class="btn" id="bulk-cancel" data-i18n="confirm.cancel">Annuler</button>
+        <button type="button" class="btn" id="bulk-preview-btn">{{ icon("zoom-in") }}<span data-i18n="bulk.preview">Aperçu</span></button>
+        <button type="button" class="btn btn-accent" id="bulk-apply" disabled><span id="bulk-apply-label" data-i18n="bulk.apply">Appliquer</span></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="stats-modal" role="dialog" aria-modal="true" aria-labelledby="stats-title">
+    <div class="modal check-modal stats-modal">
+      <div class="tools-header">
+        <h3 class="modal-title" id="stats-title">{{ icon("chart-bar") }}<span data-i18n="stats.title">Statistiques</span><span class="stats-system" id="stats-system"></span></h3>
+        <button type="button" class="btn btn-icon" id="stats-close" data-i18n-title="tools.close" title="Fermer">{{ icon("x") }}</button>
+      </div>
+      <div class="check-body" id="stats-body"></div>
+      <div class="tools-footer">
+        <button type="button" class="btn" id="stats-cancel" data-i18n="tools.close">Fermer</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="backups-modal" role="dialog" aria-modal="true" aria-labelledby="backups-title">
     <div class="modal check-modal backups-modal">
       <div class="tools-header">
@@ -650,6 +709,7 @@
               <tr><td class="keys-combo"><kbd>N</kbd></td><td data-i18n="settings.key_next_incomplete">Jeu suivant auquel il manque un média requis</td></tr>
               <tr><td class="keys-combo"><kbd>S</kbd></td><td data-i18n="settings.key_scrape">Scraper le jeu</td></tr>
               <tr><td class="keys-combo"><kbd>X</kbd> <kbd data-i18n="settings.k_shift_click">Maj+clic</kbd></td><td data-i18n="settings.key_select">Cocher le jeu pour le scrape par lot (Maj+clic : jusqu’à ce jeu)</td></tr>
+              <tr><td class="keys-combo"><kbd>Ctrl</kbd>+<kbd>A</kbd></td><td data-i18n="settings.key_select_all">Cocher tous les jeux affichés</td></tr>
               <tr><td class="keys-combo"><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td data-i18n="settings.key_save">Enregistrer les modifications</td></tr>
               <tr><td class="keys-combo"><kbd>Ctrl</kbd>+<kbd>F</kbd> <kbd>/</kbd></td><td data-i18n="settings.key_search">Rechercher un jeu</td></tr>
               <tr><td class="keys-combo"><kbd data-i18n="settings.k_enter">Entrée</kbd></td><td data-i18n="settings.key_apply">Appliquer le scrape (fenêtre de comparaison)</td></tr>

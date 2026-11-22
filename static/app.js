@@ -168,6 +168,7 @@ function applyI18n() {
   try { initCodeSelects(); renderRating(); renderReleaseDate(); updateUnsavedUi(); } catch (_) {}
   try { updateScrapeButton(); } catch (_) {}
   try { fillSsRegions(); } catch (_) {}
+  try { fillColFilter(); } catch (_) {}
   try { selectionChanged(false); } catch (_) {}
   try { updateSearchModeUi(); } catch (_) {}
   try {
@@ -261,14 +262,22 @@ const SEARCH_DEBOUNCE_MS = 180;
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // 50 Mo — aligné serveur
 let _toastTimer = null;
 
-function toast(msg, type = "success") {
+/** Message at the bottom; ``action`` ({label, run}) adds a button (e.g. Undo) and keeps it longer. */
+function toast(msg, type = "success", action = null) {
   const el = document.getElementById("toast");
   if (!el) return;
   const ico = { error: "alert-circle", warning: "alert-triangle", info: "info-circle" }[type] || "circle-check";
-  el.innerHTML = icon(ico) + `<span>${escapeHtml(String(msg || ""))}</span>`;
+  el.innerHTML = icon(ico) + `<span>${escapeHtml(String(msg || ""))}</span>` +
+    (action ? `<button type="button" class="btn btn-sm toast-action">${escapeHtml(action.label)}</button>` : "");
   el.className = "toast " + type + " show";
+  if (action) {
+    el.querySelector(".toast-action").addEventListener("click", () => {
+      el.classList.remove("show");
+      action.run();
+    }, { once: true });
+  }
   if (_toastTimer) clearTimeout(_toastTimer);
-  const ms = type === "error" ? 6500 : type === "warning" ? 4500 : 3200;
+  const ms = action ? 15000 : type === "error" ? 6500 : type === "warning" ? 4500 : 3200;
   _toastTimer = setTimeout(() => el.classList.remove("show"), ms);
 }
 
@@ -553,7 +562,59 @@ function matchesFlagFilter(g, key = flagFilter) {
   }
 }
 function filtersActive() {
-  return mediaFilter !== "all" || genreFilter !== "all" || flagFilter !== "all";
+  return mediaFilter !== "all" || genreFilter !== "all" || flagFilter !== "all" || colFilterActive();
+}
+
+/* Custom column filter: one column, one condition (contains, starts with, is
+ * empty…), case-insensitive; combined with the search and the other filters. */
+const COL_META = ["name", "path", "genre", "developer", "publisher", "releasedate", "players", "rating", "lang",
+  "region", "family", "arcadesystemname"];
+const COL_OPS = ["contains", "not_contains", "starts", "ends", "equals", "empty", "not_empty"];
+const colFilter = { on: false, field: "name", op: "contains", value: "" };
+function colFieldLabel(key) {
+  if (key === "path") return t("colfilter.field_path");
+  if (COL_META.includes(key)) return t("scrape.field_" + key);
+  return fieldLabel(key);
+}
+function colFilterActive() {
+  return colFilter.on && (colFilter.op === "empty" || colFilter.op === "not_empty" || colFilter.value.trim() !== "");
+}
+function matchesColFilter(g) {
+  if (!colFilterActive()) return true;
+  const v = String(g[colFilter.field] || "").trim().toLowerCase();
+  const q = colFilter.value.trim().toLowerCase();
+  switch (colFilter.op) {
+    case "contains": return v.includes(q);
+    case "not_contains": return !v.includes(q);
+    case "starts": return v.startsWith(q);
+    case "ends": return v.endsWith(q);
+    case "equals": return v === q;
+    case "empty": return !v;
+    case "not_empty": return !!v;
+    default: return true;
+  }
+}
+function fillColFilter() {
+  const field = document.getElementById("col-field");
+  const op = document.getElementById("col-op");
+  const keys = [...COL_META, ...FIELD_DEFS.map(f => f.key)];
+  field.innerHTML = `<optgroup label="${escapeHtml(t("colfilter.group_info"))}">` +
+    COL_META.map(k => `<option value="${k}">${escapeHtml(colFieldLabel(k))}</option>`).join("") +
+    `</optgroup><optgroup label="${escapeHtml(t("colfilter.group_media"))}">` +
+    FIELD_DEFS.map(f => `<option value="${f.key}">${escapeHtml(colFieldLabel(f.key))}</option>`).join("") + "</optgroup>";
+  op.innerHTML = COL_OPS.map(k => `<option value="${k}">${escapeHtml(t("colfilter.op_" + k))}</option>`).join("");
+  field.value = keys.includes(colFilter.field) ? colFilter.field : "name";
+  op.value = colFilter.op;
+  updateColFilterUi();
+}
+function updateColFilterUi() {
+  const noValue = colFilter.op === "empty" || colFilter.op === "not_empty";
+  document.getElementById("col-value").hidden = noValue;
+  document.getElementById("col-filter").hidden = !colFilter.on;
+  const btn = document.getElementById("btn-col-filter");
+  btn.setAttribute("aria-pressed", String(colFilter.on));
+  btn.classList.toggle("is-on", colFilter.on);
+  document.getElementById("col-filter").classList.toggle("is-active", colFilterActive());
 }
 
 /** List indexes of the games shown under the current search + filters. */
@@ -565,6 +626,7 @@ function getFilteredGames(searchQuery) {
   for (let i = 0; i < games.length; i++) {
     const g = games[i];
     if (q && !matchesSearch(g, q)) continue;
+    if (!matchesColFilter(g)) continue;
     if (mediaFilter !== "all" && !matchesMediaFilter(g)) continue;
     if (genreFilter !== "all" && !matchesGenreFilter(g)) continue;
     if (flagFilter !== "all" && !matchesFlagFilter(g)) continue;
@@ -599,6 +661,7 @@ function updateFilterCounts(q) {
       genres.set(gk, { label: String(g.genre).split("/")[0].trim(), n: 0 });
     }
     if (query && !matchesSearch(g, query)) continue;
+    if (!matchesColFilter(g)) continue;
     const okMedia = mediaFilter === "all" || matchesMediaFilter(g);
     const okGenre = matchesGenreFilter(g);
     const okFlag = matchesFlagFilter(g);
@@ -950,6 +1013,13 @@ function selectRange(toListIndex) {
   }
   for (let p = Math.min(from, to); p <= Math.max(from, to); p++) selection.add(games[viewIndices[p]].path);
   selectionAnchor = games[toListIndex].path;
+}
+/** Tick every game the list shows (search and filters applied): Ctrl+A. */
+function selectShown() {
+  if (!viewIndices.length) return;
+  viewIndices.forEach(i => selection.add(games[i].path));
+  selectionAnchor = games[viewIndices[viewIndices.length - 1]].path;
+  selectionChanged();
 }
 function pruneSelection() {
   if (!selection.size) return;
@@ -1637,6 +1707,34 @@ document.getElementById("flag-filter").addEventListener("change", e => {
   listEls().list.scrollTop = 0;
   renderList();
 });
+(() => {
+  let timer = null;
+  const changed = () => {
+    updateColFilterUi();
+    listEls().list.scrollTop = 0;
+    renderList();
+  };
+  document.getElementById("btn-col-filter").addEventListener("click", () => {
+    colFilter.on = !colFilter.on;
+    changed();
+    if (colFilter.on) document.getElementById(colFilter.op === "empty" || colFilter.op === "not_empty" ? "col-op" : "col-value").focus();
+  });
+  document.getElementById("col-clear").addEventListener("click", () => {
+    colFilter.on = false;
+    colFilter.value = "";
+    document.getElementById("col-value").value = "";
+    changed();
+    document.getElementById("btn-col-filter").focus();
+  });
+  document.getElementById("col-field").addEventListener("change", e => { colFilter.field = e.target.value; changed(); });
+  document.getElementById("col-op").addEventListener("change", e => { colFilter.op = e.target.value; changed(); });
+  document.getElementById("col-value").addEventListener("input", e => {
+    colFilter.value = e.target.value;
+    clearTimeout(timer);
+    timer = setTimeout(changed, SEARCH_DEBOUNCE_MS);
+  });
+  document.getElementById("btn-select-shown").addEventListener("click", selectShown);
+})();
 document.getElementById("btn-search-all").addEventListener("click", async () => {
   const on = !SETTINGS.search_all_fields;
   SETTINGS.search_all_fields = on;             // at once: the list follows the button
@@ -1829,6 +1927,16 @@ document.addEventListener("keydown", e => {
     }
     return;
   }
+  for (const [id, close] of [["bulk-modal", () => closeBulk()], ["stats-modal", () => closeStats()]]) {
+    const el = document.getElementById(id);
+    if (el && el.classList.contains("open")) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        close();
+      }
+      return;
+    }
+  }
   const openGl = document.getElementById("open-gamelist-modal");
   if (openGl && openGl.classList.contains("open")) {
     if (e.key === "Escape") {
@@ -1889,6 +1997,13 @@ document.addEventListener("keydown", e => {
     const search = document.getElementById("search");
     search.focus();
     search.select();
+    return;
+  }
+
+  // Ctrl+A (not in a text field): tick every game shown
+  if (ctrl && e.key.toLowerCase() === "a" && !typing) {
+    e.preventDefault();
+    selectShown();
     return;
   }
 
@@ -1962,7 +2077,8 @@ document.addEventListener("keydown", e => {
 /* --- Dialogs: Tab stays inside the open one -----------------------------------
  * The page behind a dialog cannot be reached with the keyboard. The confirm
  * dialog can open above another one, so it is looked at first. */
-const DIALOG_IDS = ["confirm-modal", "media-lightbox", "ss-modal", "batch-modal", "check-modal", "backups-modal", "open-gamelist-modal",
+const DIALOG_IDS = ["confirm-modal", "media-lightbox", "ss-modal", "batch-modal", "check-modal", "backups-modal", "bulk-modal",
+  "stats-modal", "open-gamelist-modal",
   "settings-modal", "about-modal"];
 function topDialog() {
   for (const id of DIALOG_IDS) {
@@ -2267,7 +2383,7 @@ document.getElementById("btn-required-media").addEventListener("click", () => op
 /* --- Actions on the whole gamelist (app bar ⋯ menu) ----------------------- */
 setupMenu("actions-menu", "btn-actions");
 function setGamelistActionsEnabled(on) {
-  ["btn-batch-scrape", "btn-manual-backup", "btn-backup-history", "btn-fill-arcade", "btn-rom-check", "btn-media-check", "btn-purge-regions"].forEach(id => {
+  ["btn-bulk", "btn-stats", "btn-batch-scrape", "btn-manual-backup", "btn-backup-history", "btn-fill-arcade", "btn-rom-check", "btn-media-check", "btn-purge-regions"].forEach(id => {
     document.getElementById(id).disabled = !on;
   });
 }
@@ -3578,6 +3694,7 @@ async function boot() {
   updateSearchModeUi();
   await loadLocale(SETTINGS.locale || DEFAULT_LOCALE);
   wireLanguageControls();
+  fillColFilter();
   try {
     GENRES = await apiFetch("/static/genres.json");
   } catch (e) {
@@ -4267,6 +4384,413 @@ document.getElementById("ss-modal-cancel").addEventListener("click", closeSsModa
 document.getElementById("ss-modal-apply").addEventListener("click", applyScrape);
 document.getElementById("ss-modal").addEventListener("click", e => {
   if (e.target.id === "ss-modal") closeSsModal();
+});
+
+/* ========== Edit in bulk (Actions › Edit in bulk, selection bar) ==========
+ * Scope: the ticked games, the games shown, or the whole gamelist. Every
+ * operation is previewed first (/api/bulk/preview), and Apply stays disabled
+ * until a preview found something to change; any change to the form drops the
+ * preview. The server makes a dated snapshot before writing and returns its
+ * id: the toast's Undo restores it (/api/backups/restore). Removing games only
+ * takes entries out of gamelist.xml (media to the Recycle Bin on request, ROMs
+ * never), see gme/bulk.py.
+ */
+const BULK_SET_FIELDS = ["genre", "developer", "publisher", "releasedate", "rating", "players", "lang", "region",
+  "family", "arcadesystemname", "favorite", "hidden", "kidgame"];
+const BULK_FLAGS = ["favorite", "hidden", "kidgame"];
+const BULK_REPLACE_FIELDS = ["name", "desc", "genre", "developer", "publisher", "players", "lang", "region",
+  "family", "arcadesystemname"];
+const BULK_TABS = ["set", "replace", "reset_name", "clear_media", "delete"];
+let bulk = null;   // { tab, preview: {...} | null, busy, form: {...} }
+
+function bulkFieldLabel(key) {
+  if (BULK_FLAGS.includes(key)) return t("editor." + key);
+  if (key === "desc" || COL_META.includes(key)) return t("scrape.field_" + key);
+  return fieldLabel(key);
+}
+function bulkPaths(scope) {
+  const out = new Set();
+  if (scope === "checked") {
+    const known = new Set(games.map(g => g.path));
+    selection.forEach(p => { if (known.has(p)) out.add(p); });
+  } else if (scope === "shown") {
+    viewIndices.forEach(i => out.add(games[i].path));
+  } else {
+    games.forEach(g => out.add(g.path));
+  }
+  return [...out];
+}
+function fillBulkScope(preferred) {
+  const sel = document.getElementById("bulk-scope");
+  const counts = { checked: bulkPaths("checked").length, shown: bulkPaths("shown").length, all: bulkPaths("all").length };
+  sel.innerHTML = ["checked", "shown", "all"].map(k =>
+    `<option value="${k}"${counts[k] ? "" : " disabled"}>${escapeHtml(t("bulk.scope_" + k, { n: fmtCount(counts[k]) }))}</option>`
+  ).join("");
+  const order = [preferred, "checked", "shown", "all"].filter(Boolean);
+  sel.value = order.find(k => counts[k]) || "all";
+}
+function openBulk(tab) {
+  if (!window.__gmeLoaded || !games.length) return;
+  if (changedFields().length) {
+    toast(t("bulk.unsaved"), "warning");
+    return;
+  }
+  bulk = { tab: BULK_TABS.includes(tab) ? tab : "set", preview: null, busy: false };
+  fillBulkScope(selection.size ? "checked" : "shown");
+  renderBulkForm();
+  document.getElementById("bulk-modal").classList.add("open");
+  const first = document.querySelector("#bulk-form select, #bulk-form input");
+  (first || document.getElementById("bulk-scope")).focus();
+}
+function closeBulk() {
+  const modal = document.getElementById("bulk-modal");
+  if (!modal.classList.contains("open")) return;
+  modal.classList.remove("open");
+  bulk = null;
+  document.getElementById("bulk-form").innerHTML = "";
+  document.getElementById("bulk-preview").innerHTML = "";
+}
+function renderBulkForm() {
+  document.querySelectorAll("#bulk-tabs [data-bulk-tab]").forEach(b => {
+    const on = b.dataset.bulkTab === bulk.tab;
+    b.classList.toggle("active", on);
+    b.setAttribute("aria-selected", String(on));
+  });
+  const form = document.getElementById("bulk-form");
+  const opt = (k, label) => `<option value="${k}">${escapeHtml(label)}</option>`;
+  const check = (id, key, on) =>
+    `<label class="bulk-check"><input type="checkbox" id="${id}"${on ? " checked" : ""}> <span>${escapeHtml(t(key))}</span></label>`;
+  let html = "";
+  if (bulk.tab === "set") {
+    html = `<div class="bulk-grid">
+      <label><span>${escapeHtml(t("bulk.field"))}</span><select id="bulk-set-field">${BULK_SET_FIELDS.map(k => opt(k, bulkFieldLabel(k))).join("")}</select></label>
+      <label><span>${escapeHtml(t("bulk.value"))}</span><span id="bulk-set-value-wrap"></span></label>
+    </div><p class="bulk-hint" id="bulk-set-hint"></p>`;
+  } else if (bulk.tab === "replace") {
+    html = `<div class="bulk-grid">
+      <label><span>${escapeHtml(t("bulk.in_field"))}</span><select id="bulk-rep-field">${opt("all", t("bulk.all_fields"))}${BULK_REPLACE_FIELDS.map(k => opt(k, bulkFieldLabel(k))).join("")}</select></label>
+      <label><span>${escapeHtml(t("bulk.find"))}</span><input type="text" id="bulk-rep-find" spellcheck="false" autocomplete="off" maxlength="1000"></label>
+      <label><span>${escapeHtml(t("bulk.replace_with"))}</span><input type="text" id="bulk-rep-with" spellcheck="false" autocomplete="off"></label>
+    </div><div class="bulk-checks">${check("bulk-rep-regex", "bulk.regex", false)}${check("bulk-rep-case", "bulk.case", false)}</div>
+    <p class="bulk-hint">${escapeHtml(t("bulk.replace_hint"))}</p>`;
+  } else if (bulk.tab === "reset_name") {
+    html = `<p class="bulk-hint">${escapeHtml(t("bulk.names_hint"))}</p>
+      <div class="bulk-checks">${check("bulk-name-tags", "bulk.strip_tags", true)}</div>`;
+  } else if (bulk.tab === "clear_media") {
+    html = `<p class="bulk-hint">${escapeHtml(t("bulk.media_hint"))}</p>
+      <div class="bulk-checks bulk-media-list">${getFields().map(f =>
+        `<label class="bulk-check"><input type="checkbox" data-bulk-media="${f.key}"> ${icon(f.icon)}<span>${escapeHtml(f.label)}</span></label>`).join("")}</div>`;
+  } else {
+    html = `<p class="bulk-hint bulk-warn">${icon("alert-triangle")}<span>${escapeHtml(t("bulk.delete_hint"))}</span></p>
+      <div class="bulk-checks">${check("bulk-del-media", "bulk.delete_media", false)}</div>`;
+  }
+  form.innerHTML = html;
+  if (bulk.tab === "set") renderBulkSetValue();
+  invalidateBulkPreview();
+}
+function renderBulkSetValue() {
+  const field = document.getElementById("bulk-set-field").value;
+  const wrap = document.getElementById("bulk-set-value-wrap");
+  if (BULK_FLAGS.includes(field)) {
+    wrap.innerHTML = `<select id="bulk-set-value"><option value="true">${escapeHtml(t("bulk.flag_on"))}</option>` +
+      `<option value="">${escapeHtml(t("bulk.flag_off"))}</option></select>`;
+  } else {
+    const ph = field === "releasedate" ? t("bulk.date_placeholder") : field === "rating" ? "0 – 1" : "";
+    wrap.innerHTML = `<input type="text" id="bulk-set-value" autocomplete="off" spellcheck="false" placeholder="${escapeHtml(ph)}">`;
+  }
+  const hint = document.getElementById("bulk-set-hint");
+  hint.textContent = BULK_FLAGS.includes(field) ? "" :
+    field === "releasedate" ? t("bulk.date_hint") : field === "rating" ? t("bulk.rating_hint") : t("bulk.empty_clears");
+}
+function bulkOp() {
+  const v = id => document.getElementById(id);
+  if (bulk.tab === "set") return { kind: "set", field: v("bulk-set-field").value, value: v("bulk-set-value").value };
+  if (bulk.tab === "replace") {
+    const f = v("bulk-rep-field").value;
+    return { kind: "replace", fields: f === "all" ? "all" : [f], find: v("bulk-rep-find").value,
+      replace: v("bulk-rep-with").value, regex: v("bulk-rep-regex").checked, case: v("bulk-rep-case").checked };
+  }
+  if (bulk.tab === "reset_name") return { kind: "reset_name", strip_tags: v("bulk-name-tags").checked };
+  if (bulk.tab === "clear_media") {
+    return { kind: "clear_media", fields: [...document.querySelectorAll("[data-bulk-media]:checked")].map(c => c.dataset.bulkMedia) };
+  }
+  return null;
+}
+function invalidateBulkPreview() {
+  if (!bulk) return;
+  bulk.preview = null;
+  const apply = document.getElementById("bulk-apply");
+  apply.disabled = true;
+  apply.classList.toggle("btn-danger", bulk.tab === "delete");
+  apply.classList.toggle("btn-accent", bulk.tab !== "delete");
+  document.getElementById("bulk-apply-label").textContent = t(bulk.tab === "delete" ? "bulk.remove" : "bulk.apply");
+  document.getElementById("bulk-preview").innerHTML = `<p class="bulk-empty">${escapeHtml(t("bulk.preview_first"))}</p>`;
+}
+async function runBulkPreview() {
+  if (!bulk || bulk.busy) return;
+  const paths = bulkPaths(document.getElementById("bulk-scope").value);
+  const box = document.getElementById("bulk-preview");
+  if (bulk.tab === "clear_media" && !bulkOp().fields.length) {
+    box.innerHTML = `<p class="bulk-empty">${escapeHtml(t("bulk.pick_media"))}</p>`;
+    return;
+  }
+  bulk.busy = true;
+  const tab = bulk.tab;
+  try {
+    let data;
+    if (tab === "delete") {
+      const media = document.getElementById("bulk-del-media").checked;
+      data = await apiFetch("/api/bulk-delete/preview", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paths, media }),
+      });
+      if (!bulk || bulk.tab !== tab) return;
+      bulk.preview = { paths, media, data };
+      box.innerHTML = bulkDeletePreviewHtml(data, media);
+    } else {
+      const op = bulkOp();
+      data = await apiFetch("/api/bulk/preview", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paths, op }),
+      });
+      if (!bulk || bulk.tab !== tab) return;
+      bulk.preview = data.total ? { paths, op, data } : null;
+      box.innerHTML = bulkPreviewHtml(data, op);
+    }
+    const n = tab === "delete" ? data.games : data.total;
+    const apply = document.getElementById("bulk-apply");
+    apply.disabled = !n;
+    document.getElementById("bulk-apply-label").textContent = n
+      ? t(tab === "delete" ? "bulk.remove_n" : "bulk.apply_n", { n: fmtCount(n) })
+      : t(tab === "delete" ? "bulk.remove" : "bulk.apply");
+  } catch (e) {
+    if (bulk) {
+      bulk.preview = null;
+      box.innerHTML = `<p class="bulk-empty bulk-error">${icon("alert-circle")}<span>${escapeHtml(e.message || String(e))}</span></p>`;
+    }
+  } finally {
+    if (bulk) bulk.busy = false;
+  }
+}
+function bulkDiffHtml(text) {
+  return text === "" ? `<em class="bulk-none">${escapeHtml(t("bulk.empty_value"))}</em>` : escapeHtml(text);
+}
+function bulkPreviewHtml(data, op) {
+  if (!data.total) return `<p class="bulk-empty">${escapeHtml(t("bulk.nothing"))}</p>`;
+  const rows = data.changes.map(c => `<tr>
+      <td class="bulk-game" title="${escapeHtml(c.path)}">${escapeHtml(c.name || c.path)}</td>
+      <td class="bulk-field">${escapeHtml(bulkFieldLabel(c.field))}</td>
+      <td class="bulk-before">${bulkDiffHtml(op.kind === "set" && BULK_FLAGS.includes(c.field) ? (c.before ? t("bulk.flag_on") : "") : c.before)}</td>
+      <td class="bulk-arrow" aria-hidden="true">→</td>
+      <td class="bulk-after">${bulkDiffHtml(op.kind === "set" && BULK_FLAGS.includes(c.field) ? (c.after ? t("bulk.flag_on") : "") : c.after)}</td>
+    </tr>`).join("");
+  const more = data.total > data.changes.length
+    ? `<p class="bulk-more">${escapeHtml(t("bulk.more", { n: fmtCount(data.total - data.changes.length) }))}</p>` : "";
+  return `<p class="bulk-summary">${escapeHtml(t("bulk.summary", { changes: fmtCount(data.total), games: fmtCount(data.games) }))}</p>
+    <table class="bulk-table"><thead><tr><th>${escapeHtml(t("bulk.col_game"))}</th><th>${escapeHtml(t("bulk.field"))}</th>
+    <th>${escapeHtml(t("bulk.col_before"))}</th><th></th><th>${escapeHtml(t("bulk.col_after"))}</th></tr></thead>
+    <tbody>${rows}</tbody></table>${more}`;
+}
+function bulkDeletePreviewHtml(data, media) {
+  const list = items => `<ul class="bulk-list">${items.join("")}</ul>`;
+  let html = `<p class="bulk-summary">${escapeHtml(t("bulk.delete_summary", { n: fmtCount(data.games) }))}</p>` +
+    list(data.names.map(n => `<li>${escapeHtml(n)}</li>`));
+  if (data.games > data.names.length) {
+    html += `<p class="bulk-more">${escapeHtml(t("bulk.more", { n: fmtCount(data.games - data.names.length) }))}</p>`;
+  }
+  if (media) {
+    html += `<p class="bulk-summary">${escapeHtml(t("bulk.delete_media_summary", { n: fmtCount(data.media_total), size: fmtSize(data.media_bytes) }))}</p>`;
+    if (data.media.length) html += list(data.media.map(m => `<li><code>${escapeHtml(m.path)}</code> <span class="bulk-size">${escapeHtml(fmtSize(m.size))}</span></li>`));
+    if (data.kept_total) {
+      html += `<p class="bulk-hint">${escapeHtml(t("bulk.delete_kept", { n: fmtCount(data.kept_total) }))}</p>`;
+    }
+  }
+  html += `<p class="bulk-hint">${icon("shield-check")}<span>${escapeHtml(t("bulk.roms_kept"))}</span></p>`;
+  return html;
+}
+async function applyBulk() {
+  if (!bulk || bulk.busy || !bulk.preview) return;
+  const { paths } = bulk.preview;
+  const tab = bulk.tab;
+  if (tab === "delete") {
+    const { media, data } = bulk.preview;
+    const body = `<p>${escapeHtml(t("bulk.delete_confirm", { n: fmtCount(data.games) }))}</p>` +
+      (media && data.media_total ? `<p>${escapeHtml(t("bulk.delete_media_summary", { n: fmtCount(data.media_total), size: fmtSize(data.media_bytes) }))}</p>` : "") +
+      `<p class="muted">${escapeHtml(t("bulk.roms_kept"))}</p>`;
+    const choice = await askConfirm({ title: t("bulk.delete_title"), bodyHtml: body, showBackup: false,
+      okLabel: t("bulk.remove_n", { n: fmtCount(data.games) }), okClass: "btn-danger" });
+    if (!choice.confirmed || !bulk) return;
+  }
+  bulk.busy = true;
+  document.getElementById("bulk-apply").disabled = true;
+  try {
+    let res, msg;
+    if (tab === "delete") {
+      res = await apiFetch("/api/bulk-delete", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paths, media: bulk.preview.media, trash: true }),
+      });
+      paths.forEach(p => selection.delete(p));
+      selectionChanged(false);
+      msg = t("bulk.removed", { n: fmtCount(res.removed) });
+      if (res.deleted_files.length) msg += " " + t("bulk.removed_files", { n: fmtCount(res.deleted_files.length) });
+      if (res.failed_files.length) msg += " " + t("bulk.failed_files", { n: fmtCount(res.failed_files.length) });
+    } else {
+      res = await apiFetch("/api/bulk", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paths, op: bulk.preview.op }),
+      });
+      msg = t("bulk.applied", { changes: fmtCount(res.changed), games: fmtCount(res.games) });
+    }
+    closeBulk();
+    if (tab === "delete") resetEditorSelection();
+    await loadGames();
+    const snapshot = res.snapshot;
+    toast(msg, res.failed_files && res.failed_files.length ? "warning" : "success",
+      snapshot ? { label: t("bulk.undo"), run: () => undoBulk(snapshot, tab === "delete" && res.deleted_files.length) } : null);
+  } catch (e) {
+    handleError(e);
+    if (bulk) { bulk.busy = false; invalidateBulkPreview(); }
+  } finally {
+    if (bulk) bulk.busy = false;
+  }
+}
+async function undoBulk(snapshot, filesInTrash) {
+  if (changedFields().length) {
+    const choice = await askConfirm({ title: t("bulk.undo"), bodyHtml: `<p>${escapeHtml(t("bulk.undo_unsaved"))}</p>`,
+      showBackup: false, okLabel: t("bulk.undo") });
+    if (!choice.confirmed) return;
+  }
+  try {
+    const data = await apiFetch("/api/backups/restore", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: snapshot }),
+    });
+    window.__gmeSession = data.session_id;
+    resetEditorSelection();
+    await loadGames();
+    toast(filesInTrash ? t("bulk.undone_trash") : t("bulk.undone"), filesInTrash ? "info" : "success");
+  } catch (e) { handleError(e); }
+}
+
+document.getElementById("btn-bulk").addEventListener("click", () => openBulk());
+document.getElementById("btn-bulk-selection").addEventListener("click", () => openBulk());
+document.getElementById("bulk-close").addEventListener("click", closeBulk);
+document.getElementById("bulk-cancel").addEventListener("click", closeBulk);
+document.getElementById("bulk-modal").addEventListener("click", e => { if (e.target.id === "bulk-modal") closeBulk(); });
+document.getElementById("bulk-tabs").addEventListener("click", e => {
+  const b = e.target.closest("[data-bulk-tab]");
+  if (!b || !bulk || bulk.busy) return;
+  bulk.tab = b.dataset.bulkTab;
+  renderBulkForm();
+});
+document.getElementById("bulk-scope").addEventListener("change", invalidateBulkPreview);
+document.getElementById("bulk-form").addEventListener("input", invalidateBulkPreview);
+document.getElementById("bulk-form").addEventListener("change", e => {
+  if (e.target.id === "bulk-set-field") renderBulkSetValue();
+  invalidateBulkPreview();
+});
+document.getElementById("bulk-form").addEventListener("keydown", e => {
+  if (e.key === "Enter" && e.target.tagName === "INPUT" && e.target.type === "text") {
+    e.preventDefault();
+    runBulkPreview();
+  }
+});
+document.getElementById("bulk-preview-btn").addEventListener("click", runBulkPreview);
+document.getElementById("bulk-apply").addEventListener("click", applyBulk);
+
+/* ========== Statistics (Actions › Statistics) ==========
+ * Read-only figures for the open gamelist (/api/stats, gme/stats.py): media
+ * present / broken (tag but no file) / missing, scraped and complete games
+ * (complete = every required media of this system present), genres, plays.
+ * "Show" on a media row filters the list on the games missing it.
+ */
+async function openStats() {
+  if (!window.__gmeLoaded) return;
+  const modal = document.getElementById("stats-modal");
+  const body = document.getElementById("stats-body");
+  document.getElementById("stats-system").textContent = currentSystem && currentSystem.label ? " · " + currentSystem.label : "";
+  body.innerHTML = `<p class="bulk-empty">${escapeHtml(t("stats.loading"))}</p>`;
+  modal.classList.add("open");
+  document.getElementById("stats-close").focus();
+  try {
+    const data = await apiFetch("/api/stats?required=" + encodeURIComponent(requiredKeys().join(",")));
+    if (!modal.classList.contains("open")) return;
+    body.innerHTML = statsHtml(data);
+  } catch (e) {
+    body.innerHTML = `<p class="bulk-empty bulk-error">${icon("alert-circle")}<span>${escapeHtml(e.message || String(e))}</span></p>`;
+  }
+}
+function closeStats() {
+  const modal = document.getElementById("stats-modal");
+  if (!modal.classList.contains("open")) return;
+  modal.classList.remove("open");
+  document.getElementById("stats-body").innerHTML = "";
+}
+function fmtPlayTime(seconds) {
+  const h = Math.floor(seconds / 3600), m = Math.round((seconds % 3600) / 60);
+  return h ? t("stats.hours", { h: fmtCount(h), m }) : t("stats.minutes", { m });
+}
+function statsHtml(d) {
+  const total = d.games || 0;
+  const pct = n => total ? Math.round(n * 100 / total) : 0;
+  const card = (ico, label, value, sub) => `<div class="stat-card">${icon(ico)}<div><div class="stat-value">${escapeHtml(value)}</div>` +
+    `<div class="stat-label">${escapeHtml(label)}</div>${sub ? `<div class="stat-sub">${escapeHtml(sub)}</div>` : ""}</div></div>`;
+  const ofTotal = n => t("stats.percent", { p: pct(n) });
+  let html = `<div class="stat-cards">
+    ${card("device-gamepad-2", t("stats.games"), fmtCount(total), "")}
+    ${card("cloud-download", t("stats.scraped"), fmtCount(d.scraped), ofTotal(d.scraped))}
+    ${card("circle-check", t("stats.complete"), fmtCount(d.complete), d.required.length ? ofTotal(d.complete) : t("stats.no_required"))}
+    ${card("file-text", t("stats.with_desc"), fmtCount(d.with_desc), ofTotal(d.with_desc))}
+    ${card("star", t("stats.rated"), fmtCount(d.rated), ofTotal(d.rated))}
+    ${card("calendar", t("stats.dated"), fmtCount(d.dated), ofTotal(d.dated))}
+    ${card("heart", t("editor.favorite"), fmtCount(d.favorite), "")}
+    ${card("eye-off", t("editor.hidden"), fmtCount(d.hidden), "")}
+    ${card("player-play", t("stats.played"), fmtCount(d.played),
+      d.playcount ? t("stats.plays", { n: fmtCount(d.playcount) }) + (d.gametime ? " · " + fmtPlayTime(d.gametime) : "") : "")}
+  </div>`;
+  const req = new Set(d.required || []);
+  html += `<h4 class="stats-h">${escapeHtml(t("stats.media"))}</h4><table class="stats-table"><thead><tr>
+    <th>${escapeHtml(t("stats.col_media"))}</th><th class="stats-bar-col"></th><th>${escapeHtml(t("stats.present"))}</th>
+    <th>${escapeHtml(t("stats.broken"))}</th><th>${escapeHtml(t("stats.missing"))}</th><th></th></tr></thead><tbody>`;
+  const byKey = Object.fromEntries(d.media.map(m => [m.field, m]));
+  getFields().forEach(f => {
+    const m = byKey[f.key];
+    if (!m) return;
+    const p = pct(m.present), b = pct(m.broken);
+    html += `<tr${req.has(f.key) ? ' class="is-required"' : ""}>
+      <td>${icon(f.icon)}<span>${escapeHtml(f.label)}</span>${req.has(f.key) ? `<span class="stats-req">${escapeHtml(t("stats.required"))}</span>` : ""}</td>
+      <td class="stats-bar-col"><span class="stats-bar" title="${p} %"><span class="ok" style="width:${p}%"></span><span class="bad" style="width:${b}%"></span></span></td>
+      <td>${fmtCount(m.present)}</td><td>${m.broken ? `<span class="stats-broken">${fmtCount(m.broken)}</span>` : "0"}</td><td>${fmtCount(m.missing)}</td>
+      <td>${m.missing ? `<button type="button" class="btn btn-sm" data-stats-missing="${f.key}">${escapeHtml(t("stats.show_missing"))}</button>` : ""}</td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  if (d.media.some(m => m.broken)) html += `<p class="bulk-hint">${escapeHtml(t("stats.broken_hint"))}</p>`;
+  if (d.genres.length) {
+    const max = d.genres[0].n || 1;
+    html += `<h4 class="stats-h">${escapeHtml(t("stats.genres", { n: fmtCount(d.genre_count) }))}</h4><ul class="stats-genres">` +
+      d.genres.map(g => `<li><span class="stats-genre">${escapeHtml(g.genre)}</span><span class="stats-bar"><span class="ok" style="width:${Math.round(g.n * 100 / max)}%"></span></span><span>${fmtCount(g.n)}</span></li>`).join("") +
+      `</ul>`;
+  }
+  if (d.no_genre) html += `<p class="bulk-hint">${escapeHtml(t("stats.no_genre", { n: fmtCount(d.no_genre) }))}</p>`;
+  if (d.most_played) html += `<p class="bulk-hint">${escapeHtml(t("stats.most_played", { name: d.most_played.name, n: fmtCount(d.most_played.playcount) }))}</p>`;
+  return html;
+}
+document.getElementById("btn-stats").addEventListener("click", openStats);
+document.getElementById("stats-close").addEventListener("click", closeStats);
+document.getElementById("stats-cancel").addEventListener("click", closeStats);
+document.getElementById("stats-modal").addEventListener("click", e => {
+  if (e.target.id === "stats-modal") { closeStats(); return; }
+  const b = e.target.closest("[data-stats-missing]");
+  if (!b) return;
+  // the games without this media: the column filter "is empty" on it
+  colFilter.on = true;
+  colFilter.field = b.dataset.statsMissing;
+  colFilter.op = "empty";
+  document.getElementById("col-field").value = colFilter.field;
+  document.getElementById("col-op").value = "empty";
+  closeStats();
+  updateColFilterUi();
+  listEls().list.scrollTop = 0;
+  renderList();
 });
 
 

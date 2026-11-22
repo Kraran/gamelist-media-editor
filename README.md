@@ -53,6 +53,16 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
 - **Search** in the name and ROM path, or in **every field** (genre, developer, publisher, date, region…) with the toggle at the end of the search box (kept in `ui_settings.json`)
 - **Export the list (CSV)** (Actions): the games shown, in the order of the list, for Excel or LibreOffice (UTF-8 with BOM; `;` separator, `,` in English): path, name, genre, date, developer, publisher, players, rating, favorite, hidden, kidgame, region, language, number of media, required media present and missing
 - **Copy the ROM paths of the ticked games** (selection bar or game ⋯ menu), one full path per line
+- **Column filter** (the sliders button next to the media filter): one column (name, ROM path, genre, developer, date, rating… or a media) and a condition (*contains*, *does not contain*, *starts with*, *ends with*, *equals*, *is empty*, *is not empty*), combined with the search and the other filters
+- **Tick every game shown**: `Ctrl+A` in the list or the button next to the filters (search and filters applied)
+- **Edit in bulk** (Actions, or the pencil in the selection bar), on the ticked games, the games shown or the whole gamelist, always with a **preview** (before → after) before *Apply*:
+  - *Field*: one value for genre, developer, publisher, date (`YYYY`, `YYYY-MM` or `YYYY-MM-DD`), rating, players, language, region, family, arcade system, favorite / hidden / kids (empty clears)
+  - *Find / replace* in the name, the description or any text field (or all of them): plain text or regular expression (`\1` for a group), case-sensitive or not; a name never becomes empty
+  - *Names*: the name becomes the ROM file name without its extension, optionally without the `(Europe)`, `[!]`… tags
+  - *Media*: remove media tags (the files stay on disk)
+  - *Remove*: take games out of `gamelist.xml` after a confirmation; their media can also go to the Recycle Bin (off by default, files another game uses are kept); **ROMs are never deleted**
+  - Every apply makes a dated backup first and its toast has **Undo**, which restores it (files sent to the Recycle Bin are recovered from the Recycle Bin)
+- **Statistics** (Actions): games, scraped, complete (all required media), with description, rated, dated, favorites, hidden, played and play time; per media present / broken (tag without file) / missing, with *Show* to list the games missing it; main genres
 - **Next incomplete** (`N`): jumps to the next game in the list that is missing a required media (or that matches the media filter)
 - **Keyboard**: `J`/`K` next/previous game, `N` next incomplete, `S` scrape, `Ctrl+S` save, `Ctrl+F` or `/` search, `?` shows the list
 - **Open another `gamelist.xml`** at any time (file browser, the 10 most recent files in one click), **Reload** after an outside edit
@@ -157,6 +167,8 @@ Code layout (`app.py` is only the entry point; the overview is in `gme/__init__.
 | `gme/scrapers/ss_limits.py` | ScreenScraper limits for the whole process: `maxthreads` semaphore, requests-per-minute limiter, daily quotas, 429/430/431 handling |
 | `gme/scrapers/ss_cache.py` | On-disk cache of ScreenScraper game lookups (`cache/ss-api/`): keys without credentials, TTL, never caches errors |
 | `gme/backups.py` | dated XML snapshots, bounded history and reversible restoration (`/api/backups`) |
+| `gme/bulk.py` | edit in bulk and removing many games: preview then one backup and one write (`/api/bulk`, `/api/bulk-delete`) |
+| `gme/stats.py` | statistics of the open gamelist (`/api/stats`) |
 | `gme/gamedelete.py` | deleting a game: dry run listing its files, then the Recycle Bin (`/api/delete-game`) |
 | `gme/remote_cache.py` | proposed images: previews (`/api/scrape/preview/<key>`), kept in `cache/remote/` and reused when applied |
 | `gme/xml_store.py` | the open `gamelist.xml`: path, cache, writes, game lookup |

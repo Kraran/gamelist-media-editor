@@ -105,6 +105,9 @@ def test_actions_menu_backup(page, gamelist):
     assert page.evaluate("document.activeElement.id") == "btn-purge-regions"
     page.keyboard.press("ArrowDown")                         # back to the first
     page.keyboard.press("ArrowDown")
+    assert page.evaluate("document.activeElement.id") == "btn-bulk"
+    page.keyboard.press("ArrowDown")
+    page.keyboard.press("ArrowDown")
     assert page.evaluate("document.activeElement.id") == "btn-manual-backup"
     page.keyboard.press("Enter")
     page.wait_for_selector("#toast.show")
