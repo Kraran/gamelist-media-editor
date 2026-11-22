@@ -533,6 +533,7 @@
           <button type="button" class="settings-tab" role="tab" id="tab-general" aria-controls="pane-general" aria-selected="true" data-pane="general">{{ icon("language") }}<span data-i18n="settings.tab_general">Général</span></button>
           <button type="button" class="settings-tab" role="tab" id="tab-ss" aria-controls="pane-ss" aria-selected="false" tabindex="-1" data-pane="ss">{{ icon("cloud-download") }}<span>ScreenScraper</span></button>
           <button type="button" class="settings-tab" role="tab" id="tab-sources" aria-controls="pane-sources" aria-selected="false" tabindex="-1" data-pane="sources">{{ icon("plug-connected") }}<span data-i18n="settings.tab_sources">Sources de scrape</span></button>
+          <button type="button" class="settings-tab" role="tab" id="tab-ssmedia" aria-controls="pane-ssmedia" aria-selected="false" tabindex="-1" data-pane="ssmedia">{{ icon("photo-cog") }}<span data-i18n="settings.tab_ssmedia">Médias ScreenScraper</span></button>
           <button type="button" class="settings-tab" role="tab" id="tab-required" aria-controls="pane-required" aria-selected="false" tabindex="-1" data-pane="required">{{ icon("list-check") }}<span data-i18n="settings.tab_required">Médias requis</span></button>
           <button type="button" class="settings-tab" role="tab" id="tab-keys" aria-controls="pane-keys" aria-selected="false" tabindex="-1" data-pane="keys">{{ icon("keyboard") }}<span data-i18n="settings.tab_keys">Raccourcis clavier</span></button>
         </div>
@@ -606,34 +607,25 @@
                 <button type="button" class="btn" id="btn-ss-cache-clear">{{ icon("trash") }}<span data-i18n="tools.ss_cache_clear">Vider le cache</span></button>
                 <span class="ss-status" id="ss-cache-stats"></span>
               </div>
-              <div class="ss-media-prefs">
-                <div class="ss-form-row">
-                  <label for="ss-type-image" data-i18n="tools.ss_type_image">Image</label>
-                  <select id="ss-type-image">
-                    <option value="ss" data-i18n="tools.ss_type_image_ss">Screenshot (ss)</option>
-                    <option value="sstitle" data-i18n="tools.ss_type_image_sstitle">Screenshot titre (sstitle)</option>
-                  </select>
-                </div>
-                <div class="ss-form-row">
-                  <label for="ss-type-boxart" data-i18n="tools.ss_type_boxart">Boxart</label>
-                  <select id="ss-type-boxart">
-                    <option value="box-3D" data-i18n="tools.ss_type_boxart_3d">Boîtier 3D (box-3D)</option>
-                    <option value="box-2D" data-i18n="tools.ss_type_boxart_2d">Boîtier avant (box-2D)</option>
-                  </select>
-                </div>
-                <div class="ss-form-row">
-                  <label for="ss-type-mix" data-i18n="tools.ss_type_mix">Mix</label>
-                  <select id="ss-type-mix">
-                    <option value="mixrbv2" data-i18n="tools.ss_type_mix_v2">Mix Recalbox v2 (mixrbv2)</option>
-                    <option value="mixrbv1" data-i18n="tools.ss_type_mix_v1">Mix Recalbox v1 (mixrbv1)</option>
-                  </select>
-                </div>
-              </div>
               <div class="ss-form-actions">
                 <button type="button" class="btn" id="btn-ss-test" data-i18n="tools.ss_test">Tester la connexion</button>
                 <span class="ss-status" id="ss-status"></span>
               </div>
             </div>
+          </section>
+
+          <section class="settings-pane" role="tabpanel" id="pane-ssmedia" aria-labelledby="tab-ssmedia" hidden>
+            <h4 class="settings-h" data-i18n="ssmedia.title">Médias ScreenScraper</h4>
+            <p class="settings-desc" data-i18n="ssmedia.desc">Pour chaque média, le type ScreenScraper demandé et la région essayée en premier.</p>
+            <div class="ssm-table" id="ssm-table" role="table">
+              <div class="ssm-head" role="row">
+                <span role="columnheader" data-i18n="ssmedia.col_media">Média</span>
+                <span role="columnheader" data-i18n="ssmedia.col_type">Type ScreenScraper</span>
+                <span role="columnheader" data-i18n="ssmedia.col_region">Région</span>
+              </div>
+              <div id="ssm-rows"></div>
+            </div>
+            <p class="ss-hint ssm-music">{{ icon("music") }}<span data-i18n="ssmedia.music_note">Musique : ScreenScraper n'en fournit pas.</span></p>
           </section>
 
           <section class="settings-pane" role="tabpanel" id="pane-sources" aria-labelledby="tab-sources" hidden>

@@ -139,10 +139,10 @@ def test_present_media_are_tiles_and_missing_ones_chips(page):
     assert page.locator("#media-grid .media-tile").count() == 2
     assert page.eval_on_selector(".media-tile[data-field='marquee'] .tile-media", "e => getComputedStyle(e).aspectRatio") == "3 / 1"
     page.wait_for_function("document.querySelector(\".media-tile[data-field='image'] .tile-dims\").textContent === '640 × 480'")
-    assert page.locator("#missing-chips .missing-chip").count() == 10
+    assert page.locator("#missing-chips .missing-chip").count() == 13
     select(page, "Bravo")
     assert page.is_hidden("#media-grid")
-    assert page.locator("#missing-chips .missing-chip").count() == 12
+    assert page.locator("#missing-chips .missing-chip").count() == 15
     assert page.locator("#missing-chips .missing-chip.is-required").count() == 4   # first, before "Optional"
 
 

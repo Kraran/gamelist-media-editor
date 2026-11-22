@@ -87,6 +87,8 @@ MEDIA_DIRS = {
     "fanart": "images", "map": "images",
     "cartridge": "images", "boxart": "images", "mix": "images",
     "bezel": "images",
+    # Batocera / RetroBat tags (Recalbox and plain ES ignore them)
+    "wheel": "images", "titleshot": "images", "music": "music",
 }
 META_FIELDS = {
     "rating", "releasedate", "developer", "publisher",
@@ -244,7 +246,7 @@ def get_base_name(game_elem):
 LIST_FIELDS = frozenset((
     "path", "name",
     "image", "video", "marquee", "manual", "boxback", "cartridge", "boxart",
-    "fanart", "mix", "map", "thumbnail", "bezel",
+    "fanart", "mix", "map", "thumbnail", "bezel", "wheel", "titleshot", "music",
     "rating", "releasedate", "developer", "publisher", "family", "players",
     "lang", "region", "genre", "kidgame", "hidden", "favorite", "arcadesystemname",
 ))

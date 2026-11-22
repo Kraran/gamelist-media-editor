@@ -46,32 +46,38 @@ def _ss_unmask(blob: str) -> str:
 _SS_DEV_ID = _ss_unmask("DBMMFw0H")
 _SS_DEV_PASS = _ss_unmask("MhQnVQNdKjx7DFY=")
 
-# ES field → ScreenScraper type. No fallback to another artwork kind if missing.
-SS_MEDIA_PREF = {
-    "image": ["ss"],
-    "video": ["video-normalized"],
-    "marquee": ["wheel-hd"],
-    "manual": ["manuel"],
-    "boxback": ["box-2D-back"],
-    "boxart": ["box-3D"],
-    "cartridge": ["support-2D"],
-    "fanart": ["fanart"],
-    "mix": ["mixrbv2"],
-    "map": ["maps"],
-    "thumbnail": ["box-2D"],
-    "bezel": ["bezel-16-9"],
-}
-# User-configurable type (Settings › ScreenScraper). Only that type is requested.
+# ES field → the ScreenScraper media types the user can pick for it
+# (Settings › ScreenScraper media). Only the chosen type is requested: no
+# fallback to another artwork kind when the game has none.
 SS_MEDIA_CHOICES = {
-    "image": ("ss", "sstitle"),
-    "boxart": ("box-2D", "box-3D"),
-    "mix": ("mixrbv1", "mixrbv2"),
+    "image": ("ss", "sstitle", "mixrbv1", "mixrbv2", "box-2D", "box-3D"),
+    "titleshot": ("sstitle", "ss"),
+    "thumbnail": ("box-2D", "box-3D", "ss", "mixrbv1", "mixrbv2"),
+    "marquee": ("wheel-hd", "wheel", "marquee", "screenmarquee", "screenmarqueesmall"),
+    "wheel": ("wheel", "wheel-hd", "wheel-carbon", "wheel-steel"),
+    "boxart": ("box-3D", "box-2D"),
+    "boxback": ("box-2D-back",),
+    "cartridge": ("support-2D", "support-texture"),
+    "fanart": ("fanart",),
+    "mix": ("mixrbv2", "mixrbv1"),
+    "map": ("maps",),
+    "bezel": ("bezel-16-9", "bezel-4-3"),
+    "video": ("video-normalized", "video"),
+    "manual": ("manuel",),
 }
+# Defaults = what earlier versions always asked for
 SS_MEDIA_DEFAULTS = {
-    "image": "ss",
-    "boxart": "box-3D",
-    "mix": "mixrbv2",
+    "image": "ss", "titleshot": "sstitle", "thumbnail": "box-2D", "marquee": "wheel-hd",
+    "wheel": "wheel", "boxart": "box-3D", "boxback": "box-2D-back", "cartridge": "support-2D",
+    "fanart": "fanart", "mix": "mixrbv2", "map": "maps", "bezel": "bezel-16-9",
+    "video": "video-normalized", "manual": "manuel",
 }
+# Media earlier versions did not scrape stay off until the user turns them on,
+# so an update does not start downloading (and spending quota on) new files.
+SS_MEDIA_OFF_BY_DEFAULT = ("titleshot", "wheel")
+# Region asked first for one media type ("" = the preferred region setting);
+# the other regions still come after it when the game has none in that one.
+SS_MEDIA_REGIONS = ("wor", "eu", "us", "jp", "fr", "de", "es", "it", "pt", "uk", "br", "kr", "asi")
 
 
 def ss_config_path():
@@ -80,7 +86,7 @@ def ss_config_path():
 
 
 def normalize_ss_media_types(raw):
-    """Keep only allowed image/boxart/mix types; fill defaults for missing keys."""
+    """Keep only allowed ScreenScraper types per field; defaults for the others."""
     out = dict(SS_MEDIA_DEFAULTS)
     if not isinstance(raw, dict):
         return out
@@ -93,16 +99,40 @@ def normalize_ss_media_types(raw):
     return out
 
 
+def normalize_media_enabled(raw):
+    """{field: bool} for every configurable field (new fields off by default)."""
+    out = {f: f not in SS_MEDIA_OFF_BY_DEFAULT for f in SS_MEDIA_CHOICES}
+    if isinstance(raw, dict):
+        for field in out:
+            if isinstance(raw.get(field), bool):
+                out[field] = raw[field]
+    return out
+
+
+def normalize_media_regions(raw):
+    """{field: region} overrides; unknown fields or regions are dropped (= automatic)."""
+    out = {}
+    if isinstance(raw, dict):
+        for field in SS_MEDIA_CHOICES:
+            region = str(raw.get(field) or "").strip().lower()
+            if region in SS_MEDIA_REGIONS:
+                out[field] = region
+    return out
+
+
 def ss_media_pref(cfg=None):
-    """Exact SS type per field. Configurable fields use only the saved choice."""
+    """Exact ScreenScraper type per enabled field: ``{field: [type]}``."""
     cfg = cfg or load_ss_config()
-    chosen = cfg.get("media_types") or SS_MEDIA_DEFAULTS
-    prefs = {k: list(v) for k, v in SS_MEDIA_PREF.items()}
-    for field, first in chosen.items():
-        if field not in prefs or not first:
-            continue
-        prefs[field] = [first]
-    return prefs
+    chosen = normalize_ss_media_types(cfg.get("media_types"))
+    enabled = normalize_media_enabled(cfg.get("media_enabled"))
+    return {field: [chosen[field]] for field in SS_MEDIA_CHOICES if enabled[field]}
+
+
+def ss_disabled_media(cfg=None):
+    """Fields turned off in Settings: ScreenScraper never proposes them."""
+    cfg = cfg or load_ss_config()
+    enabled = normalize_media_enabled(cfg.get("media_enabled"))
+    return [field for field in SS_MEDIA_CHOICES if not enabled[field]]
 
 
 def normalize_threads(raw):
@@ -124,6 +154,8 @@ def load_ss_config():
         "sspassword": "",
         "prefer_region": "fr",
         "media_types": dict(SS_MEDIA_DEFAULTS),
+        "media_enabled": normalize_media_enabled(None),
+        "media_regions": {},
         "threads": 0,
         "cache_enabled": True,
         "cache_days": ss_cache.DEFAULT_DAYS,
@@ -139,6 +171,8 @@ def load_ss_config():
             if k in data and data[k] is not None:
                 defaults[k] = str(data[k]).strip()
         defaults["media_types"] = normalize_ss_media_types(data.get("media_types"))
+        defaults["media_enabled"] = normalize_media_enabled(data.get("media_enabled"))
+        defaults["media_regions"] = normalize_media_regions(data.get("media_regions"))
         defaults["threads"] = normalize_threads(data.get("threads"))
         if "cache_enabled" in data:
             defaults["cache_enabled"] = bool(data.get("cache_enabled"))
@@ -159,7 +193,12 @@ def save_ss_config(data):
     if data.get("clear_sspassword"):
         cfg["sspassword"] = ""
     if "media_types" in data:
-        cfg["media_types"] = normalize_ss_media_types(data.get("media_types"))
+        cfg["media_types"] = normalize_ss_media_types({**cfg["media_types"], **(data.get("media_types") or {})})
+    if "media_enabled" in data:
+        cfg["media_enabled"] = normalize_media_enabled({**cfg["media_enabled"], **(data.get("media_enabled") or {})})
+    if "media_regions" in data:
+        merged = {**cfg["media_regions"], **(data.get("media_regions") or {})}
+        cfg["media_regions"] = normalize_media_regions(merged)
     if "threads" in data:
         cfg["threads"] = normalize_threads(data.get("threads"))
     if "cache_enabled" in data:
@@ -182,6 +221,10 @@ def ss_public_config(cfg=None):
         "sspassword_set": bool(cfg.get("sspassword")),
         "prefer_region": cfg.get("prefer_region") or "fr",
         "media_types": normalize_ss_media_types(cfg.get("media_types")),
+        "media_enabled": normalize_media_enabled(cfg.get("media_enabled")),
+        "media_regions": normalize_media_regions(cfg.get("media_regions")),
+        "media_choices": {f: list(v) for f, v in SS_MEDIA_CHOICES.items()},
+        "media_region_choices": list(SS_MEDIA_REGIONS),
         "softname": SS_SOFTNAME,
         "configured": True,
         "user_boost": bool(cfg.get("ssid") and cfg.get("sspassword")),
@@ -470,8 +513,12 @@ def _ss_pick_media(medias, preferred_types, prefer_region="fr"):
     return best[2], best[3]
 
 
-def parse_ss_game(jeu, prefer_region="fr", media_pref=None):
-    """Map ScreenScraper jeu object → ES-oriented dict."""
+def parse_ss_game(jeu, prefer_region="fr", media_pref=None, media_regions=None, disabled_media=()):
+    """Map ScreenScraper jeu object → ES-oriented dict.
+
+    ``media_pref``: {field: [ScreenScraper type]}; ``media_regions``: {field:
+    region asked first instead of ``prefer_region``}; ``disabled_media``: fields
+    turned off in Settings (listed in the result so the dialog hides them)."""
     if not jeu or not isinstance(jeu, dict):
         return None
     noms = jeu.get("noms") or jeu.get("nom")
@@ -567,9 +614,10 @@ def parse_ss_game(jeu, prefer_region="fr", media_pref=None):
         region = region.split(",")[0].strip()
     medias = jeu.get("medias") or []
     media_out = {}
-    prefs_map = media_pref or ss_media_pref()
+    prefs_map = ss_media_pref() if media_pref is None else media_pref
+    regions = media_regions or {}
     for field, prefs in prefs_map.items():
-        url, mtype = _ss_pick_media(medias, prefs, prefer_region)
+        url, mtype = _ss_pick_media(medias, prefs, regions.get(field) or prefer_region)
         if url:
             media_out[field] = {"url": url, "type": mtype}
     p2k_url, p2k_type = _ss_pick_media(medias, P2K_TYPES, prefer_region)
@@ -590,6 +638,7 @@ def parse_ss_game(jeu, prefer_region="fr", media_pref=None):
         "region": region,
         "arcadesystemname": "",
         "medias": media_out,
+        "disabled_media": list(disabled_media),
     }
 
 
@@ -606,8 +655,9 @@ def api_ss_config():
             payload["ssid"] = (body.get("ssid") or "").strip()
         if "prefer_region" in body:
             payload["prefer_region"] = (body.get("prefer_region") or "fr").strip()
-        if "media_types" in body:
-            payload["media_types"] = body.get("media_types") or {}
+        for key in ("media_types", "media_enabled", "media_regions"):
+            if key in body:
+                payload[key] = body.get(key) if isinstance(body.get(key), dict) else {}
         if "threads" in body:
             payload["threads"] = body.get("threads")
         for key in ("cache_enabled", "cache_days"):
@@ -736,7 +786,8 @@ def _scrape_game(game, body=None, system=None):
     blocked = []     # quota, login, API closed: see ss_blocking
 
     def full_from_jeu(jeu, match_method):
-        parsed = parse_ss_game(jeu, prefer, ss_media_pref(cfg))
+        parsed = parse_ss_game(jeu, prefer, ss_media_pref(cfg),
+                               normalize_media_regions(cfg.get("media_regions")), ss_disabled_media(cfg))
         if not parsed:
             return None
         return {

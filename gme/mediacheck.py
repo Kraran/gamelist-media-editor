@@ -5,8 +5,8 @@ GET  /api/check-media         report: media files no game uses (orphans), and
 POST /api/check-media/apply   {"delete": [relative paths], "unlink": [{"path": game path,
                                "tag": tag}], "trash": true, "backup": true}
 
-Only the media folders of the gamelist (images/, videos/, manuals/, and their
-sub-folders) are scanned, and only media files (images, videos, PDF). A file
+Only the media folders of the gamelist (images/, videos/, manuals/, music/ and
+their sub-folders) are scanned, and only media files (images, videos, PDF, audio). A file
 counts as used when any tag of any game points to it, whatever the tag
 (Batocera's <titleshot>, <wheel>… included). The apply step re-scans and only
 deletes files the scan confirms are orphans; with "trash" they go to the
@@ -26,7 +26,7 @@ from gme.xml_store import MEDIA_DIRS, backup_xml, load_xml, require_gamelist, sa
 
 bp = Blueprint("mediacheck", __name__)
 
-MEDIA_FOLDERS = sorted(set(MEDIA_DIRS.values()))        # images, manuals, videos
+MEDIA_FOLDERS = sorted(set(MEDIA_DIRS.values()))        # images, manuals, music, videos
 # Tags that hold media in EmulationStation forks (RetroBat, Batocera, ES-DE…)
 MEDIA_TAGS = set(MEDIA_DIRS) | {"titleshot", "wheel", "boxfront", "screenshot", "magazine", "music"}
 NOT_FILES = {"path", "name", "desc", "rating", "releasedate", "developer", "publisher", "genre",

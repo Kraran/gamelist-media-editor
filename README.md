@@ -18,7 +18,7 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
 
 **Media**
 - **Media gallery**: each media shown in its own shape (upright boxes, wide logos…) with its size in pixels; missing media grouped below
-- Drag-and-drop (file or image from a web page) or click to choose a file, for **image**, **video**, **marquee**, **manual**, **boxback**, **support** (`cartridge`), **boxart**, **fanart**, **mix**, **maps**, **thumbnail**, **bezel**
+- Drag-and-drop (file or image from a web page) or click to choose a file, for **image**, **video**, **marquee**, **manual**, **boxback**, **support** (`cartridge`), **boxart**, **fanart**, **mix**, **maps**, **thumbnail**, **bezel**, **wheel**, **titleshot** (title screen) and **music** (MP3, OGG, WAV, FLAC, with an audio player)
 - RetroBat extra from ScreenScraper: **Pad2Key** (`.keys`)
 - Image lightbox, upload limit 50 MB; a replaced file goes to the Recycle Bin, never when another game still uses it
 
@@ -35,8 +35,9 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
 - **Batch scrape**: the games ticked in the list (box, `Ctrl`/`Shift`+click, `X`), or all the games shown; fill gaps or replace, chosen fields, progress with *Stop*, report of the updated, uncertain (pick them afterwards) and failed games
 - **Parallel ScreenScraper batches**: with a member login, several games at once, never more than the `maxthreads` ScreenScraper gives your account (1 without a login); requests per minute and the daily quota are respected for every request of the app, and results are still written in list order. *Settings › ScreenScraper › Threads* can lower the number
 - **ScreenScraper answer cache**: game lookups are kept on disk (`cache/ss-api/`, 30 days by default, *Game not found* only 1 day, errors never), so rescraping a game sends no request and uses none of your quota. Credentials are never stored. *Settings › ScreenScraper* turns it off, sets how long answers are kept and empties it; the scrape and batch windows can ignore it to ask ScreenScraper again.
+- **ScreenScraper media per type** (*Settings › ScreenScraper media*): for each media, the ScreenScraper type (e.g. `ss` or `sstitle`, `box-2D` or `box-3D`, `wheel-hd`, `wheel`, `screenmarquee`… for the marquee, `mixrbv1`/`mixrbv2`, `bezel-16-9`/`bezel-4-3`, normalized or original video), the region tried first, and whether ScreenScraper proposes it at all. The defaults are what earlier versions asked for; **wheel** and **titleshot** are new and off until you tick them. ScreenScraper has no music for games: add the file yourself.
 - **Resume / retry**: *Last batch* below the game list reopens the saved report for this gamelist. Resume the remaining games after stopping or reopening the app; once finished, retry only failed games and failed fields of partial updates. A new batch starts from *Actions* or the selection bar and replaces the previous saved report
-- **ScreenScraper**: ROM hash match (also inside `.zip`), then name search with a candidate list; media types configurable; system detected from the RetroBat folder name (all RetroBat systems)
+- **ScreenScraper**: ROM hash match (also inside `.zip`), then name search with a candidate list; media type, region and on/off per media; system detected from the RetroBat folder name (all RetroBat systems)
 - **Arcade Database**: MAME / FBNeo / Neo-Geo / Atomiswave (PCB → Support, Cabinet → Boxart, Flyer → Boxback, Decal → Marquee) and arcade hardware name (`cps1.cpp` → CPS1)
 - **Steam**: trailer download (French when available, 720p if ≤ 50 MB, else 480p)
 
@@ -56,7 +57,7 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
 - **Keyboard**: `J`/`K` next/previous game, `N` next incomplete, `S` scrape, `Ctrl+S` save, `Ctrl+F` or `/` search, `?` shows the list
 - **Open another `gamelist.xml`** at any time (file browser, the 10 most recent files in one click), **Reload** after an outside edit
 - **Actions** menu (whole gamelist): `.bak` backup, arcade system names from `mame.xml`, **Check ROMs** (gamelist vs files of the folder: add missing ROMs, remove entries without ROM, merge duplicates, export the report), **Check media** (unused media to the Recycle Bin, links to missing files removed, export the report), purge all `<region>` tags
-- **Settings**: theme (dark, light or as the system), language, ScreenScraper member login, region, threads and media types, scrape source and required media per system, keyboard shortcuts (kept in `ui_settings.json`)
+- **Settings**: theme (dark, light or as the system), language, ScreenScraper member login, region, threads, answer cache, media type / region / on-off per media, scrape source and required media per system, keyboard shortcuts (kept in `ui_settings.json`)
 - Game ⋯ menu: copy the ROM path, delete the game (ROM, tracks / discs, media and XML entry, listed before; files another game uses are kept; to the Recycle Bin) with optional backup
 - **Backups and restoration** (Actions): the last 30 dated XML copies, with confirmation before restoring and a snapshot of the current XML to undo the restoration. ROMs and media are not restored
 - Application window without address bar when Edge / Chrome / Brave is available; **Quit** stops the server
@@ -102,7 +103,7 @@ Tip: drag a `gamelist.xml` onto the `.exe` to open it directly.
 
 Optional: `Creer-Raccourci.ps1` creates a desktop shortcut to `Lancer.bat` with the app icon.
 
-Your `screenscraper_config.json` (member login, media types), `ui_settings.json` (language, scrape sources, required media) and `recent_gamelists.json` (recently opened gamelists) are stored next to `app.py` / the `.exe`. Keep them when you update.
+Your `screenscraper_config.json` (member login, media types, cache settings), `ui_settings.json` (language, scrape sources, required media) and `recent_gamelists.json` (recently opened gamelists) are stored next to `app.py` / the `.exe`. Keep them when you update.
 
 Keep `state/batches/` next to the app to retain batch progress and reports. XML snapshots travel with the gamelist in `.gme-backups/<XML filename>/`; each backup also updates the traditional `<XML filename>.bak`. After closing the browser, the game already in progress can finish and checkpoint, then the batch waits for an explicit resume. After an abrupt server shutdown, the last interrupted game may be checked again.
 

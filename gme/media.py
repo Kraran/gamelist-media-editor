@@ -1,5 +1,6 @@
 """Media files: extension detection, downloads, placeholders, Pad2Key, safe deletion."""
 
+import mimetypes
 import os
 from urllib.parse import unquote, urlparse
 
@@ -121,6 +122,8 @@ def discard_old_media(game, field, old_rel, new_rel):
 
 
 def default_ext_for_field(field):
+    if field == "music":
+        return ".mp3"
     if field == "video":
         return ".mp4"
     if field == "manual":
@@ -135,9 +138,15 @@ _FAKE_EXTS = {
 }
 MEDIA_EXTS = {
     ".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp",
-    ".mp4", ".webm", ".avi", ".mkv", ".mp3",
+    ".mp4", ".webm", ".avi", ".mkv",
+    ".mp3", ".ogg", ".wav", ".flac",
     ".pdf",
 }
+AUDIO_EXTS = {".mp3", ".ogg", ".wav", ".flac"}
+# Windows' registry may not know these: /media/ would serve them as octet-stream
+for _ext, _mime in ((".mp3", "audio/mpeg"), (".ogg", "audio/ogg"), (".wav", "audio/wav"),
+                    (".flac", "audio/flac")):
+    mimetypes.add_type(_mime, _ext)
 
 
 def ext_from_magic(data):
@@ -162,6 +171,14 @@ def ext_from_magic(data):
         return ".mp4"
     if head.startswith(b"\x1a\x45\xdf\xa3"):
         return ".webm"
+    if head.startswith(b"ID3") or (len(head) >= 2 and head[0] == 0xFF and head[1] & 0xE0 == 0xE0 and head[1] & 0x06):
+        return ".mp3"                     # ID3 tag, or an MPEG audio frame header
+    if head.startswith(b"OggS"):
+        return ".ogg"
+    if len(head) >= 12 and head[:4] == b"RIFF" and head[8:12] == b"WAVE":
+        return ".wav"
+    if head.startswith(b"fLaC"):
+        return ".flac"
     return None
 
 
@@ -179,6 +196,12 @@ def ext_from_content_type(ct, field=None):
         "video/webm": ".webm",
         "application/pdf": ".pdf",
         "application/x-pdf": ".pdf",
+        "audio/mpeg": ".mp3",
+        "audio/mp3": ".mp3",
+        "audio/ogg": ".ogg",
+        "audio/wav": ".wav",
+        "audio/x-wav": ".wav",
+        "audio/flac": ".flac",
     }
     if ct in mapping:
         return mapping[ct]
@@ -186,6 +209,8 @@ def ext_from_content_type(ct, field=None):
         return ".png"
     if ct.startswith("video/"):
         return ".mp4"
+    if ct.startswith("audio/"):
+        return ".mp3"
     if "pdf" in ct:
         return ".pdf"
     return None
@@ -351,8 +376,8 @@ def _png_is_solid_green(data):
 MIN_IMAGE_SIDE = 16            # px: a smaller width or height is a placeholder, not art
 MIN_IMAGE_PIXELS = 32 * 32     # px²: same for the area (a 600x1 strip is not a picture)
 UNIFORM_MAX_RANGE = 10         # 0-255: every channel varies less than this → one colour
-_NOT_IMAGE_FIELDS = {"video", "manual"}
-_NOT_IMAGE_EXTS = {".mp4", ".webm", ".avi", ".mkv", ".mp3", ".pdf"}
+_NOT_IMAGE_FIELDS = {"video", "manual", "music"}
+_NOT_IMAGE_EXTS = {".mp4", ".webm", ".avi", ".mkv", ".pdf"} | AUDIO_EXTS
 
 
 class MediaRejected(ValueError):
