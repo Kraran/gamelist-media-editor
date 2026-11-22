@@ -161,17 +161,23 @@ def save_xml(tree):
 
 def backup_xml():
     """Keep a dated snapshot and the compatible gamelist.xml.bak copy."""
+    return backup_xml_snapshot()[0]
+
+
+def backup_xml_snapshot():
+    """``backup_xml`` that also returns the dated snapshot's id (to undo with
+    ``/api/backups/restore``): ``(bak_path, snapshot_id)``."""
     with _xml_io_lock:
         if not has_gamelist():
             raise FileNotFoundError(st("server.no_gamelist"))
         if not os.path.isfile(XML_PATH):
             raise FileNotFoundError(st("server.xml_missing", path=XML_PATH))
         from gme.backups import create_snapshot
-        create_snapshot()
+        snapshot = create_snapshot()
         bak_path = XML_PATH + ".bak"
         with open(XML_PATH, "rb") as stream:
             atomic_write(bak_path, stream.read())
-        return bak_path
+        return bak_path, snapshot
 
 
 def get_game_elem(index):
