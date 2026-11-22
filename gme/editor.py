@@ -188,6 +188,7 @@ def api_browse():
         "parent": parent if has_parent else None,
         "dirs": dirs,
         "files": xmls,
+        "has_gamelist": os.path.isfile(os.path.join(target, "gamelist.xml")),
         "drives": drives,
     })
 

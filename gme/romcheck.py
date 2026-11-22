@@ -111,6 +111,71 @@ def _tracks(full):
     return [os.path.normpath(os.path.join(folder, n)) for n in names]
 
 
+def is_arcade_folder(folder_name):
+    folder_name = (folder_name or "").lower()
+    return folder_name in ARCADE_DB_FOLDERS or folder_name.startswith("mame")
+
+
+def find_roms(base, listed_keys=(), used_exts=(), folder_name="", nested=False, exts=None, xml_path=None):
+    """The ROM files (and one-game folders) under ``base``: ``(paths, arcade)``.
+
+    ``listed_keys``: keys (``_key``) of the paths the gamelist already lists,
+    always kept; ``used_exts``: extensions the gamelist already uses; ``exts``:
+    an explicit extension set (new gamelist for a known system) that replaces
+    the defaults, in sub-folders too. Nothing is opened but .cue/.gdi/.m3u.
+    """
+    listed_keys = set(listed_keys)
+    used_exts = set(used_exts)
+    # Arcade (MAME, FBNeo, Naomi…): a game is a romset at the top of the folder;
+    # its CHD disks sit in a sub-folder named after it and are never games.
+    arcade = is_arcade_folder(folder_name)
+    if exts:
+        root_exts = set(exts) | used_exts
+        sub_exts = set(exts) | used_exts
+    else:
+        root_exts = ROM_EXTS | used_exts
+        sub_exts = SUBFOLDER_EXTS | used_exts
+    max_depth = MAX_DEPTH
+    if arcade:
+        root_exts = (root_exts - {"chd"}) | used_exts
+        sub_exts = (sub_exts - {"chd"}) | used_exts
+        if not nested:
+            max_depth = 1
+    found, parts = [], set()
+    xml_key = _key(xml_path or "")
+
+    def walk(folder, depth):
+        exts_here = root_exts if depth == 1 else sub_exts
+        try:
+            entries = sorted(os.scandir(folder), key=lambda e: e.name.lower())
+        except OSError:
+            return
+        # A sub-folder named like a ROM next to it ("kinst/" beside "kinst.zip")
+        # holds that game's data (MAME CHD disks, DLC…), not other games.
+        rom_stems = {os.path.splitext(e.name)[0].lower() for e in entries
+                     if _ext(e.name) in exts_here and not e.name.startswith(".")}
+        for e in entries:
+            if e.name.startswith("."):
+                continue
+            try:
+                is_dir = e.is_dir()
+            except OSError:
+                continue
+            if is_dir:
+                if e.name.lower() in SKIP_DIRS:
+                    continue
+                if _ext(e.name) in exts_here or _key(e.path) in listed_keys:
+                    found.append(e.path)             # a folder that is one game
+                elif depth < max_depth and e.name.lower() not in rom_stems:
+                    walk(e.path, depth + 1)
+            elif _ext(e.name) in exts_here and _key(e.path) != xml_key and e.name.lower() not in ("gamelist.xml", "gamelist.xml.bak"):
+                found.append(e.path)
+                parts.update(_key(p) for p in _tracks(e.path))
+
+    walk(base, 1)
+    return [p for p in found if _key(p) not in parts or _key(p) in listed_keys], arcade
+
+
 def scan(tree=None):
     """Compare the open gamelist with its folder. Returns a report dict."""
     tree = tree if tree is not None else load_xml()
@@ -137,52 +202,9 @@ def scan(tree=None):
                 "media": sum(1 for f in MEDIA_DIRS if (game.findtext(f, "") or "").strip()),
             })
 
-    # Arcade (MAME, FBNeo, Naomi…): a game is a romset at the top of the folder;
-    # its CHD disks sit in a sub-folder named after it and are never games.
     _, folder_name = detect_system_id()
-    arcade = folder_name in ARCADE_DB_FOLDERS or folder_name.startswith("mame")
     nested = any("/" in (g.findtext("path", "") or "").strip().lstrip("./").replace("\\", "/") for g in games)
-    root_exts = ROM_EXTS | used_exts
-    sub_exts = SUBFOLDER_EXTS | used_exts
-    max_depth = MAX_DEPTH
-    if arcade:
-        root_exts = (ROM_EXTS - {"chd"}) | used_exts
-        sub_exts = (SUBFOLDER_EXTS - {"chd"}) | used_exts
-        if not nested:
-            max_depth = 1
-    found, parts = [], set()
-    xml_key = _key(xml_store.XML_PATH or "")
-
-    def walk(folder, depth):
-        exts = root_exts if depth == 1 else sub_exts
-        try:
-            entries = sorted(os.scandir(folder), key=lambda e: e.name.lower())
-        except OSError:
-            return
-        # A sub-folder named like a ROM next to it ("kinst/" beside "kinst.zip")
-        # holds that game's data (MAME CHD disks, DLC…), not other games.
-        rom_stems = {os.path.splitext(e.name)[0].lower() for e in entries
-                     if _ext(e.name) in exts and not e.name.startswith(".")}
-        for e in entries:
-            if e.name.startswith("."):
-                continue
-            try:
-                is_dir = e.is_dir()
-            except OSError:
-                continue
-            if is_dir:
-                if e.name.lower() in SKIP_DIRS:
-                    continue
-                if _ext(e.name) in exts or _key(e.path) in by_key:
-                    found.append(e.path)             # a folder that is one game
-                elif depth < max_depth and e.name.lower() not in rom_stems:
-                    walk(e.path, depth + 1)
-            elif _ext(e.name) in exts and _key(e.path) != xml_key:
-                found.append(e.path)
-                parts.update(_key(p) for p in _tracks(e.path))
-
-    walk(base, 1)
-    roms = [p for p in found if _key(p) not in parts or _key(p) in by_key]
+    roms, arcade = find_roms(base, set(by_key), used_exts, folder_name, nested, xml_path=xml_store.XML_PATH)
     unlisted = []
     for full in roms:
         if _key(full) in by_key:

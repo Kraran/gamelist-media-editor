@@ -16,6 +16,9 @@ Games are designated by their <path> (every game with that path). ``op``:
 - ``{"kind": "reset_name", "strip_tags": true}``: the name becomes the ROM
   file name without its extension; ``strip_tags`` also removes ``(…)`` and
   ``[…]`` groups such as ``(Europe)`` or ``[!]``.
+- ``{"kind": "dat_name", "strip_tags": false}``: the name becomes the
+  description of the game in the DAT or MAME list loaded in the DAT tool
+  (``pacman.zip`` → ``Pac-Man (Midway)``); games the DAT does not know keep theirs.
 - ``{"kind": "clear_media", "fields": ["video", …]}``: removes the tags; the
   files stay on disk (``/api/clear`` does the same for one game).
 
@@ -174,14 +177,16 @@ def _replace_op(op):
     return change, write
 
 
+def strip_name_tags(text):
+    """``Tetris (World) [!]`` → ``Tetris``; the text itself when nothing would remain."""
+    stripped = _SPACES.sub(" ", _TAGS.sub("", text)).strip(" -_.")
+    return stripped or text
+
+
 def clean_name(path, strip_tags=False):
     """The name a ROM file gives: its file name without extension (and tags)."""
     stem = os.path.splitext(os.path.basename((path or "").replace("\\", "/").rstrip("/")))[0].strip()
-    if strip_tags:
-        stripped = _SPACES.sub(" ", _TAGS.sub("", stem)).strip(" -_.")
-        if stripped:
-            return stripped
-    return stem
+    return strip_name_tags(stem) if strip_tags else stem
 
 
 def _reset_name_op(op):
@@ -190,6 +195,37 @@ def _reset_name_op(op):
     def change(game):
         before = game.findtext("name", "") or ""
         after = clean_name(game.findtext("path", "") or "", strip_tags)
+        return [("name", before, after)] if after and after != before else []
+
+    def write(game, _field, after):
+        set_name(game, after)
+    return change, write
+
+
+def _dat_name_op(op):
+    """Names from the loaded DAT / MAME list (DAT tool): the DAT game the last
+    comparison matched (by name or content), else the one the file name gives."""
+    from gme import dattool
+    from gme.romcheck import _entry_full
+    dat = dattool.STATE["dat"]
+    if dat is None:
+        raise BulkError("dat.none_loaded")
+    strip_tags = bool(op.get("strip_tags"))
+    matched = dattool.matches()
+
+    def change(game):
+        path = (game.findtext("path", "") or "").strip()
+        full = _entry_full(path)
+        if full is None:
+            return []
+        rel = "./" + os.path.relpath(full, xml_store.BASE_DIR).replace(os.sep, "/")
+        hit = matched.get(rel) or dat.find(os.path.basename(full.rstrip("\\/")))
+        if hit is None:
+            return []
+        after = (hit.desc or hit.name).strip()
+        if strip_tags:
+            after = strip_name_tags(after)
+        before = game.findtext("name", "") or ""
         return [("name", before, after)] if after and after != before else []
 
     def write(game, _field, after):
@@ -211,7 +247,8 @@ def _clear_media_op(op):
     return change, write
 
 
-OPS = {"set": _set_op, "replace": _replace_op, "reset_name": _reset_name_op, "clear_media": _clear_media_op}
+OPS = {"set": _set_op, "replace": _replace_op, "reset_name": _reset_name_op, "dat_name": _dat_name_op,
+       "clear_media": _clear_media_op}
 
 
 def _operation(body):

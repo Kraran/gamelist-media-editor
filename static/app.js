@@ -1927,7 +1927,8 @@ document.addEventListener("keydown", e => {
     }
     return;
   }
-  for (const [id, close] of [["bulk-modal", () => closeBulk()], ["stats-modal", () => closeStats()]]) {
+  for (const [id, close] of [["bulk-modal", () => closeBulk()], ["stats-modal", () => closeStats()],
+    ["dat-modal", () => closeDatTool()], ["newgl-modal", () => closeNewGamelist()]]) {
     const el = document.getElementById(id);
     if (el && el.classList.contains("open")) {
       if (e.key === "Escape") {
@@ -2078,7 +2079,7 @@ document.addEventListener("keydown", e => {
  * The page behind a dialog cannot be reached with the keyboard. The confirm
  * dialog can open above another one, so it is looked at first. */
 const DIALOG_IDS = ["confirm-modal", "media-lightbox", "ss-modal", "batch-modal", "check-modal", "backups-modal", "bulk-modal",
-  "stats-modal", "open-gamelist-modal",
+  "stats-modal", "dat-modal", "newgl-modal", "open-gamelist-modal",
   "settings-modal", "about-modal"];
 function topDialog() {
   for (const id of DIALOG_IDS) {
@@ -2383,7 +2384,7 @@ document.getElementById("btn-required-media").addEventListener("click", () => op
 /* --- Actions on the whole gamelist (app bar ⋯ menu) ----------------------- */
 setupMenu("actions-menu", "btn-actions");
 function setGamelistActionsEnabled(on) {
-  ["btn-bulk", "btn-stats", "btn-batch-scrape", "btn-manual-backup", "btn-backup-history", "btn-fill-arcade", "btn-rom-check", "btn-media-check", "btn-purge-regions"].forEach(id => {
+  ["btn-bulk", "btn-stats", "btn-batch-scrape", "btn-manual-backup", "btn-backup-history", "btn-fill-arcade", "btn-rom-check", "btn-dat-tool", "btn-media-check", "btn-purge-regions"].forEach(id => {
     document.getElementById(id).disabled = !on;
   });
 }
@@ -3455,6 +3456,13 @@ async function browseDirectory(path) {
     __browsePath = data.path || null;
     __browseParent = data.parent || null;
     if (pathEl) pathEl.textContent = __browsePath || "—";
+    const newBtn = document.getElementById("open-gl-new");
+    if (newBtn) {
+      newBtn.hidden = !__browsePath;
+      newBtn.dataset.mode = data.has_gamelist ? "add" : "new";
+      newBtn.dataset.xml = (data.files || []).filter(f => f.is_gamelist).map(f => f.path)[0] || "";
+      document.getElementById("open-gl-new-label").textContent = t(data.has_gamelist ? "newgl.add_missing" : "newgl.here");
+    }
     if (upBtn) upBtn.disabled = !__browseParent;
 
     if (drivesEl) {
@@ -3568,31 +3576,36 @@ async function applyOpenGamelist() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ path }),
     });
-    window.__gmeXmlPath = data.xml_path || path;
-    window.__gmeSession = data.session_id;
-    window.__gmeLoaded = true;
-    games = data.games || [];
-    setNoGamelistUi(true);
-    resetEditorSelection();
-    updateSystemBadge(data.system || null);
-    const sysEl = document.getElementById("system-name");
-    if (sysEl && data.xml_path) sysEl.title = data.xml_path;
-    const searchEl = document.getElementById("search");
-    if (searchEl) searchEl.value = "";
-    genreFilter = "all";                     // the genres of another system differ
-    selection.clear();
-    selectionChanged(false);
-    renderList("");
-    closeGamelistModal();
+    gamelistOpened(data, path);
     const label = (data.system && (data.system.label || data.system.folder)) || path;
     toast(t("toast.gamelist_opened", { name: label, n: data.count != null ? data.count : games.length }));
-    setStatus(t("status.ready", { n: games.length }));
-    refreshSavedBatch();
   } catch (e) {
     // A recent file that was moved or deleted: the server dropped it from the list
     if (e && e.code === "open_not_found") renderRecentGamelists();
     handleError(e);
   }
+}
+
+/** The server switched to another gamelist (opened or just created): show it. */
+function gamelistOpened(data, path) {
+  window.__gmeXmlPath = data.xml_path || path;
+  window.__gmeSession = data.session_id;
+  window.__gmeLoaded = true;
+  games = data.games || [];
+  setNoGamelistUi(true);
+  resetEditorSelection();
+  updateSystemBadge(data.system || null);
+  const sysEl = document.getElementById("system-name");
+  if (sysEl && data.xml_path) sysEl.title = data.xml_path;
+  const searchEl = document.getElementById("search");
+  if (searchEl) searchEl.value = "";
+  genreFilter = "all";                     // the genres of another system differ
+  selection.clear();
+  selectionChanged(false);
+  renderList("");
+  closeGamelistModal();
+  setStatus(t("status.ready", { n: games.length }));
+  refreshSavedBatch();
 }
 
 
@@ -4429,14 +4442,15 @@ function fillBulkScope(preferred) {
   const order = [preferred, "checked", "shown", "all"].filter(Boolean);
   sel.value = order.find(k => counts[k]) || "all";
 }
-function openBulk(tab) {
+function openBulk(tab, opts) {
   if (!window.__gmeLoaded || !games.length) return;
   if (changedFields().length) {
     toast(t("bulk.unsaved"), "warning");
     return;
   }
-  bulk = { tab: BULK_TABS.includes(tab) ? tab : "set", preview: null, busy: false };
-  fillBulkScope(selection.size ? "checked" : "shown");
+  opts = opts || {};
+  bulk = { tab: BULK_TABS.includes(tab) ? tab : "set", preview: null, busy: false, nameSource: opts.source || "file", dat: null };
+  fillBulkScope(opts.scope || (selection.size ? "checked" : "shown"));
   renderBulkForm();
   document.getElementById("bulk-modal").classList.add("open");
   const first = document.querySelector("#bulk-form select, #bulk-form input");
@@ -4474,8 +4488,12 @@ function renderBulkForm() {
     </div><div class="bulk-checks">${check("bulk-rep-regex", "bulk.regex", false)}${check("bulk-rep-case", "bulk.case", false)}</div>
     <p class="bulk-hint">${escapeHtml(t("bulk.replace_hint"))}</p>`;
   } else if (bulk.tab === "reset_name") {
-    html = `<p class="bulk-hint">${escapeHtml(t("bulk.names_hint"))}</p>
-      <div class="bulk-checks">${check("bulk-name-tags", "bulk.strip_tags", true)}</div>`;
+    const src = bulk.nameSource;
+    const radio = (v, key) => `<label class="bulk-check"><input type="radio" name="bulk-name-src" value="${v}"${src === v ? " checked" : ""}> <span>${escapeHtml(t(key))}</span></label>`;
+    html = `<div class="bulk-checks bulk-name-src">${radio("file", "bulk.names_from_file")}${radio("dat", "bulk.names_from_dat")}</div>
+      <p class="bulk-hint">${escapeHtml(t(src === "dat" ? "bulk.names_dat_hint" : "bulk.names_hint"))}</p>
+      ${src === "dat" ? `<div class="bulk-dat" id="bulk-dat"><span class="bulk-dat-info" id="bulk-dat-info">${escapeHtml(t("stats.loading"))}</span><div class="dat-load" id="bulk-dat-load"></div></div>` : ""}
+      <div class="bulk-checks">${check("bulk-name-tags", "bulk.strip_tags", src !== "dat")}</div>`;
   } else if (bulk.tab === "clear_media") {
     html = `<p class="bulk-hint">${escapeHtml(t("bulk.media_hint"))}</p>
       <div class="bulk-checks bulk-media-list">${getFields().map(f =>
@@ -4486,7 +4504,39 @@ function renderBulkForm() {
   }
   form.innerHTML = html;
   if (bulk.tab === "set") renderBulkSetValue();
+  if (bulk.tab === "reset_name" && bulk.nameSource === "dat") refreshBulkDat();
   invalidateBulkPreview();
+}
+/* Edit in bulk › Names › from a DAT / MAME list: the one loaded in the DAT
+ * tool, or one loaded here with the same controls. */
+async function refreshBulkDat(d) {
+  try {
+    d = d || await apiFetch("/api/dat");
+  } catch (e) { d = { dat: null }; }
+  if (!bulk || bulk.tab !== "reset_name" || bulk.nameSource !== "dat") return;
+  bulk.dat = d.dat;
+  const info = document.getElementById("bulk-dat-info");
+  info.innerHTML = `${icon("database")}<span>${escapeHtml(datInfoText(d.dat))}</span>` +
+    (d.report ? `<span class="bulk-dat-matched">${escapeHtml(t("bulk.names_dat_report"))}</span>` : "");
+  const load = document.getElementById("bulk-dat-load");
+  load.innerHTML = datLoadControlsHtml("bulk-dat", d.mame_xml);
+  bindDatLoadControls("bulk-dat", async source => {
+    info.innerHTML = `${icon("database")}<span>${escapeHtml(t("dat.loading", { pct: 0 }))}</span>`;
+    load.querySelectorAll("button, input").forEach(el => { el.disabled = true; });
+    try {
+      const done = await datLoad(source, s => {
+        const j = s.job;
+        if (j && j.state === "running") {
+          info.innerHTML = `${icon("database")}<span>${escapeHtml(t("dat.loading", { pct: j.total ? Math.round(j.done * 100 / j.total) : 0 }))}</span>`;
+        }
+      });
+      refreshBulkDat(done);
+      invalidateBulkPreview();
+    } catch (e) {
+      handleError(e);
+      refreshBulkDat();
+    }
+  });
 }
 function renderBulkSetValue() {
   const field = document.getElementById("bulk-set-field").value;
@@ -4510,7 +4560,9 @@ function bulkOp() {
     return { kind: "replace", fields: f === "all" ? "all" : [f], find: v("bulk-rep-find").value,
       replace: v("bulk-rep-with").value, regex: v("bulk-rep-regex").checked, case: v("bulk-rep-case").checked };
   }
-  if (bulk.tab === "reset_name") return { kind: "reset_name", strip_tags: v("bulk-name-tags").checked };
+  if (bulk.tab === "reset_name") {
+    return { kind: bulk.nameSource === "dat" ? "dat_name" : "reset_name", strip_tags: v("bulk-name-tags").checked };
+  }
   if (bulk.tab === "clear_media") {
     return { kind: "clear_media", fields: [...document.querySelectorAll("[data-bulk-media]:checked")].map(c => c.dataset.bulkMedia) };
   }
@@ -4684,6 +4736,11 @@ document.getElementById("bulk-tabs").addEventListener("click", e => {
 document.getElementById("bulk-scope").addEventListener("change", invalidateBulkPreview);
 document.getElementById("bulk-form").addEventListener("input", invalidateBulkPreview);
 document.getElementById("bulk-form").addEventListener("change", e => {
+  if (e.target.name === "bulk-name-src" && bulk) {
+    bulk.nameSource = e.target.value;
+    renderBulkForm();
+    return;
+  }
   if (e.target.id === "bulk-set-field") renderBulkSetValue();
   invalidateBulkPreview();
 });
@@ -4792,6 +4849,365 @@ document.getElementById("stats-modal").addEventListener("click", e => {
   listEls().list.scrollTop = 0;
   renderList();
 });
+
+
+/* ========== DAT tool (Actions › DAT tool) ==========
+ * Load a DAT the user has (Logiqx XML from No-Intro / Redump / FBNeo, MAME
+ * -listxml, ClrMamePro text), by picking the file, typing its path or using
+ * the mame.xml found near the gamelist. The server parses it and compares the
+ * system's ROM files in the background (gme/dattool.py); this dialog polls
+ * /api/dat for the progress. Hashing is opt-in. Nothing here writes: names
+ * from the DAT go through Edit in bulk › Names (preview, backup, undo).
+ */
+const DAT_STATUSES = ["ok", "renamed", "bad", "incomplete", "unknown", "missing"];
+let datView = { open: false, state: null, status: "", hideClones: false, hideBios: false, polling: false };
+
+function datSleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+/** Poll /api/dat until the running job ends; ``onTick(state)`` on each answer. */
+async function datWait(onTick) {
+  for (;;) {
+    const d = await apiFetch("/api/dat");
+    if (onTick) onTick(d);
+    if (!d.job || d.job.state !== "running") return d;
+    await datSleep(250);
+  }
+}
+async function datLoad(source, onTick) {
+  if (source instanceof File) {
+    const fd = new FormData();
+    fd.append("file", source, source.name);
+    await apiFetch("/api/dat/load", { method: "POST", body: fd });
+  } else {
+    await apiFetch("/api/dat/load", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: source }),
+    });
+  }
+  const d = await datWait(onTick);
+  if (d.job && d.job.state === "error") throw new Error(d.job.error || t("dat.load_failed"));
+  return d;
+}
+function datInfoText(info) {
+  if (!info) return t("dat.none");
+  return t("dat.loaded", { title: info.title || info.source, games: fmtCount(info.games),
+    clones: fmtCount(info.clones), bios: fmtCount(info.bios) });
+}
+/** The load controls (file, path, mame.xml found), shared by this dialog and Edit in bulk › Names. */
+function datLoadControlsHtml(prefix, mame) {
+  return `<label class="btn btn-sm dat-file-btn">${icon("upload")}<span>${escapeHtml(t("dat.pick"))}</span>` +
+    `<input type="file" id="${prefix}-file" accept=".dat,.xml" hidden></label>` +
+    `<input type="text" id="${prefix}-path" class="dat-path" spellcheck="false" autocomplete="off" placeholder="${escapeHtml(t("dat.path_ph"))}">` +
+    `<button type="button" class="btn btn-sm" id="${prefix}-path-load">${escapeHtml(t("dat.load"))}</button>` +
+    (mame ? `<button type="button" class="btn btn-sm" id="${prefix}-mame" data-path="${escapeHtml(mame)}" title="${escapeHtml(mame)}">${icon("cpu")}<span>${escapeHtml(t("dat.use_mame"))}</span></button>` : "");
+}
+function bindDatLoadControls(prefix, run) {
+  const file = document.getElementById(prefix + "-file");
+  const path = document.getElementById(prefix + "-path");
+  file.addEventListener("change", () => { if (file.files && file.files[0]) run(file.files[0]); file.value = ""; });
+  document.getElementById(prefix + "-path-load").addEventListener("click", () => { if (path.value.trim()) run(path.value.trim()); });
+  path.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); if (path.value.trim()) run(path.value.trim()); } });
+  const mame = document.getElementById(prefix + "-mame");
+  if (mame) mame.addEventListener("click", () => run(mame.dataset.path));
+}
+
+async function openDatTool() {
+  if (!window.__gmeLoaded) return;
+  datView = { open: true, state: null, status: "", hideClones: false, hideBios: false, polling: false };
+  document.getElementById("dat-modal").classList.add("open");
+  document.getElementById("dat-report").innerHTML = "";
+  updateDatHashHint();
+  try {
+    const d = await apiFetch("/api/dat");
+    renderDatState(d);
+    if (d.job && d.job.state === "running") followDatJob();
+    else if (d.report) loadDatReport();
+  } catch (e) { handleError(e); }
+  document.getElementById("dat-hash").focus();
+}
+function closeDatTool() {
+  const modal = document.getElementById("dat-modal");
+  if (!modal.classList.contains("open")) return;
+  modal.classList.remove("open");
+  datView.open = false;              // a running job goes on; reopening shows it
+}
+function renderDatState(d) {
+  datView.state = d;
+  const running = !!(d.job && d.job.state === "running");
+  const src = document.getElementById("dat-source");
+  src.innerHTML = `${icon("database")}<span>${escapeHtml(datInfoText(d.dat))}</span>`;
+  src.classList.toggle("is-empty", !d.dat);
+  const load = document.getElementById("dat-load");
+  if (!load.dataset.ready || load.dataset.mame !== (d.mame_xml || "")) {
+    load.innerHTML = datLoadControlsHtml("dat", d.mame_xml);
+    load.dataset.ready = "1";
+    load.dataset.mame = d.mame_xml || "";
+    bindDatLoadControls("dat", runDatLoad);
+  }
+  load.querySelectorAll("button, input").forEach(el => { el.disabled = running; });
+  document.getElementById("dat-compare").disabled = running || !d.dat;
+  document.getElementById("dat-hash").disabled = running;
+  const prog = document.getElementById("dat-progress");
+  prog.hidden = !running;
+  if (running) {
+    const j = d.job;
+    const pct = j.total ? Math.min(100, Math.round(j.done * 100 / j.total)) : 0;
+    document.getElementById("dat-bar").style.width = pct + "%";
+    const amount = j.unit === "files" ? t("dat.progress_files", { done: fmtCount(j.done), total: fmtCount(j.total) })
+      : t("dat.progress_bytes", { done: fmtSize(j.done), total: fmtSize(j.total) });
+    document.getElementById("dat-progress-text").textContent =
+      t(j.kind === "load" ? "dat.loading" : "dat.comparing", { pct }) + " · " + amount + (j.current ? " · " + j.current : "");
+  }
+  document.getElementById("dat-export").disabled = running || !d.report;
+  document.getElementById("dat-names").disabled = running || !d.dat;
+}
+async function followDatJob() {
+  if (datView.polling) return;
+  datView.polling = true;
+  try {
+    const d = await datWait(s => { if (datView.open) renderDatState(s); });
+    if (!datView.open) return;
+    renderDatState(d);
+    const j = d.job || {};
+    if (j.state === "error") toast(j.error || t("dat.load_failed"), "error");
+    else if (j.state === "stopped") toast(t("dat.stopped"), "info");
+    else if (j.kind === "load" && d.dat) toast(datInfoText(d.dat));
+    if (j.kind === "compare" && d.report) { datView.status = ""; loadDatReport(); }
+    else if (j.kind === "load") document.getElementById("dat-report").innerHTML = "";
+  } catch (e) {
+    handleError(e);
+  } finally {
+    datView.polling = false;
+  }
+}
+async function runDatLoad(source) {
+  try {
+    if (source instanceof File) {
+      const fd = new FormData();
+      fd.append("file", source, source.name);
+      await apiFetch("/api/dat/load", { method: "POST", body: fd });
+    } else {
+      await apiFetch("/api/dat/load", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: source }),
+      });
+    }
+  } catch (e) { handleError(e); return; }
+  followDatJob();
+}
+function updateDatHashHint() {
+  const mode = document.getElementById("dat-hash").value;
+  document.getElementById("dat-hash-hint").textContent = t("dat.hint_" + mode);
+}
+async function runDatCompare() {
+  const hash = document.getElementById("dat-hash").value;
+  try {
+    await apiFetch("/api/dat/compare", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ hash }),
+    });
+  } catch (e) { handleError(e); return; }
+  document.getElementById("dat-report").innerHTML = "";
+  followDatJob();
+}
+function datQuery(extra) {
+  const q = new URLSearchParams();
+  if (datView.status) q.set("status", datView.status);
+  if (datView.hideClones) q.set("hide_clones", "1");
+  if (datView.hideBios) q.set("hide_bios", "1");
+  Object.entries(extra || {}).forEach(([k, v]) => q.set(k, v));
+  return q.toString();
+}
+async function loadDatReport() {
+  const box = document.getElementById("dat-report");
+  try {
+    const rep = await apiFetch("/api/dat/report?" + datQuery());
+    if (datView.open) box.innerHTML = datReportHtml(rep);
+  } catch (e) {
+    box.innerHTML = `<p class="bulk-empty bulk-error">${icon("alert-circle")}<span>${escapeHtml(e.message || String(e))}</span></p>`;
+  }
+}
+function datDetail(r) {
+  if (r.detail === "dat_baddump") return t("dat.detail_baddump");
+  if (!r.detail) return "";
+  if (r.status === "incomplete") return t("dat.detail_missing", { roms: r.detail });
+  if (r.status === "bad") return t("dat.detail_bad", { roms: r.detail });
+  return r.detail;
+}
+function datReportHtml(rep) {
+  const chips = DAT_STATUSES.map(s => `<button type="button" class="dat-chip dat-${s}${datView.status === s ? " active" : ""}" data-dat-status="${s}" aria-pressed="${datView.status === s}">` +
+    `<strong>${fmtCount(rep.counts[s])}</strong><span>${escapeHtml(t("dat.status_" + s))}</span></button>`).join("");
+  const filters = `<label class="bulk-check"><input type="checkbox" data-dat-filter="clones"${datView.hideClones ? " checked" : ""}> <span>${escapeHtml(t("dat.hide_clones"))}</span></label>` +
+    `<label class="bulk-check"><input type="checkbox" data-dat-filter="bios"${datView.hideBios ? " checked" : ""}> <span>${escapeHtml(t("dat.hide_bios"))}</span></label>`;
+  let html = `<div class="dat-chips">${chips}</div><div class="dat-filters">${filters}` +
+    `<span class="bulk-hint">${escapeHtml(t("dat.mode_" + rep.hash))}</span></div>`;
+  if (!rep.rows.length) return html + `<p class="bulk-empty">${escapeHtml(t("dat.no_rows"))}</p>`;
+  const rows = rep.rows.map(r => {
+    const flags = r.flags.map(f => `<span class="dat-flag dat-flag-${f}">${escapeHtml(t("dat.flag_" + f))}</span>`).join("");
+    const file = r.file ? `<span title="${escapeHtml(r.path)}">${escapeHtml(r.file)}</span>` : `<em class="bulk-none">${escapeHtml(t("dat.no_file"))}</em>`;
+    const game = r.dat ? `<span class="dat-game" title="${escapeHtml(r.dat)}">${escapeHtml(r.desc || r.dat)}</span>` +
+      (r.parent ? `<span class="dat-parent">${escapeHtml(t("dat.clone_of", { name: r.parent }))}</span>` : "") : "";
+    return `<tr><td><span class="dat-status dat-${r.status}">${escapeHtml(t("dat.status_" + r.status))}</span></td>` +
+      `<td class="dat-file">${file}</td><td>${game}</td><td class="dat-detail">${flags}${escapeHtml(datDetail(r))}</td></tr>`;
+  }).join("");
+  html += `<table class="bulk-table dat-table"><thead><tr><th>${escapeHtml(t("dat.col_status"))}</th><th>${escapeHtml(t("dat.col_file"))}</th>` +
+    `<th>${escapeHtml(t("dat.col_game"))}</th><th>${escapeHtml(t("dat.col_detail"))}</th></tr></thead><tbody>${rows}</tbody></table>`;
+  if (rep.total > rep.rows.length) {
+    html += `<p class="bulk-more">${escapeHtml(t("dat.more", { n: fmtCount(rep.total - rep.rows.length) }))}</p>`;
+  }
+  return html;
+}
+async function exportDatReport() {
+  try {
+    const blob = await apiFetch("/api/dat/report?" + datQuery({ format: "csv" }), { raw: true });
+    const a = document.createElement("a");
+    const system = (currentSystem && currentSystem.folder) || "gamelist";
+    a.href = URL.createObjectURL(blob);
+    a.download = `dat-${system}-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  } catch (e) { handleError(e); }
+}
+document.getElementById("btn-dat-tool").addEventListener("click", openDatTool);
+document.getElementById("dat-close").addEventListener("click", closeDatTool);
+document.getElementById("dat-cancel").addEventListener("click", closeDatTool);
+document.getElementById("dat-modal").addEventListener("click", e => { if (e.target.id === "dat-modal") closeDatTool(); });
+document.getElementById("dat-hash").addEventListener("change", updateDatHashHint);
+document.getElementById("dat-compare").addEventListener("click", runDatCompare);
+document.getElementById("dat-stop").addEventListener("click", () => apiFetch("/api/dat/stop", { method: "POST" }).catch(handleError));
+document.getElementById("dat-export").addEventListener("click", exportDatReport);
+document.getElementById("dat-names").addEventListener("click", () => {
+  closeDatTool();
+  openBulk("reset_name", { scope: "all", source: "dat" });
+});
+document.getElementById("dat-report").addEventListener("click", e => {
+  const chip = e.target.closest("[data-dat-status]");
+  if (!chip) return;
+  datView.status = datView.status === chip.dataset.datStatus ? "" : chip.dataset.datStatus;
+  loadDatReport();
+});
+document.getElementById("dat-report").addEventListener("change", e => {
+  const f = e.target.closest("[data-dat-filter]");
+  if (!f) return;
+  if (f.dataset.datFilter === "clones") datView.hideClones = f.checked;
+  else datView.hideBios = f.checked;
+  loadDatReport();
+});
+
+/* ========== New gamelist from a ROM folder (Gamelist… › Create a gamelist here) ==========
+ * The folder browsed in the Open dialog has no gamelist.xml: list its ROMs
+ * with the system's usual extensions (editable), preview, then write and open
+ * the new gamelist (gme/newgamelist.py). A folder that has one gets "Add the
+ * missing ROMs…" instead: it opens it and runs Check ROMs (preview + backup).
+ */
+let newgl = null;   // { folder, preview, busy }
+
+function openNewGamelist(folder) {
+  closeGamelistModal();
+  newgl = { folder, preview: null, busy: false, extsTouched: false };
+  document.getElementById("newgl-folder").textContent = folder;
+  document.getElementById("newgl-exts").value = "";
+  document.getElementById("newgl-tags").checked = false;
+  document.getElementById("newgl-modal").classList.add("open");
+  runNewGamelistPreview();
+}
+function closeNewGamelist() {
+  const modal = document.getElementById("newgl-modal");
+  if (!modal.classList.contains("open")) return;
+  modal.classList.remove("open");
+  newgl = null;
+  document.getElementById("newgl-preview").innerHTML = "";
+}
+function newglBody() {
+  const exts = document.getElementById("newgl-exts").value.trim();
+  return { folder: newgl.folder, exts: newgl.extsTouched && exts ? exts : null,
+    strip_tags: document.getElementById("newgl-tags").checked };
+}
+function invalidateNewGamelist() {
+  if (!newgl) return;
+  newgl.preview = null;
+  document.getElementById("newgl-create").disabled = true;
+  document.getElementById("newgl-create-label").textContent = t("newgl.create");
+  document.getElementById("newgl-preview").innerHTML = `<p class="bulk-empty">${escapeHtml(t("bulk.preview_first"))}</p>`;
+}
+async function runNewGamelistPreview() {
+  if (!newgl || newgl.busy) return;
+  newgl.busy = true;
+  const box = document.getElementById("newgl-preview");
+  try {
+    const body = newglBody();
+    const d = await apiFetch("/api/new-gamelist/preview", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+    });
+    if (!newgl) return;
+    if (!newgl.extsTouched) document.getElementById("newgl-exts").value = d.exts.join(", ");
+    document.getElementById("newgl-hint").textContent = d.all_exts ? t("newgl.all_exts", { system: d.system || d.label })
+      : d.custom ? t("newgl.custom_exts") : t("newgl.system_exts", { system: d.system });
+    if (d.exists) {
+      newgl.preview = null;
+      box.innerHTML = `<p class="bulk-hint bulk-warn">${icon("alert-triangle")}<span>${escapeHtml(t("newgl.exists"))}</span></p>`;
+      document.getElementById("newgl-create").disabled = true;
+      return;
+    }
+    newgl.preview = d.total ? { body, d } : null;
+    const rows = d.roms.map(r => `<tr><td class="bulk-game"><code>${escapeHtml(r.path)}</code></td><td>${escapeHtml(r.name)}</td></tr>`).join("");
+    box.innerHTML = d.total
+      ? `<p class="bulk-summary">${escapeHtml(t("newgl.summary", { n: fmtCount(d.total) }))}</p>` +
+        `<table class="bulk-table"><thead><tr><th>${escapeHtml(t("newgl.col_path"))}</th><th>${escapeHtml(t("newgl.col_name"))}</th></tr></thead><tbody>${rows}</tbody></table>` +
+        (d.total > d.roms.length ? `<p class="bulk-more">${escapeHtml(t("bulk.more", { n: fmtCount(d.total - d.roms.length) }))}</p>` : "") +
+        `<p class="bulk-hint">${icon("shield-check")}<span>${escapeHtml(t("newgl.safe"))}</span></p>`
+      : `<p class="bulk-empty">${escapeHtml(t("newgl.no_roms"))}</p>`;
+    const btn = document.getElementById("newgl-create");
+    btn.disabled = !d.total;
+    document.getElementById("newgl-create-label").textContent = d.total ? t("newgl.create_n", { n: fmtCount(d.total) }) : t("newgl.create");
+  } catch (e) {
+    if (newgl) {
+      newgl.preview = null;
+      box.innerHTML = `<p class="bulk-empty bulk-error">${icon("alert-circle")}<span>${escapeHtml(e.message || String(e))}</span></p>`;
+    }
+  } finally {
+    if (newgl) newgl.busy = false;
+  }
+}
+async function createNewGamelist() {
+  if (!newgl || newgl.busy || !newgl.preview) return;
+  if (window.__gmeLoaded && changedFields().length) {
+    toast(t("bulk.unsaved"), "warning");
+    return;
+  }
+  newgl.busy = true;
+  document.getElementById("newgl-create").disabled = true;
+  try {
+    const data = await apiFetch("/api/new-gamelist", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newgl.preview.body),
+    });
+    closeNewGamelist();
+    gamelistOpened(data, data.xml_path);
+    toast(t("newgl.created", { n: fmtCount(data.created), name: (data.system && data.system.label) || "" }));
+  } catch (e) {
+    handleError(e);
+    if (newgl) { newgl.busy = false; invalidateNewGamelist(); }
+  }
+}
+document.getElementById("open-gl-new").addEventListener("click", async () => {
+  const btn = document.getElementById("open-gl-new");
+  if (!__browsePath) return;
+  if (btn.dataset.mode === "add") {
+    // the folder has a gamelist: open it, then Check ROMs adds what is missing
+    document.getElementById("open-gl-path").value = btn.dataset.xml;
+    await applyOpenGamelist();
+    if (window.__gmeXmlPath && recentKey(window.__gmeXmlPath) === recentKey(btn.dataset.xml)) openCheck("roms");
+    return;
+  }
+  openNewGamelist(__browsePath);
+});
+document.getElementById("newgl-close").addEventListener("click", closeNewGamelist);
+document.getElementById("newgl-cancel").addEventListener("click", closeNewGamelist);
+document.getElementById("newgl-modal").addEventListener("click", e => { if (e.target.id === "newgl-modal") closeNewGamelist(); });
+document.getElementById("newgl-preview-btn").addEventListener("click", runNewGamelistPreview);
+document.getElementById("newgl-create").addEventListener("click", createNewGamelist);
+document.getElementById("newgl-exts").addEventListener("input", () => { if (newgl) newgl.extsTouched = true; invalidateNewGamelist(); });
+document.getElementById("newgl-exts").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); runNewGamelistPreview(); } });
+document.getElementById("newgl-tags").addEventListener("change", invalidateNewGamelist);
 
 
 boot();
