@@ -13,8 +13,10 @@ function icon(name, cls = "") {
 
 const FIELD_DEFS = [
 { key: "image",     icon: "photo" },
+{ key: "titleshot", icon: "heading" },
 { key: "video",     icon: "movie" },
 { key: "marquee",   icon: "tag" },
+{ key: "wheel",     icon: "steering-wheel" },
 { key: "manual",    icon: "book" },
 { key: "boxart",    icon: "box" },
 { key: "boxback",   icon: "flip-horizontal" },
@@ -24,6 +26,7 @@ const FIELD_DEFS = [
 { key: "map",       icon: "map" },
 { key: "thumbnail", icon: "photo-square-rounded" },
 { key: "bezel",     icon: "frame" },
+{ key: "music",     icon: "music" },
 ];
 function getFields() {
   return FIELD_DEFS.map(f => ({
@@ -1375,8 +1378,9 @@ async function loadGameDetail(g) {
 const MEDIA_SHAPE = {
   image: "4 / 3", video: "4 / 3", marquee: "3 / 1", manual: "16 / 10", boxart: "3 / 4",
   boxback: "3 / 4", cartridge: "1 / 1", fanart: "16 / 9", mix: "4 / 3", map: "1 / 1",
+  titleshot: "4 / 3", wheel: "3 / 1", music: "2 / 1",
 };
-const MEDIA_ACCEPT = { video: "video/*", manual: "application/pdf,.pdf" };
+const MEDIA_ACCEPT = { video: "video/*", manual: "application/pdf,.pdf", music: "audio/*,.mp3,.ogg,.wav,.flac" };
 
 /** Once the real size is known, the tile takes the media's own shape (within
  * limits, so a very tall or very wide image stays readable): nothing is cut,
@@ -1401,6 +1405,8 @@ function mediaTileHtml(g, f) {
   let media;
   if (f.key === "video") {
     media = `<video src="${url}" controls muted preload="metadata"></video>`;
+  } else if (f.key === "music") {
+    media = `<div class="tile-audio">${icon("music")}<audio src="${url}" controls preload="metadata"></audio></div>`;
   } else if (f.key === "manual") {
     media = `<a class="tile-doc" href="${url}" target="_blank" rel="noopener">${icon("file-text")}<span>${t("zone.open")}</span></a>`;
   } else {
@@ -1455,6 +1461,17 @@ function renderZones(g) {
           `<div class="tile-broken">${icon("alert-triangle")}<span>${t("zone.preview_unavailable")}</span></div>`;
       });
       img.addEventListener("click", () => openLightbox(img.src, tile.querySelector(".tile-title").textContent.trim()));
+    }
+    const audio = tile.querySelector("audio");
+    if (audio) {
+      audio.addEventListener("loadedmetadata", () => {
+        const s = Math.round(audio.duration || 0);
+        if (s && isFinite(audio.duration)) dims.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+      });
+      audio.addEventListener("error", () => {
+        tile.querySelector(".tile-media").innerHTML =
+          `<div class="tile-broken">${icon("alert-triangle")}<span>${t("zone.preview_unavailable")}</span></div>`;
+      });
     }
     const video = tile.querySelector("video");
     if (video) {
@@ -2112,7 +2129,7 @@ function setupMenu(id, buttonId, onOpen) {
 }
 
 /* --- Settings: General, ScreenScraper, scrape sources, shortcuts --------- */
-const SETTINGS_PANES = ["general", "ss", "sources", "required", "keys"];
+const SETTINGS_PANES = ["general", "ss", "sources", "ssmedia", "required", "keys"];
 
 function openSettings(pane) {
   closeMenu(null, false);
@@ -2549,7 +2566,7 @@ document.getElementById("check-modal").addEventListener("click", e => {
  * and listed; quota or a stopped server ends the run. Nothing runs in the
  * background: closing the window stops it.
  */
-const BATCH_MEDIA = ["image", "thumbnail", "marquee", "boxart", "boxback", "cartridge", "fanart", "mix", "map",
+const BATCH_MEDIA = ["image", "titleshot", "thumbnail", "marquee", "wheel", "boxart", "boxback", "cartridge", "fanart", "mix", "map",
   "bezel", "video", "manual", "pad2key"];
 const BATCH_INFO = ["desc", "genre", "rating", "releasedate", "developer", "publisher", "players", "lang", "region",
   "family", "arcadesystemname", "name"];
@@ -3651,6 +3668,61 @@ document.getElementById("btn-ss-cache-clear").addEventListener("click", async ()
   }
 });
 
+/* Settings › ScreenScraper media: per field, on/off, the ScreenScraper type
+ * and the region asked first (gme/scrapers/ss.py SS_MEDIA_CHOICES). The rows
+ * come from the server's list of choices; a change saves at once. */
+let ssMediaReady = false;
+function ssTypeLabel(code) {
+  const key = "ssmedia.type_" + code.toLowerCase().replace(/-/g, "_");
+  return `${t(key, null, code)} (${code})`;
+}
+function fillSsMedia(cfg) {
+  const box = document.getElementById("ssm-rows");
+  if (!box) return;
+  const choices = cfg.media_choices || {};
+  const types = cfg.media_types || {};
+  const enabled = cfg.media_enabled || {};
+  const regions = cfg.media_regions || {};
+  const regionChoices = cfg.media_region_choices || [];
+  const preferred = cfg.prefer_region || "fr";
+  const focused = box.contains(document.activeElement) ? document.activeElement.id : null;
+  box.innerHTML = getFields().filter(f => choices[f.key]).map(f => {
+    const opts = choices[f.key].map(c => `<option value="${escapeHtml(c)}">${escapeHtml(ssTypeLabel(c))}</option>`).join("");
+    const regs = `<option value="">${escapeHtml(t("ssmedia.region_auto", { region: regionLabel(preferred) }))}</option>` +
+      regionChoices.map(c => `<option value="${c}">${escapeHtml(regionLabel(c))} (${c})</option>`).join("");
+    return `<div class="ssm-row" role="row" data-field="${f.key}">` +
+      `<label class="check-option" role="cell"><input type="checkbox" class="ssm-on" id="ssm-on-${f.key}"${enabled[f.key] ? " checked" : ""} />` +
+      `${icon(f.icon)}<span>${escapeHtml(f.label)}</span></label>` +
+      `<select class="ssm-type" id="ssm-type-${f.key}" role="cell" aria-label="${escapeHtml(f.label + " · " + t("ssmedia.col_type"))}"${choices[f.key].length < 2 ? " disabled" : ""}>${opts}</select>` +
+      `<select class="ssm-region" id="ssm-region-${f.key}" role="cell" aria-label="${escapeHtml(f.label + " · " + t("ssmedia.col_region"))}">${regs}</select></div>`;
+  }).join("");
+  box.querySelectorAll(".ssm-row").forEach(row => {
+    const field = row.dataset.field;
+    setSelectValue(row.querySelector(".ssm-type"), types[field] || choices[field][0]);
+    setSelectValue(row.querySelector(".ssm-region"), regions[field] || "");
+    row.classList.toggle("is-off", !enabled[field]);
+  });
+  if (focused && document.getElementById(focused)) document.getElementById(focused).focus();
+  ssMediaReady = true;
+}
+function ssMediaPayload() {
+  if (!ssMediaReady) return {};
+  const out = { media_types: {}, media_enabled: {}, media_regions: {} };
+  document.querySelectorAll("#ssm-rows .ssm-row").forEach(row => {
+    const field = row.dataset.field;
+    out.media_types[field] = row.querySelector(".ssm-type").value;
+    out.media_enabled[field] = row.querySelector(".ssm-on").checked;
+    out.media_regions[field] = row.querySelector(".ssm-region").value;
+  });
+  return out;
+}
+document.getElementById("ssm-rows").addEventListener("change", e => {
+  const row = e.target.closest(".ssm-row");
+  if (!row) return;
+  row.classList.toggle("is-off", !row.querySelector(".ssm-on").checked);
+  saveSsConfig();
+});
+
 async function loadSsConfig() {
   try {
     const cfg = await apiFetch("/api/ss/config");
@@ -3658,13 +3730,7 @@ async function loadSsConfig() {
     fillSsRegions(cfg.prefer_region || "fr");
     fillSsThreads(cfg.threads, cfg.limits);
     fillSsCache(cfg);
-    const mt = cfg.media_types || {};
-    const img = document.getElementById("ss-type-image");
-    const box = document.getElementById("ss-type-boxart");
-    const mix = document.getElementById("ss-type-mix");
-    if (img) img.value = mt.image || "ss";
-    if (box) box.value = mt.boxart || "box-3D";
-    if (mix) mix.value = mt.mix || "mixrbv2";
+    fillSsMedia(cfg);
     document.getElementById("ss-sspassword").placeholder = cfg.sspassword_set
       ? t("tools.ss_pass_saved_ph")
       : t("tools.ss_pass_optional_ph");
@@ -3689,11 +3755,7 @@ async function saveSsConfig({ quiet = false } = {}) {
     threads: Number(document.getElementById("ss-threads").value) || 0,
     cache_enabled: document.getElementById("ss-cache-enabled").checked,
     cache_days: Number(document.getElementById("ss-cache-days").value) || 30,
-    media_types: {
-      image: document.getElementById("ss-type-image").value,
-      boxart: document.getElementById("ss-type-boxart").value,
-      mix: document.getElementById("ss-type-mix").value,
-    },
+    ...ssMediaPayload(),
   };
   const sspass = document.getElementById("ss-sspassword").value;
   if (sspass) payload.sspassword = sspass;
@@ -3744,7 +3806,7 @@ async function testSsConfig() {
 }
 
 // Like the language, each ScreenScraper setting is saved as soon as it changes
-["ss-ssid", "ss-sspassword", "ss-region", "ss-threads", "ss-cache-enabled", "ss-cache-days", "ss-type-image", "ss-type-boxart", "ss-type-mix"].forEach(id => {
+["ss-ssid", "ss-sspassword", "ss-region", "ss-threads", "ss-cache-enabled", "ss-cache-days"].forEach(id => {
   document.getElementById(id).addEventListener("change", () => saveSsConfig());
 });
 document.getElementById("btn-ss-test").addEventListener("click", testSsConfig);
@@ -3756,7 +3818,7 @@ const SCRAPERS = {
 };
 const SCRAPER_PREF_KEY = "gme_scraper_by_system";     // where older versions kept it (browser)
 const SCRAPE_MEDIA_ICONS = {
-  image: "photo", thumbnail: "photo", marquee: "tag", boxart: "box", boxback: "flip-horizontal",
+  image: "photo", titleshot: "heading", thumbnail: "photo", marquee: "tag", wheel: "steering-wheel", boxart: "box", boxback: "flip-horizontal",
   cartridge: "device-sd-card", fanart: "wallpaper", mix: "layout-collage", map: "map", bezel: "frame",
   video: "movie", manual: "book", pad2key: "keyboard",
 };

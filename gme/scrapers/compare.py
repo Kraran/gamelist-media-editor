@@ -28,8 +28,8 @@ META_KEYS = (
     "players", "lang", "region", "family", "kidgame", "arcadesystemname",
 )
 MEDIA_KEYS = (
-    "image", "thumbnail", "marquee", "boxart", "boxback", "cartridge", "fanart",
-    "mix", "map", "bezel", "video", "manual", "pad2key",
+    "image", "titleshot", "thumbnail", "marquee", "wheel", "boxart", "boxback", "cartridge",
+    "fanart", "mix", "map", "bezel", "video", "manual", "pad2key",
 )
 NOT_IMAGES = {"video", "manual", "pad2key"}       # shown as text, not previewed
 PRESETS = {
@@ -85,9 +85,13 @@ def _same_meta(key, cur, new):
 
 
 def compare_rows(proposed, current, headers=None, previews=True):
-    """One row per field, in display order. Registers image previews (``previews``)."""
+    """One row per field, in display order. Registers image previews (``previews``).
+
+    Media the user turned off for this source (``proposed["disabled_media"]``)
+    get no row: they are neither proposed nor listed as unavailable."""
     proposed = proposed or {}
     medias = proposed.get("medias") or {}
+    disabled = set(proposed.get("disabled_media") or ())
     rows = []
     for key in META_KEYS:
         new = str(proposed.get(key) or "").strip()
@@ -102,6 +106,8 @@ def compare_rows(proposed, current, headers=None, previews=True):
             status = "different"
         rows.append({"key": key, "kind": "meta", "status": status, "current": cur, "proposed": new})
     for key in MEDIA_KEYS:
+        if key in disabled:
+            continue
         info = medias.get(key) or {}
         url = (info.get("url") or "").strip()
         cur = str(current.get(key) or "")
