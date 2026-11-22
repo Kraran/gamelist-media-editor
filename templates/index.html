@@ -80,6 +80,9 @@
           <button type="button" class="menu-item" role="menuitem" id="btn-rom-check">
             {{ icon("list-details") }}<span class="menu-item-text"><span class="menu-item-title" data-i18n="romcheck.title">Vérifier les ROMs</span><span class="menu-item-sub" data-i18n="romcheck.action_sub">Compare le gamelist aux fichiers du dossier</span></span>
           </button>
+          <button type="button" class="menu-item" role="menuitem" id="btn-dat-tool">
+            {{ icon("database") }}<span class="menu-item-text"><span class="menu-item-title" data-i18n="dat.title">Outil DAT</span><span class="menu-item-sub" data-i18n="dat.action_sub">Compare les ROMs à un DAT No-Intro, Redump ou MAME</span></span>
+          </button>
           <button type="button" class="menu-item" role="menuitem" id="btn-media-check">
             {{ icon("photo") }}<span class="menu-item-text"><span class="menu-item-title" data-i18n="mediacheck.title">Vérifier les médias</span><span class="menu-item-sub" data-i18n="mediacheck.action_sub">Médias inutilisés, liens vers des fichiers absents</span></span>
           </button>
@@ -463,6 +466,7 @@
         <div id="open-gl-recent" class="open-gl-recent" role="list"></div>
       </div>
       <div class="tools-footer">
+        <button type="button" class="btn btn-ghost open-gl-new" id="open-gl-new" hidden>{{ icon("folder-plus") }}<span id="open-gl-new-label" data-i18n="newgl.here">Créer un gamelist ici…</span></button>
         <button type="button" class="btn" id="open-gl-cancel" data-i18n="confirm.cancel">Annuler</button>
         <button type="button" class="btn btn-accent" id="open-gl-apply" data-i18n="open_gl.apply">Ouvrir</button>
       </div>
@@ -507,6 +511,65 @@
       <div class="check-body" id="stats-body"></div>
       <div class="tools-footer">
         <button type="button" class="btn" id="stats-cancel" data-i18n="tools.close">Fermer</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="dat-modal" role="dialog" aria-modal="true" aria-labelledby="dat-title">
+    <div class="modal check-modal dat-modal">
+      <div class="tools-header">
+        <h3 class="modal-title" id="dat-title">{{ icon("database") }}<span data-i18n="dat.title">Outil DAT</span></h3>
+        <button type="button" class="btn btn-icon" id="dat-close" data-i18n-title="tools.close" title="Fermer">{{ icon("x") }}</button>
+      </div>
+      <div class="dat-top">
+        <div class="dat-source" id="dat-source"></div>
+        <div class="dat-load" id="dat-load"></div>
+        <div class="dat-run">
+          <label class="dat-hash"><span data-i18n="dat.check">Vérification</span>
+            <select id="dat-hash">
+              <option value="none" data-i18n="dat.hash_none">Nom des fichiers seulement</option>
+              <option value="crc" data-i18n="dat.hash_crc">Nom + CRC32</option>
+              <option value="sha1" data-i18n="dat.hash_sha1">Nom + CRC32 + SHA1</option>
+            </select>
+          </label>
+          <button type="button" class="btn btn-accent" id="dat-compare" disabled>{{ icon("list-check") }}<span data-i18n="dat.compare">Comparer</span></button>
+          <span class="bulk-hint dat-hash-hint" id="dat-hash-hint"></span>
+        </div>
+        <div class="dat-progress" id="dat-progress" hidden>
+          <div class="dat-bar"><span id="dat-bar"></span></div>
+          <span class="dat-progress-text" id="dat-progress-text"></span>
+          <button type="button" class="btn btn-sm" id="dat-stop">{{ icon("player-stop") }}<span data-i18n="dat.stop">Arrêter</span></button>
+        </div>
+      </div>
+      <div class="check-body dat-report" id="dat-report" aria-live="polite"></div>
+      <div class="tools-footer">
+        <span class="bulk-note">{{ icon("shield-check") }}<span data-i18n="dat.read_only">Les fichiers ROM ne sont jamais renommés, déplacés ni supprimés.</span></span>
+        <button type="button" class="btn btn-ghost" id="dat-export" disabled>{{ icon("file-spreadsheet") }}<span data-i18n="dat.export">Exporter (CSV)</span></button>
+        <button type="button" class="btn" id="dat-names" disabled>{{ icon("heading") }}<span data-i18n="dat.names_btn">Noms d'après le DAT…</span></button>
+        <button type="button" class="btn" id="dat-cancel" data-i18n="tools.close">Fermer</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="newgl-modal" role="dialog" aria-modal="true" aria-labelledby="newgl-title">
+    <div class="modal check-modal newgl-modal">
+      <div class="tools-header">
+        <h3 class="modal-title" id="newgl-title">{{ icon("folder-plus") }}<span data-i18n="newgl.title">Nouveau gamelist</span></h3>
+        <button type="button" class="btn btn-icon" id="newgl-close" data-i18n-title="tools.close" title="Fermer">{{ icon("x") }}</button>
+      </div>
+      <p class="tools-intro" data-i18n="newgl.intro">Crée un gamelist.xml avec un jeu par ROM du dossier (chemin et nom). Les dossiers de médias sont ignorés et les fichiers ROM ne sont pas modifiés.</p>
+      <div class="newgl-form">
+        <div class="open-gl-current"><div class="open-gl-label" data-i18n="newgl.folder">Dossier</div><code class="open-gl-path" id="newgl-folder">—</code></div>
+        <label class="newgl-exts"><span data-i18n="newgl.exts">Extensions</span>
+          <input type="text" id="newgl-exts" spellcheck="false" autocomplete="off"></label>
+        <label class="bulk-check"><input type="checkbox" id="newgl-tags"> <span data-i18n="bulk.strip_tags">Retirer les mentions entre parenthèses et crochets, comme (Europe) ou [!]</span></label>
+        <p class="bulk-hint" id="newgl-hint"></p>
+      </div>
+      <div class="check-body bulk-preview" id="newgl-preview" aria-live="polite"></div>
+      <div class="tools-footer">
+        <button type="button" class="btn" id="newgl-cancel" data-i18n="confirm.cancel">Annuler</button>
+        <button type="button" class="btn" id="newgl-preview-btn">{{ icon("zoom-in") }}<span data-i18n="bulk.preview">Aperçu</span></button>
+        <button type="button" class="btn btn-accent" id="newgl-create" disabled>{{ icon("check") }}<span id="newgl-create-label" data-i18n="newgl.create">Créer le gamelist</span></button>
       </div>
     </div>
   </div>

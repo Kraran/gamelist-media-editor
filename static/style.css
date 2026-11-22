@@ -1730,3 +1730,55 @@ ul.batch-warning { margin: 0; padding-left: var(--s4); }
 .list-selection-count { flex: 1 0 auto; }
 #btn-batch-selection { min-width: 0; flex: 0 1 auto; overflow: hidden; }
 #btn-batch-selection span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* DAT tool, names from a DAT, new gamelist ---------------------------------- */
+.dat-modal, .newgl-modal { width: min(1040px, 100%); }
+.dat-top { display: grid; gap: var(--s2); padding: var(--s3); border: 1px solid var(--line); border-radius: var(--r-control); background: var(--surface); }
+.dat-source, .bulk-dat-info { display: flex; align-items: center; gap: var(--s2); font-weight: 600; overflow-wrap: anywhere; }
+.dat-source .icon, .bulk-dat-info .icon { flex: 0 0 auto; width: 16px; height: 16px; color: var(--accent-text); }
+.dat-source.is-empty { color: var(--text-3); font-weight: 400; }
+.dat-load { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); }
+.dat-load .dat-path { flex: 1 1 260px; min-width: 0; }
+.dat-file-btn { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.dat-load .btn .icon, .dat-run .btn .icon, .dat-progress .btn .icon { width: 15px; height: 15px; }
+.dat-run { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2) var(--s3); }
+.dat-hash { display: flex; align-items: center; gap: var(--s2); color: var(--text-2); font-size: var(--fs-sm); }
+.dat-hash select { width: auto; }
+.dat-run .btn { display: inline-flex; align-items: center; gap: 6px; }
+.dat-hash-hint { flex: 1 1 280px; }
+.dat-progress { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2) var(--s3); font-size: var(--fs-sm); color: var(--text-2); }
+.dat-progress[hidden] { display: none; }
+.dat-bar { flex: 1 1 200px; height: 8px; border-radius: 4px; background: var(--raised); overflow: hidden; }
+.dat-bar span { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+.dat-progress .btn { display: inline-flex; align-items: center; gap: 6px; }
+.dat-chips { display: flex; flex-wrap: wrap; gap: var(--s2); margin: var(--s2) 0; }
+.dat-chip { display: inline-flex; align-items: baseline; gap: 6px; padding: 6px var(--s3); border: 1px solid var(--line-field); border-radius: 999px; background: var(--surface); color: var(--text-2); font: inherit; font-size: var(--fs-sm); cursor: pointer; }
+.dat-chip strong { color: var(--text); font-variant-numeric: tabular-nums; }
+.dat-chip.active { border-color: var(--accent-text); background: var(--accent-soft); color: var(--text); }
+.dat-filters { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2) var(--s4); margin-bottom: var(--s2); }
+.dat-filters .bulk-hint { margin-left: auto; }
+.dat-table th:nth-child(1) { width: 15%; }
+.dat-table th:nth-child(2) { width: 28%; }
+.dat-table th:nth-child(4) { width: 26%; }
+.dat-status { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: var(--fs-xs, 12px); font-weight: 600; background: var(--raised); color: var(--text-2); }
+.dat-status.dat-ok { background: var(--ok-soft); color: var(--ok); }
+.dat-status.dat-renamed { background: var(--accent-soft); color: var(--accent-text); }
+.dat-status.dat-bad, .dat-status.dat-incomplete { background: var(--danger-soft); color: var(--danger); }
+.dat-status.dat-missing { background: var(--warn-soft); color: var(--warn); }
+.dat-chip.dat-ok strong { color: var(--ok); }
+.dat-chip.dat-bad strong, .dat-chip.dat-incomplete strong { color: var(--danger); }
+.dat-chip.dat-missing strong { color: var(--warn); }
+.dat-chip.dat-renamed strong { color: var(--accent-text); }
+.dat-file { font-family: var(--font-mono, monospace); font-size: 12px; }
+.dat-game { display: block; font-weight: 600; }
+.dat-parent { display: block; color: var(--text-3); font-size: 12px; }
+.dat-detail { color: var(--text-2); }
+.dat-flag { display: inline-block; margin: 0 4px 2px 0; padding: 0 6px; border: 1px solid var(--line-soft); border-radius: 4px; color: var(--text-3); font-size: 11px; }
+.dat-flag-chd_missing, .dat-flag-not_playable { border-color: var(--warn); color: var(--warn); }
+.bulk-dat { display: grid; gap: var(--s2); padding: var(--s2) 0; }
+.bulk-dat-matched { color: var(--ok); font-weight: 400; font-size: var(--fs-sm); }
+.newgl-form { display: grid; gap: var(--s2); padding: var(--s3); border: 1px solid var(--line); border-radius: var(--r-control); background: var(--surface); }
+.newgl-exts { display: grid; gap: 4px; color: var(--text-2); font-size: var(--fs-sm); font-weight: 600; }
+.newgl-modal .bulk-table th:nth-child(1) { width: 50%; }
+.open-gl-new { margin-right: auto; display: inline-flex; align-items: center; gap: 6px; }
+.open-gl-new[hidden] { display: none; }

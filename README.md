@@ -58,11 +58,13 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
 - **Edit in bulk** (Actions, or the pencil in the selection bar), on the ticked games, the games shown or the whole gamelist, always with a **preview** (before → after) before *Apply*:
   - *Field*: one value for genre, developer, publisher, date (`YYYY`, `YYYY-MM` or `YYYY-MM-DD`), rating, players, language, region, family, arcade system, favorite / hidden / kids (empty clears)
   - *Find / replace* in the name, the description or any text field (or all of them): plain text or regular expression (`\1` for a group), case-sensitive or not; a name never becomes empty
-  - *Names*: the name becomes the ROM file name without its extension, optionally without the `(Europe)`, `[!]`… tags
+  - *Names*: the name becomes the ROM file name without its extension, or the full name a DAT or a MAME list gives (`pacman.zip` → `Pac-Man (Midway)`), optionally without the `(Europe)`, `[!]`… tags
   - *Media*: remove media tags (the files stay on disk)
   - *Remove*: take games out of `gamelist.xml` after a confirmation; their media can also go to the Recycle Bin (off by default, files another game uses are kept); **ROMs are never deleted**
   - Every apply makes a dated backup first and its toast has **Undo**, which restores it (files sent to the Recycle Bin are recovered from the Recycle Bin)
 - **Statistics** (Actions): games, scraped, complete (all required media), with description, rated, dated, favorites, hidden, played and play time; per media present / broken (tag without file) / missing, with *Show* to list the games missing it; main genres
+- **DAT tool** (Actions): load a No-Intro, Redump, FBNeo or MAME DAT you have (Logiqx XML, MAME `-listxml` or ClrMamePro text; nothing is bundled) and compare the system's ROMs with it, by file name or, if you ask, by CRC32 (zip index, fast) / SHA1, in the background with progress: OK, misnamed, bad dump, incomplete romset, unknown and missing games, clone / BIOS / CHD flags, filters and CSV export. It never renames, moves or deletes ROM files; display names can then be taken from the DAT (*Edit in bulk* › *Names*)
+- **New gamelist from a ROM folder** (*Gamelist…* › *Create a gamelist here…*): one `<game>` per ROM with the usual extensions of the system (editable), preview, then the new `gamelist.xml` opens; a folder that already has one gets *Add the missing ROMs…* (Check ROMs)
 - **Next incomplete** (`N`): jumps to the next game in the list that is missing a required media (or that matches the media filter)
 - **Keyboard**: `J`/`K` next/previous game, `N` next incomplete, `S` scrape, `Ctrl+S` save, `Ctrl+F` or `/` search, `?` shows the list
 - **Open another `gamelist.xml`** at any time (file browser, the 10 most recent files in one click), **Reload** after an outside edit
@@ -168,6 +170,8 @@ Code layout (`app.py` is only the entry point; the overview is in `gme/__init__.
 | `gme/scrapers/ss_cache.py` | On-disk cache of ScreenScraper game lookups (`cache/ss-api/`): keys without credentials, TTL, never caches errors |
 | `gme/backups.py` | dated XML snapshots, bounded history and reversible restoration (`/api/backups`) |
 | `gme/bulk.py` | edit in bulk and removing many games: preview then one backup and one write (`/api/bulk`, `/api/bulk-delete`) |
+| `gme/datfile.py`, `gme/dattool.py` | DAT reading (Logiqx XML, MAME listxml, ClrMamePro) and the DAT tool: background load and comparison, report (`/api/dat`) |
+| `gme/newgamelist.py` | new gamelist from a ROM folder, extensions per system (`/api/new-gamelist`) |
 | `gme/stats.py` | statistics of the open gamelist (`/api/stats`) |
 | `gme/gamedelete.py` | deleting a game: dry run listing its files, then the Recycle Bin (`/api/delete-game`) |
 | `gme/remote_cache.py` | proposed images: previews (`/api/scrape/preview/<key>`), kept in `cache/remote/` and reused when applied |

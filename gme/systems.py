@@ -87,9 +87,9 @@ def default_scraper(folder):
     return "screenscraper"
 
 
-def detect_system_id():
-    """Guess ScreenScraper systemeid from parent folder of gamelist.xml."""
-    folder = os.path.basename(os.path.normpath(xml_store.BASE_DIR)).lower().strip()
+def detect_system_id(base=None):
+    """Guess ScreenScraper systemeid from parent folder of gamelist.xml (or ``base``)."""
+    folder = os.path.basename(os.path.normpath(base or xml_store.BASE_DIR)).lower().strip()
     if folder in SS_SYSTEM_MAP:
         sid = SS_SYSTEM_MAP[folder]
         return (sid if sid else None), folder

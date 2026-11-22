@@ -71,6 +71,7 @@ def begin_gamelist_request():
     scoped = (
         "index" in (request.view_args or {})
         or request.blueprint in {"gamedelete", "romcheck", "mediacheck", "thumbs", "backups", "batch_jobs", "bulk", "stats"}
+        or endpoint in {"dattool.api_dat_compare", "newgamelist.api_new_gamelist"}
         or (request.blueprint == "editor" and endpoint.rsplit(".", 1)[-1]
             not in {"index", "favicon", "api_browse", "api_shutdown"})
     )
@@ -79,7 +80,8 @@ def begin_gamelist_request():
     xml_store.operation_lock().acquire()
     flask_g.gamelist_locked = True
     expected = request.headers.get("X-Gamelist-Session")
-    if endpoint not in {"editor.api_open_gamelist", "editor.api_games", "editor.api_session"} and expected and expected != xml_store.SESSION_ID:
+    if endpoint not in {"editor.api_open_gamelist", "editor.api_games", "editor.api_session",
+                        "newgamelist.api_new_gamelist"} and expected and expected != xml_store.SESSION_ID:
         return api_err(st("server.stale_gamelist"), 409, code="stale_gamelist")
     return None
 
