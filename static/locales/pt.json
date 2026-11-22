@@ -264,7 +264,11 @@
     "ss_type_mix_v1": "Mix Recalbox v1 (mixrbv1)",
     "ss_type_mix_v2": "Mix Recalbox v2 (mixrbv2)",
     "arcade_sys_title": "Preencher sistemas arcade",
-    "arcade_sys_btn": "Preencher a partir do MAME"
+    "arcade_sys_btn": "Preencher a partir do MAME",
+    "ss_threads": "Threads simultâneas",
+    "ss_threads_auto": "Auto (máximo da tua conta)",
+    "ss_threads_max": "O ScreenScraper permite {n} threads para a tua conta. Esta definição só pode reduzir esse número.",
+    "ss_threads_unknown": "Sem conta de membro, ou antes da primeira resposta do ScreenScraper: 1 thread. Esta definição só pode reduzir o número permitido."
   },
   "scrape": {
     "loading_sub": "Pode demorar vários segundos",
@@ -414,7 +418,11 @@
     "stale_gamelist": "A lista de jogos ativa mudou. Recarrega a lista antes de continuar.",
     "image_unreadable": "imagem ilegível ou danificada, não gravada",
     "image_too_small": "imagem demasiado pequena ({w}×{h} px), não gravada",
-    "image_uniform": "imagem de uma só cor ou vazia, não gravada"
+    "image_uniform": "imagem de uma só cor ou vazia, não gravada",
+    "ss_busy": "O ScreenScraper está sobrecarregado e recusa não membros por agora (HTTP 401). Tenta novamente dentro de alguns minutos ou adiciona a tua conta de membro nas Definições.",
+    "ss_blacklisted": "O ScreenScraper recusa esta versão do programa (HTTP 426). Atualiza o Gamelist Media Editor.",
+    "ss_quota_day": "Quota diária do ScreenScraper atingida (HTTP 430). Tenta novamente amanhã.",
+    "ss_quota_ko": "Demasiadas ROMs não reconhecidas hoje (HTTP 431, quota do ScreenScraper). Organiza as tuas ROMs e tenta novamente amanhã."
   },
   "open_gl": {
     "title": "Abrir um gamelist.xml",
@@ -592,7 +600,11 @@
     "new_batch": "Novo lote",
     "no_saved": "Nenhum lote para retomar.",
     "invalid": "Opções de lote inválidas.",
-    "claimed": "Este lote foi retomado noutra janela. Reabre o relatório para continuar."
+    "claimed": "Este lote foi retomado noutra janela. Reabre o relatório para continuar.",
+    "stopped_short": "Parado",
+    "threads": "Threads: {active}/{limit}",
+    "quota_today": "Pedidos hoje: {used} / {max}",
+    "penalty": "O ScreenScraper pede para abrandar: 1 thread durante 2 minutos."
   },
   "backups": {
     "title": "Cópias e restauro",

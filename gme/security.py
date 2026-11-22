@@ -74,7 +74,7 @@ def begin_gamelist_request():
         or (request.blueprint == "editor" and endpoint.rsplit(".", 1)[-1]
             not in {"index", "favicon", "api_browse", "api_shutdown"})
     )
-    if not scoped:
+    if not scoped or endpoint == "batch_jobs.stop_batch":   # Stop must not wait for the step in progress
         return None
     xml_store.operation_lock().acquire()
     flask_g.gamelist_locked = True

@@ -28,6 +28,7 @@ from gme.fsutil import atomic_write
 from gme.http import api_err
 from gme.log import log
 from gme.paths import APP_DIR
+from gme.scrapers import ss_limits
 from gme.version import APP_UA
 
 bp = Blueprint("remote_cache", __name__)
@@ -40,7 +41,7 @@ _REGISTRY_MAX = 4000
 
 _registry = OrderedDict()               # key -> (url, headers)
 _registry_lock = threading.Lock()
-_host_locks = {}                        # one download at a time per host (ScreenScraper threads)
+_host_locks = {}                        # one download at a time per host (other than ScreenScraper)
 _host_locks_guard = threading.Lock()
 _KEY_RE = re.compile(r"^[0-9a-f]{40}$")
 
@@ -112,9 +113,15 @@ def fetch(url, headers=None, timeout=40, max_bytes=50 * 1024 * 1024):
     """
     if urlparse(url).scheme not in ("http", "https"):
         raise ValueError("url_not_allowed")
-    with _host_lock(url):
+    # ScreenScraper media are API calls: they take one of the member's threads
+    # and count in the requests per minute (ss_limits.GATE). Other hosts: one
+    # download at a time.
+    gate = ss_limits.GATE.slot() if ss_limits.is_ss_url(url) else _host_lock(url)
+    with gate:
         r = requests.get(url, headers=headers or {"User-Agent": APP_UA}, timeout=timeout, stream=True)
         try:
+            if ss_limits.is_ss_url(url):
+                ss_limits.GATE.note_status(r.status_code)
             r.raise_for_status()
             cl = r.headers.get("content-length")
             if cl and str(cl).isdigit() and int(cl) > max_bytes:

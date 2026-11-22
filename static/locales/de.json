@@ -264,7 +264,11 @@
     "ss_type_mix_v1": "Recalbox Mix v1 (mixrbv1)",
     "ss_type_mix_v2": "Recalbox Mix v2 (mixrbv2)",
     "arcade_sys_title": "Arcade-Systeme ausfüllen",
-    "arcade_sys_btn": "Aus MAME ausfüllen"
+    "arcade_sys_btn": "Aus MAME ausfüllen",
+    "ss_threads": "Gleichzeitige Threads",
+    "ss_threads_auto": "Auto (Maximum deines Kontos)",
+    "ss_threads_max": "ScreenScraper erlaubt {n} Threads für dein Konto. Diese Einstellung kann die Zahl nur senken.",
+    "ss_threads_unknown": "Ohne Mitgliedskonto oder vor der ersten Antwort von ScreenScraper: 1 Thread. Diese Einstellung kann die erlaubte Zahl nur senken."
   },
   "scrape": {
     "loading_sub": "Das kann einige Sekunden dauern",
@@ -414,7 +418,11 @@
     "stale_gamelist": "Die aktive Spieleliste hat sich geändert. Lade die Liste neu, bevor du fortfährst.",
     "image_unreadable": "Bild unlesbar oder beschädigt, nicht gespeichert",
     "image_too_small": "Bild zu klein ({w}×{h} px), nicht gespeichert",
-    "image_uniform": "einfarbiges oder leeres Bild, nicht gespeichert"
+    "image_uniform": "einfarbiges oder leeres Bild, nicht gespeichert",
+    "ss_busy": "ScreenScraper ist überlastet und lehnt Nicht-Mitglieder vorerst ab (HTTP 401). Versuche es in ein paar Minuten erneut oder trage dein Mitgliedskonto in den Einstellungen ein.",
+    "ss_blacklisted": "ScreenScraper lehnt diese Softwareversion ab (HTTP 426). Aktualisiere Gamelist Media Editor.",
+    "ss_quota_day": "Tageskontingent von ScreenScraper erreicht (HTTP 430). Versuche es morgen erneut.",
+    "ss_quota_ko": "Heute zu viele nicht erkannte ROMs (HTTP 431, ScreenScraper-Kontingent). Räume deine ROMs auf und versuche es morgen erneut."
   },
   "open_gl": {
     "title": "gamelist.xml öffnen",
@@ -592,7 +600,11 @@
     "new_batch": "Neuer Lauf",
     "no_saved": "Kein Lauf zum Fortsetzen.",
     "invalid": "Ungültige Stapeloptionen.",
-    "claimed": "Dieser Lauf wurde in einem anderen Fenster fortgesetzt. Öffne den Bericht erneut, um fortzufahren."
+    "claimed": "Dieser Lauf wurde in einem anderen Fenster fortgesetzt. Öffne den Bericht erneut, um fortzufahren.",
+    "stopped_short": "Angehalten",
+    "threads": "Threads: {active}/{limit}",
+    "quota_today": "Anfragen heute: {used} / {max}",
+    "penalty": "ScreenScraper bittet um Verlangsamung: 1 Thread für 2 Minuten."
   },
   "backups": {
     "title": "Sicherungen und Wiederherstellung",

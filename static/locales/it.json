@@ -264,7 +264,11 @@
     "ss_type_mix_v1": "Mix Recalbox v1 (mixrbv1)",
     "ss_type_mix_v2": "Mix Recalbox v2 (mixrbv2)",
     "arcade_sys_title": "Compila i sistemi arcade",
-    "arcade_sys_btn": "Compila da MAME"
+    "arcade_sys_btn": "Compila da MAME",
+    "ss_threads": "Thread simultanei",
+    "ss_threads_auto": "Auto (massimo del tuo account)",
+    "ss_threads_max": "ScreenScraper consente {n} thread per il tuo account. Questa impostazione può solo ridurre questo numero.",
+    "ss_threads_unknown": "Senza account membro, o prima della prima risposta di ScreenScraper: 1 thread. Questa impostazione può solo ridurre il numero consentito."
   },
   "scrape": {
     "loading_sub": "Può richiedere alcuni secondi",
@@ -414,7 +418,11 @@
     "stale_gamelist": "La lista giochi attiva è cambiata. Ricarica la lista prima di continuare.",
     "image_unreadable": "immagine illeggibile o danneggiata, non salvata",
     "image_too_small": "immagine troppo piccola ({w}×{h} px), non salvata",
-    "image_uniform": "immagine di un solo colore o vuota, non salvata"
+    "image_uniform": "immagine di un solo colore o vuota, non salvata",
+    "ss_busy": "ScreenScraper è sovraccarico e per ora rifiuta i non membri (HTTP 401). Riprova tra qualche minuto o aggiungi il tuo account membro nelle Impostazioni.",
+    "ss_blacklisted": "ScreenScraper rifiuta questa versione del programma (HTTP 426). Aggiorna Gamelist Media Editor.",
+    "ss_quota_day": "Quota giornaliera di ScreenScraper raggiunta (HTTP 430). Riprova domani.",
+    "ss_quota_ko": "Troppe ROM non riconosciute oggi (HTTP 431, quota ScreenScraper). Fai ordine nelle tue ROM e riprova domani."
   },
   "open_gl": {
     "title": "Apri un gamelist.xml",
@@ -592,7 +600,11 @@
     "new_batch": "Nuovo lotto",
     "no_saved": "Nessun lotto da riprendere.",
     "invalid": "Opzioni del lotto non valide.",
-    "claimed": "Questo lotto è stato ripreso in un’altra finestra. Riapri il rapporto per continuare."
+    "claimed": "Questo lotto è stato ripreso in un’altra finestra. Riapri il rapporto per continuare.",
+    "stopped_short": "Fermato",
+    "threads": "Thread: {active}/{limit}",
+    "quota_today": "Richieste oggi: {used} / {max}",
+    "penalty": "ScreenScraper chiede di rallentare: 1 thread per 2 minuti."
   },
   "backups": {
     "title": "Backup e ripristino",

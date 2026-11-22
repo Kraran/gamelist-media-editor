@@ -264,7 +264,11 @@
     "ss_type_mix_v1": "Recalbox mix v1 (mixrbv1)",
     "ss_type_mix_v2": "Recalbox mix v2 (mixrbv2)",
     "arcade_sys_title": "Fill arcade systems",
-    "arcade_sys_btn": "Fill from MAME"
+    "arcade_sys_btn": "Fill from MAME",
+    "ss_threads": "Simultaneous threads",
+    "ss_threads_auto": "Auto (your account's maximum)",
+    "ss_threads_max": "ScreenScraper allows {n} threads for your account. This setting can only lower that number.",
+    "ss_threads_unknown": "Without a member account, or before ScreenScraper's first answer: 1 thread. This setting can only lower the allowed number."
   },
   "scrape": {
     "loading_sub": "This may take several seconds",
@@ -414,7 +418,11 @@
     "stale_gamelist": "The active gamelist has changed. Reload the list before continuing.",
     "image_unreadable": "unreadable or corrupt image, not saved",
     "image_too_small": "image too small ({w}×{h} px), not saved",
-    "image_uniform": "single-colour or empty image, not saved"
+    "image_uniform": "single-colour or empty image, not saved",
+    "ss_busy": "ScreenScraper is overloaded and refuses non-members for now (HTTP 401). Try again in a few minutes, or add your member account in Settings.",
+    "ss_blacklisted": "ScreenScraper refuses this version of the software (HTTP 426). Update Gamelist Media Editor.",
+    "ss_quota_day": "ScreenScraper daily quota reached (HTTP 430). Try again tomorrow.",
+    "ss_quota_ko": "Too many unrecognised ROMs today (HTTP 431, ScreenScraper quota). Sort out your ROMs and try again tomorrow."
   },
   "open_gl": {
     "title": "Open a gamelist.xml",
@@ -592,7 +600,11 @@
     "new_batch": "New batch",
     "no_saved": "No batch to resume.",
     "invalid": "Invalid batch options.",
-    "claimed": "This batch was resumed in another window. Reopen the report to continue."
+    "claimed": "This batch was resumed in another window. Reopen the report to continue.",
+    "stopped_short": "Stopped",
+    "threads": "Threads: {active}/{limit}",
+    "quota_today": "Requests today: {used} / {max}",
+    "penalty": "ScreenScraper asked to slow down: 1 thread for 2 minutes."
   },
   "backups": {
     "title": "Backups and restoration",

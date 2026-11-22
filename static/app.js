@@ -2678,6 +2678,7 @@ function renderBatch() {
     `<span class="batch-now">${escapeHtml(b.phase === "running"
       ? t("batch.progress", { done: fmtCount(done), total: fmtCount(b.targets.length), name: (b.targets[b.i] || {}).name || "" })
       : t(b.halted ? "batch.halted" : b.stop ? "batch.stopped" : "batch.finished", { done: fmtCount(done), total: fmtCount(b.targets.length), reason: b.halted }))}</span></div>` +
+    batchThreadsHtml(b) +
     `<div class="check-stats batch-stats">` + stats.map(([label, n, cls]) =>
       `<div class="rc-stat ${cls}"><span class="rc-stat-n">${fmtCount(n)}</span><span class="rc-stat-label">${escapeHtml(label)}</span></div>`).join("") + `</div>`;
   if (b.phase === "done") {
@@ -2698,6 +2699,17 @@ function renderBatch() {
       `<button type="button" class="btn btn-sm btn-ghost" data-batch-open="${escapeHtml(g.path)}">${escapeHtml(t("batch.open"))}</button></div>`);
   }
   body.innerHTML = html;
+}
+
+/** ScreenScraper workers, thread limit and daily quota (from the last step) */
+function batchThreadsHtml(b) {
+  const th = b.phase === "running" && b.threads;
+  if (!th) return "";
+  const parts = [t("batch.threads", { active: Math.min(th.workers, th.limit), limit: th.limit })];
+  if (th.per_day && th.today != null) parts.push(t("batch.quota_today", { used: fmtCount(th.today), max: fmtCount(th.per_day) }));
+  let html = `<div class="batch-threads" id="batch-threads">${parts.map(p => `<span>${escapeHtml(p)}</span>`).join("")}</div>`;
+  if (th.penalty) html += `<p class="batch-warning">${escapeHtml(t("batch.penalty"))}</p>`;
+  return html;
 }
 
 function batchFields() {
@@ -2786,6 +2798,7 @@ async function advanceBatch(b) {
         method: "POST", headers: { "Content-Type": "application/json", "X-Gamelist-Session": b.session },
         body: JSON.stringify({ id: b.id, owner: b.owner, i: b.i }),
       });
+      if (data.threads) b.threads = data.threads;
       if (data.job) Object.assign(b, data.job);  // response to a repeated request
       else {
         b.results[data.result.kind].push(data.result.game);
@@ -2860,8 +2873,14 @@ document.getElementById("batch-export").addEventListener("click", exportBatch);
 document.getElementById("batch-close").addEventListener("click", closeBatch);
 document.getElementById("batch-cancel").addEventListener("click", () => {
   if (batch && batch.phase === "running") {
-    batch.stop = true;            // after the game in progress
+    batch.stop = true;            // after the game in progress; the other workers stop now
     renderBatch();
+    if (batch.id && batch.owner) {
+      apiFetch("/api/batch/stop", {
+        method: "POST", headers: { "Content-Type": "application/json", "X-Gamelist-Session": batch.session },
+        body: JSON.stringify({ id: batch.id, owner: batch.owner }),
+      }).catch(() => {});
+    }
   } else {
     closeBatch();
   }
@@ -3588,11 +3607,24 @@ function fillSsRegions(value) {
   sel.innerHTML = SS_REGIONS.map(c => `<option value="${c}">${escapeHtml(regionLabel(c))} (${c})</option>`).join("");
   setSelectValue(sel, keep);
 }
+/* Thread setting: Auto = the member's maxthreads; a number can only lower it (server-side clamp) */
+const SS_THREAD_CHOICES = [1, 2, 3, 4, 5, 6, 8, 10, 12, 16];
+function fillSsThreads(value, limits) {
+  const sel = document.getElementById("ss-threads");
+  const max = limits && limits.maxthreads;
+  sel.innerHTML = `<option value="0">${escapeHtml(t("tools.ss_threads_auto"))}</option>` +
+    SS_THREAD_CHOICES.map(n => `<option value="${n}">${n}</option>`).join("");
+  setSelectValue(sel, String(value || 0));
+  document.getElementById("ss-threads-hint").textContent = max
+    ? t("tools.ss_threads_max", { n: max })
+    : t("tools.ss_threads_unknown");
+}
 async function loadSsConfig() {
   try {
     const cfg = await apiFetch("/api/ss/config");
     document.getElementById("ss-ssid").value = cfg.ssid || "";
     fillSsRegions(cfg.prefer_region || "fr");
+    fillSsThreads(cfg.threads, cfg.limits);
     const mt = cfg.media_types || {};
     const img = document.getElementById("ss-type-image");
     const box = document.getElementById("ss-type-boxart");
@@ -3621,6 +3653,7 @@ async function saveSsConfig({ quiet = false } = {}) {
   const payload = {
     ssid: document.getElementById("ss-ssid").value.trim(),
     prefer_region: document.getElementById("ss-region").value,
+    threads: Number(document.getElementById("ss-threads").value) || 0,
     media_types: {
       image: document.getElementById("ss-type-image").value,
       boxart: document.getElementById("ss-type-boxart").value,
@@ -3659,6 +3692,7 @@ async function testSsConfig() {
     if (data.mode === "user") {
       msg += " · " + t("scrape.test_level", { level: data.level || "?" });
       if (data.maxthreads) msg += " · " + t("scrape.test_threads", { n: data.maxthreads });
+      if (data.limits) fillSsThreads(document.getElementById("ss-threads").value, data.limits);
     } else {
       msg += " · " + (data.message || t("scrape.test_dev_ok"));
     }
@@ -3675,7 +3709,7 @@ async function testSsConfig() {
 }
 
 // Like the language, each ScreenScraper setting is saved as soon as it changes
-["ss-ssid", "ss-sspassword", "ss-region", "ss-type-image", "ss-type-boxart", "ss-type-mix"].forEach(id => {
+["ss-ssid", "ss-sspassword", "ss-region", "ss-threads", "ss-type-image", "ss-type-boxart", "ss-type-mix"].forEach(id => {
   document.getElementById(id).addEventListener("change", () => saveSsConfig());
 });
 document.getElementById("btn-ss-test").addEventListener("click", testSsConfig);

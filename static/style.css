@@ -1178,6 +1178,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); cur
 .ss-form { display: grid; gap: var(--s3); margin-top: var(--s3); }
 .ss-form-row { display: grid; gap: 5px; }
 .ss-form-row label { color: var(--text-2); font-size: var(--fs-xs); font-weight: 500; }
+.ss-hint { margin: 0; color: var(--text-3); font-size: var(--fs-xs); }
 .ss-media-prefs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s3); }
 .ss-form-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); }
 .ss-status { color: var(--text-2); font-size: var(--fs-sm); }
@@ -1431,6 +1432,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); cur
 .batch-bar { height: 6px; border-radius: 3px; background: var(--surface); overflow: hidden; }
 .batch-bar span { display: block; height: 100%; background: var(--accent); transition: width var(--dur); }
 .batch-now { color: var(--text-2); font-size: var(--fs-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.batch-threads { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s4); margin: calc(-1 * var(--s2)) 0 var(--s4); color: var(--text-3); font-size: var(--fs-xs); font-variant-numeric: tabular-nums; }
 .batch-stats { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); margin-bottom: var(--s5); }
 .batch-row {
   display: grid;

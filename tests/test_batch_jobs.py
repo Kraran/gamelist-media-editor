@@ -1,8 +1,7 @@
 """Checkpoints survive process loss, repeated requests and competing tabs."""
 import pytest
-from flask import jsonify
 
-from gme import batch_jobs, xml_store
+from gme import batch_jobs, remote_cache, xml_store
 from gme.scrapers.compare import scrape_payload
 from gme.scrapers import apply as scrape_apply
 from conftest import LOCAL
@@ -12,13 +11,13 @@ from conftest import LOCAL
 def source(monkeypatch):
     calls = []
 
-    def scrape(index, body=None):
-        _, game = xml_store.get_game_elem(index)
+    def scrape(game, body=None, system=None):
         calls.append(game.findtext("path"))
         proposed = {"developer": "Studio " + game.findtext("name"), "medias": {"image": {"url": "https://source.test/img?password=secret"}}}
-        return jsonify({"proposed": proposed, **scrape_payload(game, proposed)})
+        return {"proposed": proposed, **scrape_payload(game, proposed)}, 200
 
-    monkeypatch.setitem(batch_jobs.SOURCES, "screenscraper", scrape)
+    monkeypatch.setitem(batch_jobs.LOOKUPS, "screenscraper", scrape)
+    monkeypatch.setattr(remote_cache, "fetch", lambda *a, **k: (_ for _ in ()).throw(OSError("offline")))
     return calls
 
 
@@ -155,12 +154,12 @@ def test_partial_retry_preserves_successful_fields_and_hides_credentials(gamelis
 
 
 def test_quota_halts_until_explicit_resume(gamelist, client, monkeypatch, source):
-    original = batch_jobs.SOURCES["screenscraper"]
-    monkeypatch.setitem(batch_jobs.SOURCES, "screenscraper", lambda index, body=None: (jsonify({"error": "Quota", "code": "source_blocked"}), 503))
+    original = batch_jobs.LOOKUPS["screenscraper"]
+    monkeypatch.setitem(batch_jobs.LOOKUPS, "screenscraper", lambda game, body=None, system=None: ({"error": "Quota", "code": "source_blocked"}, 503))
     job = start(client)
     assert step(client, job).get_json()["halted"] == "Quota"
     assert step(client, {**job, "i": 1}).get_json()["job"]["i"] == 1
-    monkeypatch.setitem(batch_jobs.SOURCES, "screenscraper", original)
+    monkeypatch.setitem(batch_jobs.LOOKUPS, "screenscraper", original)
     resumed = client.post("/api/batch/claim", headers=LOCAL, json={"id": job["id"]}).get_json()["job"]
     assert step(client, resumed).get_json()["i"] == 2
     assert source == ["./bravo.zip"]

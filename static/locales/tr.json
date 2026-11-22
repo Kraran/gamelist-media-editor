@@ -264,7 +264,11 @@
     "ss_type_mix_v1": "Recalbox mix v1 (mixrbv1)",
     "ss_type_mix_v2": "Recalbox mix v2 (mixrbv2)",
     "arcade_sys_title": "Arcade sistemlerini doldur",
-    "arcade_sys_btn": "MAME'den doldur"
+    "arcade_sys_btn": "MAME'den doldur",
+    "ss_threads": "Eşzamanlı iş parçacıkları",
+    "ss_threads_auto": "Otomatik (hesabının üst sınırı)",
+    "ss_threads_max": "ScreenScraper hesabın için {n} iş parçacığına izin veriyor. Bu ayar bu sayıyı yalnızca düşürebilir.",
+    "ss_threads_unknown": "Üye hesabı olmadan veya ScreenScraper'ın ilk yanıtından önce: 1 iş parçacığı. Bu ayar izin verilen sayıyı yalnızca düşürebilir."
   },
   "scrape": {
     "loading_sub": "Birkaç saniye sürebilir",
@@ -414,7 +418,11 @@
     "stale_gamelist": "Etkin oyun listesi değişti. Devam etmeden önce listeyi yeniden yükle.",
     "image_unreadable": "görüntü okunamıyor veya bozuk, kaydedilmedi",
     "image_too_small": "görüntü çok küçük ({w}×{h} px), kaydedilmedi",
-    "image_uniform": "tek renkli veya boş görüntü, kaydedilmedi"
+    "image_uniform": "tek renkli veya boş görüntü, kaydedilmedi",
+    "ss_busy": "ScreenScraper aşırı yüklü ve şu anda üye olmayanları reddediyor (HTTP 401). Birkaç dakika sonra tekrar dene veya Ayarlar'a üye hesabını ekle.",
+    "ss_blacklisted": "ScreenScraper programın bu sürümünü reddediyor (HTTP 426). Gamelist Media Editor'ü güncelle.",
+    "ss_quota_day": "ScreenScraper günlük kotasına ulaşıldı (HTTP 430). Yarın tekrar dene.",
+    "ss_quota_ko": "Bugün çok fazla tanınmayan ROM var (HTTP 431, ScreenScraper kotası). ROM'larını düzenle ve yarın tekrar dene."
   },
   "open_gl": {
     "title": "gamelist.xml aç",
@@ -592,7 +600,11 @@
     "new_batch": "Yeni toplu işlem",
     "no_saved": "Sürdürülecek toplu işlem yok.",
     "invalid": "Toplu işlem seçenekleri geçersiz.",
-    "claimed": "Bu toplu işlem başka bir pencerede sürdürüldü. Devam etmek için raporu yeniden aç."
+    "claimed": "Bu toplu işlem başka bir pencerede sürdürüldü. Devam etmek için raporu yeniden aç.",
+    "stopped_short": "Durduruldu",
+    "threads": "İş parçacıkları: {active}/{limit}",
+    "quota_today": "Bugünkü istekler: {used} / {max}",
+    "penalty": "ScreenScraper yavaşlamanı istiyor: 2 dakika boyunca 1 iş parçacığı."
   },
   "backups": {
     "title": "Yedekler ve geri yükleme",

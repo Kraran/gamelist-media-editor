@@ -264,7 +264,11 @@
     "ss_type_mix_v1": "Recalbox mix v1 (mixrbv1)",
     "ss_type_mix_v2": "Recalbox mix v2 (mixrbv2)",
     "arcade_sys_title": "Fyll ut arkadesystemer",
-    "arcade_sys_btn": "Fyll ut fra MAME"
+    "arcade_sys_btn": "Fyll ut fra MAME",
+    "ss_threads": "Samtidige tråder",
+    "ss_threads_auto": "Auto (kontoens maksimum)",
+    "ss_threads_max": "ScreenScraper tillater {n} tråder for kontoen din. Denne innstillingen kan bare senke tallet.",
+    "ss_threads_unknown": "Uten medlemskonto, eller før ScreenScrapers første svar: 1 tråd. Denne innstillingen kan bare senke det tillatte antallet."
   },
   "scrape": {
     "loading_sub": "Dette kan ta noen sekunder",
@@ -414,7 +418,11 @@
     "stale_gamelist": "Den aktive spillisten er endret. Last inn listen på nytt før du fortsetter.",
     "image_unreadable": "bildet er uleselig eller skadet, ikke lagret",
     "image_too_small": "bildet er for lite ({w}×{h} px), ikke lagret",
-    "image_uniform": "ensfarget eller tomt bilde, ikke lagret"
+    "image_uniform": "ensfarget eller tomt bilde, ikke lagret",
+    "ss_busy": "ScreenScraper er overbelastet og avviser ikke-medlemmer for øyeblikket (HTTP 401). Prøv igjen om noen minutter, eller legg til medlemskontoen din i Innstillinger.",
+    "ss_blacklisted": "ScreenScraper avviser denne versjonen av programmet (HTTP 426). Oppdater Gamelist Media Editor.",
+    "ss_quota_day": "Den daglige kvoten til ScreenScraper er nådd (HTTP 430). Prøv igjen i morgen.",
+    "ss_quota_ko": "For mange ukjente ROM-er i dag (HTTP 431, ScreenScraper-kvote). Rydd opp i ROM-ene dine og prøv igjen i morgen."
   },
   "open_gl": {
     "title": "Åpne en gamelist.xml",
@@ -592,7 +600,11 @@
     "new_batch": "Ny kjøring",
     "no_saved": "Ingen kjøring å fortsette.",
     "invalid": "Ugyldige valg for kjøringen.",
-    "claimed": "Denne kjøringen ble fortsatt i et annet vindu. Åpne rapporten på nytt for å fortsette."
+    "claimed": "Denne kjøringen ble fortsatt i et annet vindu. Åpne rapporten på nytt for å fortsette.",
+    "stopped_short": "Stoppet",
+    "threads": "Tråder: {active}/{limit}",
+    "quota_today": "Forespørsler i dag: {used} / {max}",
+    "penalty": "ScreenScraper ber om å senke farten: 1 tråd i 2 minutter."
   },
   "backups": {
     "title": "Sikkerhetskopier og gjenoppretting",

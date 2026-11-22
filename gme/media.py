@@ -6,6 +6,7 @@ from urllib.parse import unquote, urlparse
 import requests
 
 from gme import fsutil, remote_cache, xml_store
+from gme.scrapers import ss_limits
 from gme.fsutil import atomic_write
 from gme.log import log
 from gme.version import APP_UA
@@ -442,7 +443,12 @@ def download_pad2key(url, dest):
     parsed = urlparse(url)
     if parsed.scheme not in ("http", "https"):
         raise ValueError("url_not_allowed")
-    r = requests.get(url, headers={"User-Agent": APP_UA}, timeout=40)
+    if ss_limits.is_ss_url(url):         # a ScreenScraper API call: member's limits
+        with ss_limits.GATE.slot():
+            r = requests.get(url, headers={"User-Agent": APP_UA}, timeout=40)
+        ss_limits.GATE.note_status(r.status_code)
+    else:
+        r = requests.get(url, headers={"User-Agent": APP_UA}, timeout=40)
     r.raise_for_status()
     data = r.content or b""
     if len(data) > MAX_DOWNLOAD_BYTES:

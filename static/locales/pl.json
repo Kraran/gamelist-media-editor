@@ -264,7 +264,11 @@
     "ss_type_mix_v1": "Mix Recalbox v1 (mixrbv1)",
     "ss_type_mix_v2": "Mix Recalbox v2 (mixrbv2)",
     "arcade_sys_title": "Uzupełnij systemy automatów",
-    "arcade_sys_btn": "Uzupełnij z MAME"
+    "arcade_sys_btn": "Uzupełnij z MAME",
+    "ss_threads": "Jednoczesne wątki",
+    "ss_threads_auto": "Auto (maksimum twojego konta)",
+    "ss_threads_max": "ScreenScraper pozwala na {n} wątków dla twojego konta. To ustawienie może tylko zmniejszyć tę liczbę.",
+    "ss_threads_unknown": "Bez konta członka lub przed pierwszą odpowiedzią ScreenScraper: 1 wątek. To ustawienie może tylko zmniejszyć dozwoloną liczbę."
   },
   "scrape": {
     "loading_sub": "To może potrwać kilka sekund",
@@ -414,7 +418,11 @@
     "stale_gamelist": "Aktywna lista gier uległa zmianie. Wczytaj listę ponownie przed kontynuowaniem.",
     "image_unreadable": "obraz nieczytelny lub uszkodzony, nie zapisano",
     "image_too_small": "obraz za mały ({w}×{h} px), nie zapisano",
-    "image_uniform": "obraz jednokolorowy lub pusty, nie zapisano"
+    "image_uniform": "obraz jednokolorowy lub pusty, nie zapisano",
+    "ss_busy": "ScreenScraper jest przeciążony i na razie odrzuca osoby spoza grona członków (HTTP 401). Spróbuj ponownie za kilka minut albo dodaj konto członka w Ustawieniach.",
+    "ss_blacklisted": "ScreenScraper odrzuca tę wersję programu (HTTP 426). Zaktualizuj Gamelist Media Editor.",
+    "ss_quota_day": "Osiągnięto dzienny limit ScreenScraper (HTTP 430). Spróbuj ponownie jutro.",
+    "ss_quota_ko": "Za dużo nierozpoznanych ROM-ów dzisiaj (HTTP 431, limit ScreenScraper). Uporządkuj swoje ROM-y i spróbuj ponownie jutro."
   },
   "open_gl": {
     "title": "Otwórz gamelist.xml",
@@ -592,7 +600,11 @@
     "new_batch": "Nowa partia",
     "no_saved": "Brak partii do wznowienia.",
     "invalid": "Nieprawidłowe opcje partii.",
-    "claimed": "Ta partia została wznowiona w innym oknie. Otwórz raport ponownie, aby kontynuować."
+    "claimed": "Ta partia została wznowiona w innym oknie. Otwórz raport ponownie, aby kontynuować.",
+    "stopped_short": "Zatrzymano",
+    "threads": "Wątki: {active}/{limit}",
+    "quota_today": "Zapytania dzisiaj: {used} / {max}",
+    "penalty": "ScreenScraper prosi o zwolnienie: 1 wątek przez 2 minuty."
   },
   "backups": {
     "title": "Kopie i przywracanie",

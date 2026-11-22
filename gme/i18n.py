@@ -2,6 +2,8 @@
 
 import os
 import json
+import threading
+from contextlib import contextmanager
 
 from flask import request
 
@@ -29,8 +31,25 @@ def load_locale_dict(code):
     return data
 
 
+_thread_locale = threading.local()
+
+
+@contextmanager
+def locale_scope(code):
+    """Messages built by this thread (a batch worker, no request) use ``code``."""
+    previous = getattr(_thread_locale, "code", None)
+    _thread_locale.code = code
+    try:
+        yield
+    finally:
+        _thread_locale.code = previous
+
+
 def get_request_locale():
     """Prefer X-Locale (frontend), then Accept-Language, else fr."""
+    code = getattr(_thread_locale, "code", None)
+    if code:
+        return code
     try:
         h = (request.headers.get("X-Locale") or "").strip().lower()
         if len(h) >= 2 and h[:2].isalpha():
