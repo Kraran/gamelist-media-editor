@@ -13,7 +13,7 @@ from gme.http import api_err
 from gme.i18n import st
 from gme.paths import APP_DIR
 from gme.scrapers.apply import apply_route
-from gme.scrapers import ss_limits
+from gme.scrapers import ss_cache, ss_limits
 from gme.scrapers.common import clean_game_name, name_similarity, rom_identification
 from gme.scrapers.compare import scrape_payload
 from gme.systems import detect_system_id
@@ -125,6 +125,8 @@ def load_ss_config():
         "prefer_region": "fr",
         "media_types": dict(SS_MEDIA_DEFAULTS),
         "threads": 0,
+        "cache_enabled": True,
+        "cache_days": ss_cache.DEFAULT_DAYS,
     }
     if not os.path.isfile(path):
         return defaults
@@ -138,6 +140,9 @@ def load_ss_config():
                 defaults[k] = str(data[k]).strip()
         defaults["media_types"] = normalize_ss_media_types(data.get("media_types"))
         defaults["threads"] = normalize_threads(data.get("threads"))
+        if "cache_enabled" in data:
+            defaults["cache_enabled"] = bool(data.get("cache_enabled"))
+        defaults["cache_days"] = ss_cache.normalize_days(data.get("cache_days", ss_cache.DEFAULT_DAYS))
         return defaults
     except Exception:
         return defaults
@@ -157,6 +162,10 @@ def save_ss_config(data):
         cfg["media_types"] = normalize_ss_media_types(data.get("media_types"))
     if "threads" in data:
         cfg["threads"] = normalize_threads(data.get("threads"))
+    if "cache_enabled" in data:
+        cfg["cache_enabled"] = bool(data.get("cache_enabled"))
+    if "cache_days" in data:
+        cfg["cache_days"] = ss_cache.normalize_days(data.get("cache_days"))
     cfg.pop("devid", None)
     cfg.pop("devpassword", None)
     path = ss_config_path()
@@ -177,6 +186,9 @@ def ss_public_config(cfg=None):
         "configured": True,
         "user_boost": bool(cfg.get("ssid") and cfg.get("sspassword")),
         "threads": normalize_threads(cfg.get("threads")),
+        "cache_enabled": cfg.get("cache_enabled", True) is not False,
+        "cache_days": ss_cache.normalize_days(cfg.get("cache_days", ss_cache.DEFAULT_DAYS)),
+        "cache": ss_cache.stats(),
         "limits": ss_limits.GATE.snapshot(),
     }
 
@@ -262,6 +274,7 @@ def ss_blocking(message):
     return any(message == st(k) for k in _BLOCKING_KEYS)
 
 
+_NOT_FOUND = re.compile(r"non trouv|not found", re.I)   # "Erreur : Jeu non trouvée !"
 _RETRY_429 = (3.0, 10.0)        # seconds before retrying an HTTP 429 (then give up)
 
 
@@ -304,6 +317,12 @@ def ss_request(endpoint, extra_params=None, timeout=25):
     if extra_params:
         params.update({k: v for k, v in extra_params.items() if v is not None and v != ""})
     url = f"{SS_API}/{endpoint}"
+    use_cache = cfg.get("cache_enabled", True) is not False and endpoint in ss_cache.CACHEABLE
+    if use_cache:
+        # A cached game answer sends nothing: no thread, no quota (ss_cache).
+        cached = ss_cache.get(endpoint, extra_params, cfg.get("cache_days", ss_cache.DEFAULT_DAYS))
+        if cached is not None:
+            return cached
     apply_account(cfg)
     gate = ss_limits.GATE
     attempt = 0
@@ -323,6 +342,8 @@ def ss_request(endpoint, extra_params=None, timeout=25):
         except requests.RequestException as e:
             return False, st("server.source_network", source="ScreenScraper", detail=e), 502
         gate.note_status(r.status_code)
+        if use_cache:
+            ss_cache.note_sent()
         if r.status_code == 429 and attempt < len(_RETRY_429):
             # Too many threads / requests per minute: the gate is down to one
             # thread for a while; wait, then try this request once more.
@@ -338,7 +359,10 @@ def ss_request(endpoint, extra_params=None, timeout=25):
     if r.status_code == 503:
         return False, format_ss_error(body, 503), 503
     if r.status_code != 200:
-        return False, format_ss_error(body, r.status_code), r.status_code
+        message = format_ss_error(body, r.status_code)
+        if use_cache and r.status_code == 404 and _NOT_FOUND.search(body):
+            ss_cache.put_not_found(endpoint, extra_params, message)
+        return False, message, r.status_code
     stripped = body.strip()
     if stripped.startswith("Erreur") or stripped.lower().startswith("api closed"):
         return False, format_ss_error(stripped, r.status_code), r.status_code
@@ -359,6 +383,8 @@ def ss_request(endpoint, extra_params=None, timeout=25):
     if err and err not in ("OK", "0", "none", "null"):
         if header.get("success") not in ("true", True, "1", 1):
             return False, format_ss_error(err, r.status_code), r.status_code
+    if use_cache:
+        ss_cache.put(endpoint, extra_params, data)
     return True, data, r.status_code
 
 
@@ -584,6 +610,9 @@ def api_ss_config():
             payload["media_types"] = body.get("media_types") or {}
         if "threads" in body:
             payload["threads"] = body.get("threads")
+        for key in ("cache_enabled", "cache_days"):
+            if key in body:
+                payload[key] = body.get(key)
         if body.get("sspassword"):
             payload["sspassword"] = body["sspassword"]
         if body.get("clear_sspassword"):
@@ -594,6 +623,19 @@ def api_ss_config():
         return jsonify({"success": True, "config": ss_public_config(cfg)})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@bp.route("/api/ss/cache")
+def api_ss_cache():
+    """Number and size of the cached ScreenScraper answers."""
+    return jsonify(ss_cache.stats())
+
+
+@bp.route("/api/ss/cache/clear", methods=["POST"])
+def api_ss_cache_clear():
+    """Settings › ScreenScraper › Empty the cache."""
+    removed = ss_cache.clear()
+    return jsonify({"success": True, "removed": removed, **ss_cache.stats()})
 
 
 @bp.route("/api/ss/test", methods=["POST"])
@@ -658,6 +700,20 @@ def _error(message, status, code):
 
 def scrape_game(game, body=None, system=None):
     """The ScreenScraper lookup of ``game`` → ``(payload, http_status)``.
+
+    ``body.refresh``: skip the answer cache (forced rescrape). The payload's
+    ``cache`` tells how many answers came from the cache and since when.
+    """
+    body = body or {}
+    with ss_cache.refresh_scope(bool(body.get("refresh"))), ss_cache.track() as info:
+        data, status = _scrape_game(game, body, system)
+    if isinstance(data, dict):
+        data["cache"] = {"hits": info["hits"], "sent": info["sent"], "time": info["oldest"]}
+    return data, status
+
+
+def _scrape_game(game, body=None, system=None):
+    """The lookup itself (see ``scrape_game``).
 
     Needs no request and no gamelist lock: a batch worker calls it with a
     copy of the game element (``system``: the ``detect_system_id()`` result

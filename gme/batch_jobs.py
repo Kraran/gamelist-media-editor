@@ -218,6 +218,7 @@ def create_batch():
            "xmlPath": xml_store.XML_PATH, "source": source, "mode": mode,
            "fields": list(dict.fromkeys(fields)), "targets": targets, "i": 0, "halted": "",
            "fromSelection": bool(body.get("fromSelection")),
+           "refresh": bool(body.get("refresh")),     # ScreenScraper: skip the answer cache
            "results": {"updated": [], "nothing": [], "uncertain": [], "errors": []}}
     stop_all()                              # the new batch replaces the saved one
     try:
@@ -345,6 +346,7 @@ class _Prefetch:
         self.source = job["source"]
         self.mode = job["mode"]
         self.fields = job["fields"]
+        self.body = {"refresh": True} if job.get("refresh") is True else {}
         self.locale = locale
         self.cancel = threading.Event()
         self.halted = False
@@ -398,7 +400,7 @@ class _Prefetch:
             return _CANCELLED
         if game is None:
             return "errors", {**target, "message": st("server.stale_game")}, False
-        data, status = LOOKUPS[self.source](game, {}, self.system)
+        data, status = LOOKUPS[self.source](game, dict(self.body), self.system)
         final = _classify({"source": self.source}, target, status, data)
         if final:
             if final[2]:

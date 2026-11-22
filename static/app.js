@@ -2652,7 +2652,9 @@ function renderBatch() {
       batchFieldsHtml(t("scrape.section_media"), BATCH_MEDIA) +
       batchFieldsHtml(t("scrape.section_info"), BATCH_INFO);
     options.innerHTML = `<label class="check-option"><input type="checkbox" id="batch-backup" checked />` +
-      `<span>${escapeHtml(t("romcheck.backup"))}</span></label>`;
+      `<span>${escapeHtml(t("romcheck.backup"))}</span></label>` +
+      (b.source === "screenscraper" ? `<label class="check-option" title="${escapeHtml(t("batch.refresh_hint"))}">` +
+        `<input type="checkbox" id="batch-refresh" /><span>${escapeHtml(t("batch.refresh"))}</span></label>` : "");
     cancel.textContent = t("confirm.cancel");
     start.hidden = false;
     document.getElementById("batch-start-label").textContent = t("batch.start", { n: fmtCount(b.targets.length) });
@@ -2754,13 +2756,15 @@ async function runBatch() {
   const fields = batchFields();
   const mode = batchPrefs.mode;
   const backup = document.getElementById("batch-backup").checked;
+  const refreshBox = document.getElementById("batch-refresh");
+  const refresh = !!(refreshBox && refreshBox.checked);
   b.phase = "running";
   renderBatch();
   document.getElementById("batch-cancel").focus();
   try {
     const data = await apiFetch("/api/batch", {
       method: "POST", headers: { "Content-Type": "application/json", "X-Gamelist-Session": b.session },
-      body: JSON.stringify({ source: b.source, mode, fields, paths: b.targets.map(g => g.path), backup, fromSelection: b.fromSelection }),
+      body: JSON.stringify({ source: b.source, mode, fields, paths: b.targets.map(g => g.path), backup, refresh, fromSelection: b.fromSelection }),
     });
     Object.assign(b, data.job);
   } catch (e) {
@@ -3619,12 +3623,41 @@ function fillSsThreads(value, limits) {
     ? t("tools.ss_threads_max", { n: max })
     : t("tools.ss_threads_unknown");
 }
+/* Answer cache: on/off, lifetime, size and "Empty the cache" */
+const SS_CACHE_DAYS = [7, 14, 30, 60, 90, 180, 365];
+function fillSsCache(cfg) {
+  document.getElementById("ss-cache-enabled").checked = cfg.cache_enabled !== false;
+  const sel = document.getElementById("ss-cache-days");
+  const days = cfg.cache_days || 30;
+  const choices = SS_CACHE_DAYS.includes(days) ? SS_CACHE_DAYS : [...SS_CACHE_DAYS, days].sort((a, b) => a - b);
+  sel.innerHTML = choices.map(n => `<option value="${n}">${escapeHtml(t("tools.ss_cache_days_n", { n }))}</option>`).join("");
+  setSelectValue(sel, String(days));
+  sel.disabled = cfg.cache_enabled === false;
+  showSsCacheStats(cfg.cache);
+}
+function showSsCacheStats(stats) {
+  const s = stats || { entries: 0, bytes: 0 };
+  document.getElementById("ss-cache-stats").textContent =
+    t("tools.ss_cache_stats", { n: fmtCount(s.entries), size: fmtSize(s.bytes) });
+  document.getElementById("btn-ss-cache-clear").disabled = !s.entries;
+}
+document.getElementById("btn-ss-cache-clear").addEventListener("click", async () => {
+  try {
+    const data = await apiFetch("/api/ss/cache/clear", { method: "POST" });
+    showSsCacheStats(data);
+    toast(t("toast.ss_cache_cleared"));
+  } catch (e) {
+    handleError(e);
+  }
+});
+
 async function loadSsConfig() {
   try {
     const cfg = await apiFetch("/api/ss/config");
     document.getElementById("ss-ssid").value = cfg.ssid || "";
     fillSsRegions(cfg.prefer_region || "fr");
     fillSsThreads(cfg.threads, cfg.limits);
+    fillSsCache(cfg);
     const mt = cfg.media_types || {};
     const img = document.getElementById("ss-type-image");
     const box = document.getElementById("ss-type-boxart");
@@ -3654,6 +3687,8 @@ async function saveSsConfig({ quiet = false } = {}) {
     ssid: document.getElementById("ss-ssid").value.trim(),
     prefer_region: document.getElementById("ss-region").value,
     threads: Number(document.getElementById("ss-threads").value) || 0,
+    cache_enabled: document.getElementById("ss-cache-enabled").checked,
+    cache_days: Number(document.getElementById("ss-cache-days").value) || 30,
     media_types: {
       image: document.getElementById("ss-type-image").value,
       boxart: document.getElementById("ss-type-boxart").value,
@@ -3709,7 +3744,7 @@ async function testSsConfig() {
 }
 
 // Like the language, each ScreenScraper setting is saved as soon as it changes
-["ss-ssid", "ss-sspassword", "ss-region", "ss-threads", "ss-type-image", "ss-type-boxart", "ss-type-mix"].forEach(id => {
+["ss-ssid", "ss-sspassword", "ss-region", "ss-threads", "ss-cache-enabled", "ss-cache-days", "ss-type-image", "ss-type-boxart", "ss-type-mix"].forEach(id => {
   document.getElementById(id).addEventListener("change", () => saveSsConfig());
 });
 document.getElementById("btn-ss-test").addEventListener("click", testSsConfig);
@@ -3800,10 +3835,12 @@ document.getElementById("btn-scrape").addEventListener("click", async () => {
 });
 
 /* --- Scrape one game --- */
-async function runScrape(source, forcedId) {
+let lastScrape = null;   // { source, forcedId }: "Refresh from ScreenScraper" repeats it without the cache
+async function runScrape(source, forcedId, refresh = false) {
   if (currentIndex === null || ssBusy) return;
   const sc = SCRAPERS[source] || SCRAPERS.screenscraper;
   if (forcedId != null) forcedId = String(forcedId).trim() || null;
+  lastScrape = { source, forcedId };
   setSsLoading(true, t(forcedId ? "scrape.loading_game" : "scrape.searching", { source: sc.label }));
   setStatus(t("scrape.status_search", { source: sc.label }));
   try {
@@ -3812,7 +3849,7 @@ async function runScrape(source, forcedId) {
       data = await apiFetch(gameUrl(sc.scrape + currentIndex), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(forcedId ? { [sc.idKey]: forcedId } : {}),
+        body: JSON.stringify({ ...(forcedId ? { [sc.idKey]: forcedId } : {}), ...(refresh ? { refresh: true } : {}) }),
       });
     } catch (e) {
       const d = e.data || {};
@@ -3820,6 +3857,7 @@ async function runScrape(source, forcedId) {
       if (d.hash && d.hash.crc && !msg.includes("CRC")) msg += ` · CRC ${d.hash.crc}`;
       throw new Error(msg);
     }
+    showScrapeCacheNote(data);
     if (data.need_choice && data.candidates && data.candidates.length) {
       showScrapeCandidates(source, data);
       setStatus(t("scrape.status_choice", { source: sc.label }));
@@ -3835,6 +3873,19 @@ async function runScrape(source, forcedId) {
     focusSsModal();
   }
 }
+
+/** "Answer from the cache (date)" + a button to ask ScreenScraper again. */
+function showScrapeCacheNote(data) {
+  const note = document.getElementById("ss-cache-note");
+  const c = data && data.cache;
+  note.hidden = !(c && c.hits && !c.sent);
+  if (note.hidden) return;
+  const when = c.time ? new Date(c.time * 1000).toLocaleDateString(currentLocale || "fr") : "?";
+  document.getElementById("ss-cache-text").textContent = t("scrape.from_cache", { date: when });
+}
+document.getElementById("ss-cache-refresh").addEventListener("click", () => {
+  if (lastScrape) runScrape(lastScrape.source, lastScrape.forcedId, true);
+});
 
 /** Keyboard: Enter applies what is checked; in the candidate list, the best match. */
 function focusSsModal() {

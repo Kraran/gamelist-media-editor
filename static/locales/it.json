@@ -197,7 +197,8 @@
     "paths_copied": "{n} percorso/i copiato/i",
     "paths_copy_failed": "Impossibile scrivere negli appunti",
     "csv_exported": "Lista esportata: {n} gioco/i",
-    "csv_empty": "Nessun gioco mostrato: niente da esportare"
+    "csv_empty": "Nessun gioco mostrato: niente da esportare",
+    "ss_cache_cleared": "Cache di ScreenScraper svuotata"
   },
   "errors": {
     "offline": "Nessuna connessione di rete.",
@@ -268,7 +269,13 @@
     "ss_threads": "Thread simultanei",
     "ss_threads_auto": "Auto (massimo del tuo account)",
     "ss_threads_max": "ScreenScraper consente {n} thread per il tuo account. Questa impostazione può solo ridurre questo numero.",
-    "ss_threads_unknown": "Senza account membro, o prima della prima risposta di ScreenScraper: 1 thread. Questa impostazione può solo ridurre il numero consentito."
+    "ss_threads_unknown": "Senza account membro, o prima della prima risposta di ScreenScraper: 1 thread. Questa impostazione può solo ridurre il numero consentito.",
+    "ss_cache": "Tieni in cache le risposte di ScreenScraper",
+    "ss_cache_hint": "Rifare lo scrape di un gioco già trovato non consuma così nessuna richiesta della tua quota. «Gioco non trovato» viene tenuto solo un giorno.",
+    "ss_cache_days": "Conserva per",
+    "ss_cache_days_n": "{n} giorni",
+    "ss_cache_clear": "Svuota la cache",
+    "ss_cache_stats": "{n} risposte · {size}"
   },
   "scrape": {
     "loading_sub": "Può richiedere alcuni secondi",
@@ -343,7 +350,9 @@
     "apply_n": "Applica ({n})",
     "hint": "Ciò che manca è selezionato; nulla viene sostituito senza il tuo consenso.",
     "size_mb": "{n} MB",
-    "field_thumbnail": "Miniatura"
+    "field_thumbnail": "Miniatura",
+    "from_cache": "Risposta in cache del {date}: nessuna richiesta inviata a ScreenScraper.",
+    "refresh_cache": "Aggiorna da ScreenScraper"
   },
   "server": {
     "invalid_field": "Campo non valido",
@@ -604,7 +613,9 @@
     "stopped_short": "Fermato",
     "threads": "Thread: {active}/{limit}",
     "quota_today": "Richieste oggi: {used} / {max}",
-    "penalty": "ScreenScraper chiede di rallentare: 1 thread per 2 minuti."
+    "penalty": "ScreenScraper chiede di rallentare: 1 thread per 2 minuti.",
+    "refresh": "Ignora la cache di ScreenScraper",
+    "refresh_hint": "Richiede di nuovo ogni gioco a ScreenScraper (consuma quota) e aggiorna la cache."
   },
   "backups": {
     "title": "Backup e ripristino",

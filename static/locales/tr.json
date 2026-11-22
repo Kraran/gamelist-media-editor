@@ -197,7 +197,8 @@
     "paths_copied": "{n} yol kopyalandı",
     "paths_copy_failed": "Panoya yazılamadı",
     "csv_exported": "Liste dışa aktarıldı: {n} oyun",
-    "csv_empty": "Gösterilen oyun yok: dışa aktarılacak bir şey yok"
+    "csv_empty": "Gösterilen oyun yok: dışa aktarılacak bir şey yok",
+    "ss_cache_cleared": "ScreenScraper önbelleği boşaltıldı"
   },
   "errors": {
     "offline": "Ağ bağlantısı yok.",
@@ -268,7 +269,13 @@
     "ss_threads": "Eşzamanlı iş parçacıkları",
     "ss_threads_auto": "Otomatik (hesabının üst sınırı)",
     "ss_threads_max": "ScreenScraper hesabın için {n} iş parçacığına izin veriyor. Bu ayar bu sayıyı yalnızca düşürebilir.",
-    "ss_threads_unknown": "Üye hesabı olmadan veya ScreenScraper'ın ilk yanıtından önce: 1 iş parçacığı. Bu ayar izin verilen sayıyı yalnızca düşürebilir."
+    "ss_threads_unknown": "Üye hesabı olmadan veya ScreenScraper'ın ilk yanıtından önce: 1 iş parçacığı. Bu ayar izin verilen sayıyı yalnızca düşürebilir.",
+    "ss_cache": "ScreenScraper yanıtlarını önbellekte tut",
+    "ss_cache_hint": "Böylece zaten bulunmuş bir oyunu yeniden taramak kotandan hiç istek harcamaz. \"Oyun bulunamadı\" yalnızca bir gün tutulur.",
+    "ss_cache_days": "Saklama süresi",
+    "ss_cache_days_n": "{n} gün",
+    "ss_cache_clear": "Önbelleği boşalt",
+    "ss_cache_stats": "{n} yanıt · {size}"
   },
   "scrape": {
     "loading_sub": "Birkaç saniye sürebilir",
@@ -343,7 +350,9 @@
     "apply_n": "Uygula ({n})",
     "hint": "Eksikler işaretli; onayın olmadan hiçbir şey değiştirilmez.",
     "size_mb": "{n} MB",
-    "field_thumbnail": "Küçük resim"
+    "field_thumbnail": "Küçük resim",
+    "from_cache": "{date} tarihli önbellek yanıtı: ScreenScraper'a istek gönderilmedi.",
+    "refresh_cache": "ScreenScraper'dan yenile"
   },
   "server": {
     "invalid_field": "Geçersiz alan",
@@ -604,7 +613,9 @@
     "stopped_short": "Durduruldu",
     "threads": "İş parçacıkları: {active}/{limit}",
     "quota_today": "Bugünkü istekler: {used} / {max}",
-    "penalty": "ScreenScraper yavaşlamanı istiyor: 2 dakika boyunca 1 iş parçacığı."
+    "penalty": "ScreenScraper yavaşlamanı istiyor: 2 dakika boyunca 1 iş parçacığı.",
+    "refresh": "ScreenScraper önbelleğini yok say",
+    "refresh_hint": "Her oyunu ScreenScraper'a yeniden sorar (kota harcar) ve önbelleği günceller."
   },
   "backups": {
     "title": "Yedekler ve geri yükleme",

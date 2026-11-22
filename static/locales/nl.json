@@ -197,7 +197,8 @@
     "paths_copied": "{n} pad(en) gekopieerd",
     "paths_copy_failed": "Kan niet naar het klembord schrijven",
     "csv_exported": "Lijst geëxporteerd: {n} game(s)",
-    "csv_empty": "Geen games getoond: niets te exporteren"
+    "csv_empty": "Geen games getoond: niets te exporteren",
+    "ss_cache_cleared": "ScreenScraper-cache geleegd"
   },
   "errors": {
     "offline": "Geen netwerkverbinding.",
@@ -268,7 +269,13 @@
     "ss_threads": "Gelijktijdige threads",
     "ss_threads_auto": "Auto (maximum van je account)",
     "ss_threads_max": "ScreenScraper staat {n} threads toe voor je account. Deze instelling kan dat aantal alleen verlagen.",
-    "ss_threads_unknown": "Zonder ledenaccount, of vóór het eerste antwoord van ScreenScraper: 1 thread. Deze instelling kan het toegestane aantal alleen verlagen."
+    "ss_threads_unknown": "Zonder ledenaccount, of vóór het eerste antwoord van ScreenScraper: 1 thread. Deze instelling kan het toegestane aantal alleen verlagen.",
+    "ss_cache": "ScreenScraper-antwoorden in de cache bewaren",
+    "ss_cache_hint": "Een al gevonden spel opnieuw scrapen kost dan geen verzoek van je quotum. „Spel niet gevonden” wordt maar één dag bewaard.",
+    "ss_cache_days": "Bewaren gedurende",
+    "ss_cache_days_n": "{n} dagen",
+    "ss_cache_clear": "Cache legen",
+    "ss_cache_stats": "{n} antwoorden · {size}"
   },
   "scrape": {
     "loading_sub": "Dit kan enkele seconden duren",
@@ -343,7 +350,9 @@
     "apply_n": "Toepassen ({n})",
     "hint": "Wat ontbreekt is aangevinkt; niets wordt vervangen zonder jouw akkoord.",
     "size_mb": "{n} MB",
-    "field_thumbnail": "Miniatuur"
+    "field_thumbnail": "Miniatuur",
+    "from_cache": "Antwoord uit de cache van {date}: geen verzoek naar ScreenScraper gestuurd.",
+    "refresh_cache": "Vernieuwen via ScreenScraper"
   },
   "server": {
     "invalid_field": "Ongeldig veld",
@@ -604,7 +613,9 @@
     "stopped_short": "Gestopt",
     "threads": "Threads: {active}/{limit}",
     "quota_today": "Verzoeken vandaag: {used} / {max}",
-    "penalty": "ScreenScraper vraagt om te vertragen: 1 thread gedurende 2 minuten."
+    "penalty": "ScreenScraper vraagt om te vertragen: 1 thread gedurende 2 minuten.",
+    "refresh": "ScreenScraper-cache negeren",
+    "refresh_hint": "Vraagt elk spel opnieuw op bij ScreenScraper (kost quotum) en werkt de cache bij."
   },
   "backups": {
     "title": "Back-ups en herstel",

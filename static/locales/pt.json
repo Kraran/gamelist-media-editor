@@ -197,7 +197,8 @@
     "paths_copied": "{n} caminho(s) copiado(s)",
     "paths_copy_failed": "Não é possível escrever na área de transferência",
     "csv_exported": "Lista exportada: {n} jogo(s)",
-    "csv_empty": "Nenhum jogo mostrado: nada para exportar"
+    "csv_empty": "Nenhum jogo mostrado: nada para exportar",
+    "ss_cache_cleared": "Cache do ScreenScraper esvaziada"
   },
   "errors": {
     "offline": "Sem ligação de rede.",
@@ -268,7 +269,13 @@
     "ss_threads": "Threads simultâneas",
     "ss_threads_auto": "Auto (máximo da tua conta)",
     "ss_threads_max": "O ScreenScraper permite {n} threads para a tua conta. Esta definição só pode reduzir esse número.",
-    "ss_threads_unknown": "Sem conta de membro, ou antes da primeira resposta do ScreenScraper: 1 thread. Esta definição só pode reduzir o número permitido."
+    "ss_threads_unknown": "Sem conta de membro, ou antes da primeira resposta do ScreenScraper: 1 thread. Esta definição só pode reduzir o número permitido.",
+    "ss_cache": "Guardar em cache as respostas do ScreenScraper",
+    "ss_cache_hint": "Voltar a fazer scrape de um jogo já encontrado não gasta assim nenhum pedido da tua quota. «Jogo não encontrado» só é guardado um dia.",
+    "ss_cache_days": "Guardar durante",
+    "ss_cache_days_n": "{n} dias",
+    "ss_cache_clear": "Esvaziar a cache",
+    "ss_cache_stats": "{n} respostas · {size}"
   },
   "scrape": {
     "loading_sub": "Pode demorar vários segundos",
@@ -343,7 +350,9 @@
     "apply_n": "Aplicar ({n})",
     "hint": "O que falta está marcado; nada é substituído sem o seu acordo.",
     "size_mb": "{n} MB",
-    "field_thumbnail": "Miniatura"
+    "field_thumbnail": "Miniatura",
+    "from_cache": "Resposta em cache de {date}: nenhum pedido enviado ao ScreenScraper.",
+    "refresh_cache": "Atualizar a partir do ScreenScraper"
   },
   "server": {
     "invalid_field": "Campo inválido",
@@ -604,7 +613,9 @@
     "stopped_short": "Parado",
     "threads": "Threads: {active}/{limit}",
     "quota_today": "Pedidos hoje: {used} / {max}",
-    "penalty": "O ScreenScraper pede para abrandar: 1 thread durante 2 minutos."
+    "penalty": "O ScreenScraper pede para abrandar: 1 thread durante 2 minutos.",
+    "refresh": "Ignorar a cache do ScreenScraper",
+    "refresh_hint": "Volta a pedir cada jogo ao ScreenScraper (gasta quota) e atualiza a cache."
   },
   "backups": {
     "title": "Cópias e restauro",

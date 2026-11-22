@@ -65,10 +65,11 @@ def ss_config_file(tmp_path, monkeypatch):
 
 
 @pytest.fixture(autouse=True)
-def screenscraper_offline(monkeypatch):
+def screenscraper_offline(monkeypatch, tmp_path):
     """No test may reach the real ScreenScraper; limits start unknown and workers stop."""
-    from gme.scrapers import ss, ss_limits
+    from gme.scrapers import ss, ss_cache, ss_limits
     monkeypatch.setattr(ss, "SS_API", "http://127.0.0.1:9/api2")
+    monkeypatch.setattr(ss_cache, "CACHE_DIR", str(tmp_path / "ss-api-cache"))
     ss_limits.GATE.reset()
     yield
     batch_jobs.stop_all()

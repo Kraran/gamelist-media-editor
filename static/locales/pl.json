@@ -197,7 +197,8 @@
     "paths_copied": "Skopiowano ścieżki: {n}",
     "paths_copy_failed": "Nie można zapisać do schowka",
     "csv_exported": "Wyeksportowano listę: {n} gier",
-    "csv_empty": "Brak wyświetlonych gier: nie ma czego eksportować"
+    "csv_empty": "Brak wyświetlonych gier: nie ma czego eksportować",
+    "ss_cache_cleared": "Pamięć podręczna ScreenScraper wyczyszczona"
   },
   "errors": {
     "offline": "Brak połączenia sieciowego.",
@@ -268,7 +269,13 @@
     "ss_threads": "Jednoczesne wątki",
     "ss_threads_auto": "Auto (maksimum twojego konta)",
     "ss_threads_max": "ScreenScraper pozwala na {n} wątków dla twojego konta. To ustawienie może tylko zmniejszyć tę liczbę.",
-    "ss_threads_unknown": "Bez konta członka lub przed pierwszą odpowiedzią ScreenScraper: 1 wątek. To ustawienie może tylko zmniejszyć dozwoloną liczbę."
+    "ss_threads_unknown": "Bez konta członka lub przed pierwszą odpowiedzią ScreenScraper: 1 wątek. To ustawienie może tylko zmniejszyć dozwoloną liczbę.",
+    "ss_cache": "Przechowuj odpowiedzi ScreenScraper w pamięci podręcznej",
+    "ss_cache_hint": "Ponowny scraping już znalezionej gry nie zużywa wtedy żadnego zapytania z twojego limitu. „Nie znaleziono gry” jest przechowywane tylko jeden dzień.",
+    "ss_cache_days": "Przechowuj przez",
+    "ss_cache_days_n": "{n} dni",
+    "ss_cache_clear": "Wyczyść pamięć podręczną",
+    "ss_cache_stats": "{n} odpowiedzi · {size}"
   },
   "scrape": {
     "loading_sub": "To może potrwać kilka sekund",
@@ -343,7 +350,9 @@
     "apply_n": "Zastosuj ({n})",
     "hint": "Braki są zaznaczone; nic nie zostanie zastąpione bez twojej zgody.",
     "size_mb": "{n} MB",
-    "field_thumbnail": "Miniatura"
+    "field_thumbnail": "Miniatura",
+    "from_cache": "Odpowiedź z pamięci podręcznej z {date}: nie wysłano żadnego zapytania do ScreenScraper.",
+    "refresh_cache": "Odśwież z ScreenScraper"
   },
   "server": {
     "invalid_field": "Nieprawidłowe pole",
@@ -604,7 +613,9 @@
     "stopped_short": "Zatrzymano",
     "threads": "Wątki: {active}/{limit}",
     "quota_today": "Zapytania dzisiaj: {used} / {max}",
-    "penalty": "ScreenScraper prosi o zwolnienie: 1 wątek przez 2 minuty."
+    "penalty": "ScreenScraper prosi o zwolnienie: 1 wątek przez 2 minuty.",
+    "refresh": "Pomiń pamięć podręczną ScreenScraper",
+    "refresh_hint": "Ponownie pyta ScreenScraper o każdą grę (zużywa limit) i aktualizuje pamięć podręczną."
   },
   "backups": {
     "title": "Kopie i przywracanie",
