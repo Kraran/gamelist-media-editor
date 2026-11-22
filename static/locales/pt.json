@@ -51,7 +51,22 @@
     "media_missing": "Obrigatórias em falta: {list}",
     "media_complete": "Todas as médias obrigatórias presentes",
     "resize_aria": "Largura da lista de jogos",
-    "resize_title": "Arrasta para alargar a lista (ou setas esquerda/direita) · duplo clique: largura predefinida"
+    "resize_title": "Arrasta para alargar a lista (ou setas esquerda/direita) · duplo clique: largura predefinida",
+    "search_placeholder_all": "Pesquisar em todos os campos…",
+    "search_all": "Pesquisar em todos os campos",
+    "search_all_title": "Pesquisar também no género, programador, editora, data, região… (senão: nome e caminho da ROM)",
+    "genre_filter_title": "Filtrar por género (género principal, antes da «/»)",
+    "genre_filter_aria": "Filtro por género",
+    "genre_all": "Géneros",
+    "genre_none": "Sem género",
+    "flag_filter_title": "Filtrar favoritos, jogos ocultos ou infantis",
+    "flag_filter_aria": "Filtro favoritos, ocultos, infantis",
+    "flag_all": "Todos",
+    "flag_favorite": "Favoritos",
+    "flag_hidden": "Ocultos",
+    "flag_visible": "Não ocultos",
+    "flag_kidgame": "Infantis",
+    "copy_paths": "Copiar os caminhos das ROMs marcadas"
   },
   "editor": {
     "desc_title": "Descrição",
@@ -155,7 +170,9 @@
     "kbd_save": "guardar",
     "kbd_next_incomplete": "próximo incompleto",
     "kbd_scrape": "scrape",
-    "kbd_help": "atalhos"
+    "kbd_help": "atalhos",
+    "csv_export": "A exportar CSV…",
+    "csv_exported": "CSV exportado ({n} jogos)"
   },
   "toast": {
     "no_file_url": "Nenhum ficheiro ou URL detetado",
@@ -176,7 +193,11 @@
     "arcade_sys_ok": "{n} preenchidos · {skip} já definidos · {miss} não encontrados",
     "nothing_to_save": "Nada para guardar",
     "path_copied": "Caminho copiado: {path}",
-    "no_incomplete": "Nenhum outro jogo incompleto na lista"
+    "no_incomplete": "Nenhum outro jogo incompleto na lista",
+    "paths_copied": "{n} caminho(s) copiado(s)",
+    "paths_copy_failed": "Não é possível escrever na área de transferência",
+    "csv_exported": "Lista exportada: {n} jogo(s)",
+    "csv_empty": "Nenhum jogo mostrado: nada para exportar"
   },
   "errors": {
     "offline": "Sem ligação de rede.",
@@ -390,7 +411,10 @@
     "source_timeout": "{source} não respondeu a tempo: o servidor pode estar sobrecarregado.",
     "source_network": "Erro de rede com {source}: {detail}",
     "source_bad_answer": "Resposta inesperada de {source}: {detail}",
-    "stale_gamelist": "A lista de jogos ativa mudou. Recarrega a lista antes de continuar."
+    "stale_gamelist": "A lista de jogos ativa mudou. Recarrega a lista antes de continuar.",
+    "image_unreadable": "imagem ilegível ou danificada, não gravada",
+    "image_too_small": "imagem demasiado pequena ({w}×{h} px), não gravada",
+    "image_uniform": "imagem de uma só cor ou vazia, não gravada"
   },
   "open_gl": {
     "title": "Abrir um gamelist.xml",
@@ -430,7 +454,9 @@
     "label": "Toda a gamelist",
     "backup_sub": "Cópia gamelist.xml.bak ao lado do arquivo",
     "arcade_sub": "A partir do mame.xml: CPS2, Neo-Geo…",
-    "purge_sub": "Em todos os jogos, após confirmação"
+    "purge_sub": "Em todos os jogos, após confirmação",
+    "export_csv": "Exportar a lista (CSV)",
+    "export_csv_sub": "Os jogos mostrados na lista, para Excel ou LibreOffice"
   },
   "settings": {
     "title": "Configurações",

@@ -4,7 +4,6 @@ Run with:  python -m pytest -m e2e
 Needs:     pip install -r requirements-dev.txt && python -m playwright install chromium
 Slow machine simulation (flakiness hunt): GME_CPU_THROTTLE=6 python -m pytest -m e2e
 """
-import io
 import os
 import threading
 import time
@@ -17,6 +16,7 @@ from werkzeug.serving import make_server  # noqa: E402
 from gme import remote_cache, xml_store  # noqa: E402
 from gme.scrapers import ss  # noqa: E402
 from gme.server import app  # noqa: E402
+from tests.conftest import picture  # noqa: E402
 
 GAMELIST = """<?xml version="1.0"?>
 <gameList>
@@ -91,10 +91,7 @@ def wait_until(predicate, timeout=5.0):
 # --- Fake scrape sources (test_scrape.py, test_batch_scrape.py) -------------------
 
 def png(size=(64, 48)):
-    from PIL import Image
-    buf = io.BytesIO()
-    Image.new("RGB", size, (40, 120, 200)).save(buf, "PNG")
-    return buf.getvalue()
+    return picture(size)
 
 
 def media(kind):

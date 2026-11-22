@@ -51,7 +51,22 @@
     "media_missing": "Påkrævet, mangler: {list}",
     "media_complete": "Alle påkrævede medier findes",
     "resize_aria": "Bredde på spillisten",
-    "resize_title": "Træk for at gøre listen bredere (eller venstre/højre piletast) · dobbeltklik: standardbredde"
+    "resize_title": "Træk for at gøre listen bredere (eller venstre/højre piletast) · dobbeltklik: standardbredde",
+    "search_placeholder_all": "Søg i alle felter…",
+    "search_all": "Søg i alle felter",
+    "search_all_title": "Søg også i genre, udvikler, udgiver, dato, region… (ellers: navn og ROM-sti)",
+    "genre_filter_title": "Filtrer efter genre (hovedgenre, før »/«)",
+    "genre_filter_aria": "Genrefilter",
+    "genre_all": "Genrer",
+    "genre_none": "Uden genre",
+    "flag_filter_title": "Filtrer favoritter, skjulte spil eller børnespil",
+    "flag_filter_aria": "Filter favoritter, skjulte, børn",
+    "flag_all": "Alle",
+    "flag_favorite": "Favoritter",
+    "flag_hidden": "Skjulte",
+    "flag_visible": "Ikke skjulte",
+    "flag_kidgame": "For børn",
+    "copy_paths": "Kopiér stierne til de afkrydsede ROM'er"
   },
   "editor": {
     "desc_title": "Beskrivelse",
@@ -155,7 +170,9 @@
     "kbd_save": "gem",
     "kbd_next_incomplete": "næste ufuldstændige",
     "kbd_scrape": "skrab",
-    "kbd_help": "genveje"
+    "kbd_help": "genveje",
+    "csv_export": "Eksporterer CSV…",
+    "csv_exported": "CSV eksporteret ({n} spil)"
   },
   "toast": {
     "no_file_url": "Ingen fil eller URL fundet",
@@ -176,7 +193,11 @@
     "arcade_sys_ok": "{n} udfyldt · {skip} allerede sat · {miss} ikke fundet",
     "nothing_to_save": "Intet at gemme",
     "path_copied": "Sti kopieret: {path}",
-    "no_incomplete": "Ingen andre ufuldstændige spil på listen"
+    "no_incomplete": "Ingen andre ufuldstændige spil på listen",
+    "paths_copied": "{n} sti(er) kopieret",
+    "paths_copy_failed": "Kunne ikke skrive til udklipsholderen",
+    "csv_exported": "Listen eksporteret: {n} spil",
+    "csv_empty": "Ingen spil vises: intet at eksportere"
   },
   "errors": {
     "offline": "Ingen netværksforbindelse.",
@@ -390,7 +411,10 @@
     "source_timeout": "{source} svarede ikke i tide: serveren er måske overbelastet.",
     "source_network": "Netværksfejl hos {source}: {detail}",
     "source_bad_answer": "Uventet svar fra {source}: {detail}",
-    "stale_gamelist": "Den aktive spilliste er ændret. Genindlæs listen, før du fortsætter."
+    "stale_gamelist": "Den aktive spilliste er ændret. Genindlæs listen, før du fortsætter.",
+    "image_unreadable": "billedet er ulæseligt eller beskadiget, ikke gemt",
+    "image_too_small": "billedet er for lille ({w}×{h} px), ikke gemt",
+    "image_uniform": "ensfarvet eller tomt billede, ikke gemt"
   },
   "open_gl": {
     "title": "Åbn en gamelist.xml",
@@ -430,7 +454,9 @@
     "label": "Hele gamelisten",
     "backup_sub": "Kopi gamelist.xml.bak ved siden af filen",
     "arcade_sub": "Fra mame.xml: CPS2, Neo-Geo…",
-    "purge_sub": "I alle spil, efter bekræftelse"
+    "purge_sub": "I alle spil, efter bekræftelse",
+    "export_csv": "Eksportér listen (CSV)",
+    "export_csv_sub": "Spillene, der vises i listen, til Excel eller LibreOffice"
   },
   "settings": {
     "title": "Indstillinger",

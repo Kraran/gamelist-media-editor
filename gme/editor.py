@@ -1,15 +1,16 @@
 """Editor routes: game list, gamelist switching, media and metadata editing, whole-gamelist actions."""
 
 import os
+import re
 import sys
 import threading
 import time
 
 import requests
-from flask import Blueprint, jsonify, render_template, request, send_from_directory
+from flask import Blueprint, Response, jsonify, render_template, request, send_from_directory
 from lxml import etree
 
-from gme import recent, settings, xml_store
+from gme import csv_export, recent, settings, xml_store
 from gme.arcade import find_mame_listxml, index_mame_listxml, pretty_arcade_system
 from gme.fields import FieldError, clean_meta, set_desc, set_meta, set_name
 from gme.fsutil import atomic_write
@@ -468,6 +469,41 @@ def fill_arcadesystem():
         "machines": len(idx),
         "backup": backup_path,
     })
+
+
+@bp.route("/api/export-csv", methods=["POST"])
+def api_export_csv():
+    """The games shown in the list as a CSV file (Actions › Export the list).
+
+    Body: ``{"paths": [...], "required": [...], "sep": ";"}``, all optional:
+    ``paths`` is the list as displayed (filters applied, in that order; absent
+    = every game), ``required`` the required media of the system (for the
+    ``required_media`` / ``missing_required`` columns), ``sep`` one of , ; or tab.
+    """
+    err = require_gamelist()
+    if err:
+        return err
+    body = request.get_json(silent=True) or {}
+    paths = body.get("paths")
+    required = body.get("required")
+    sep = body.get("sep", ";")
+    if paths is not None and not (isinstance(paths, list) and all(isinstance(p, str) for p in paths)):
+        return api_err("paths must be a list of strings", 400, code="bad_paths")
+    if required is None:
+        required = csv_export.DEFAULT_REQUIRED
+    elif not (isinstance(required, list) and all(f in MEDIA_DIRS for f in required)):
+        return api_err("unknown media field", 400, code="invalid_field")
+    if sep not in csv_export.SEPARATORS:
+        return api_err("bad separator", 400, code="bad_separator")
+    games = csv_export.ordered_games(load_xml().getroot(), paths)
+    folder = re.sub(r"[^A-Za-z0-9._-]", "_", (get_system_info() or {}).get("folder") or "") or "gamelist"
+    filename = f"gamelist-{folder}-{time.strftime('%Y-%m-%d')}.csv"
+    resp = Response(csv_export.build_csv(games, required, sep), mimetype="text/csv")
+    resp.headers["Content-Type"] = "text/csv; charset=utf-8"
+    resp.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
+    resp.headers["X-Exported-Games"] = str(len(games))
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
 
 
 @bp.route("/media/<path:filepath>")
