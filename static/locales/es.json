@@ -264,7 +264,11 @@
     "ss_type_mix_v1": "Mix Recalbox v1 (mixrbv1)",
     "ss_type_mix_v2": "Mix Recalbox v2 (mixrbv2)",
     "arcade_sys_title": "Rellenar sistemas arcade",
-    "arcade_sys_btn": "Rellenar desde MAME"
+    "arcade_sys_btn": "Rellenar desde MAME",
+    "ss_threads": "Hilos simultáneos",
+    "ss_threads_auto": "Auto (máximo de tu cuenta)",
+    "ss_threads_max": "ScreenScraper permite {n} hilos para tu cuenta. Este ajuste solo puede reducir ese número.",
+    "ss_threads_unknown": "Sin cuenta de miembro, o antes de la primera respuesta de ScreenScraper: 1 hilo. Este ajuste solo puede reducir el número permitido."
   },
   "scrape": {
     "loading_sub": "Puede tardar varios segundos",
@@ -414,7 +418,11 @@
     "stale_gamelist": "La lista de juegos activa ha cambiado. Recarga la lista antes de continuar.",
     "image_unreadable": "imagen ilegible o dañada, no guardada",
     "image_too_small": "imagen demasiado pequeña ({w}×{h} px), no guardada",
-    "image_uniform": "imagen de un solo color o vacía, no guardada"
+    "image_uniform": "imagen de un solo color o vacía, no guardada",
+    "ss_busy": "ScreenScraper está saturado y rechaza a los no miembros por ahora (HTTP 401). Vuelve a intentarlo en unos minutos o añade tu cuenta de miembro en Ajustes.",
+    "ss_blacklisted": "ScreenScraper rechaza esta versión del programa (HTTP 426). Actualiza Gamelist Media Editor.",
+    "ss_quota_day": "Cuota diaria de ScreenScraper alcanzada (HTTP 430). Vuelve a intentarlo mañana.",
+    "ss_quota_ko": "Demasiadas ROMs no reconocidas hoy (HTTP 431, cuota de ScreenScraper). Ordena tus ROMs y vuelve a intentarlo mañana."
   },
   "open_gl": {
     "title": "Abrir un gamelist.xml",
@@ -592,7 +600,11 @@
     "new_batch": "Nuevo lote",
     "no_saved": "No hay ningún lote que reanudar.",
     "invalid": "Opciones de lote no válidas.",
-    "claimed": "Este lote se ha reanudado en otra ventana. Vuelve a abrir el informe para continuar."
+    "claimed": "Este lote se ha reanudado en otra ventana. Vuelve a abrir el informe para continuar.",
+    "stopped_short": "Detenido",
+    "threads": "Hilos: {active}/{limit}",
+    "quota_today": "Peticiones hoy: {used} / {max}",
+    "penalty": "ScreenScraper pide ir más despacio: 1 hilo durante 2 minutos."
   },
   "backups": {
     "title": "Copias y restauración",

@@ -65,6 +65,17 @@ def ss_config_file(tmp_path, monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def screenscraper_offline(monkeypatch):
+    """No test may reach the real ScreenScraper; limits start unknown and workers stop."""
+    from gme.scrapers import ss, ss_limits
+    monkeypatch.setattr(ss, "SS_API", "http://127.0.0.1:9/api2")
+    ss_limits.GATE.reset()
+    yield
+    batch_jobs.stop_all()
+    ss_limits.GATE.reset()
+
+
+@pytest.fixture(autouse=True)
 def trashed(monkeypatch):
     """Nothing goes to the real Recycle Bin: what would is recorded, then removed."""
     paths = []

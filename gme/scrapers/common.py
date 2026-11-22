@@ -137,27 +137,21 @@ def name_similarity(a, b):
     return inter / max(len(ta), len(tb))
 
 
-# Minimum interval between outbound API calls (politeness + avoid bursts)
-_SS_MIN_INTERVAL = 1.1
+# Minimum interval between outbound API calls (politeness + avoid bursts).
+# ScreenScraper has its own limits, read from its answers: see ss_limits.
 _ADB_MIN_INTERVAL = 0.45
 _STEAM_MIN_INTERVAL = 0.45
-_ss_last_call = 0.0
 _adb_last_call = 0.0
 _steam_last_call = 0.0
 _api_throttle_lock = threading.Lock()
 
 
 def throttle_api(service):
-    """Serialize and space calls per service (one logical client)."""
-    global _ss_last_call, _adb_last_call, _steam_last_call
+    """Serialize and space calls per service (one logical client): "adb" or "steam"."""
+    global _adb_last_call, _steam_last_call
     with _api_throttle_lock:
         now = time.time()
-        if service == "ss":
-            wait = _SS_MIN_INTERVAL - (now - _ss_last_call)
-            if wait > 0:
-                time.sleep(wait)
-            _ss_last_call = time.time()
-        elif service == "steam":
+        if service == "steam":
             wait = _STEAM_MIN_INTERVAL - (now - _steam_last_call)
             if wait > 0:
                 time.sleep(wait)

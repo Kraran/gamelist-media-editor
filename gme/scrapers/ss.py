@@ -3,6 +3,7 @@
 import os
 import re
 import json
+import time
 
 import requests
 from flask import Blueprint, jsonify, request
@@ -12,7 +13,8 @@ from gme.http import api_err
 from gme.i18n import st
 from gme.paths import APP_DIR
 from gme.scrapers.apply import apply_route
-from gme.scrapers.common import throttle_api, clean_game_name, name_similarity, rom_identification
+from gme.scrapers import ss_limits
+from gme.scrapers.common import clean_game_name, name_similarity, rom_identification
 from gme.scrapers.compare import scrape_payload
 from gme.systems import detect_system_id
 from gme.version import APP_UA, SS_SOFTNAME
@@ -103,6 +105,17 @@ def ss_media_pref(cfg=None):
     return prefs
 
 
+def normalize_threads(raw):
+    """Thread setting: 0 = Auto (the member's maxthreads), else 1..MAX_USER_THREADS.
+
+    It can only lower the number ScreenScraper allows (ss_limits.GATE)."""
+    try:
+        n = int(raw)
+    except (TypeError, ValueError):
+        return 0
+    return n if 0 < n <= ss_limits.MAX_USER_THREADS else 0
+
+
 def load_ss_config():
     """User boost credentials + region + media type prefs (local file)."""
     path = ss_config_path()
@@ -111,6 +124,7 @@ def load_ss_config():
         "sspassword": "",
         "prefer_region": "fr",
         "media_types": dict(SS_MEDIA_DEFAULTS),
+        "threads": 0,
     }
     if not os.path.isfile(path):
         return defaults
@@ -123,6 +137,7 @@ def load_ss_config():
             if k in data and data[k] is not None:
                 defaults[k] = str(data[k]).strip()
         defaults["media_types"] = normalize_ss_media_types(data.get("media_types"))
+        defaults["threads"] = normalize_threads(data.get("threads"))
         return defaults
     except Exception:
         return defaults
@@ -140,6 +155,8 @@ def save_ss_config(data):
         cfg["sspassword"] = ""
     if "media_types" in data:
         cfg["media_types"] = normalize_ss_media_types(data.get("media_types"))
+    if "threads" in data:
+        cfg["threads"] = normalize_threads(data.get("threads"))
     cfg.pop("devid", None)
     cfg.pop("devpassword", None)
     path = ss_config_path()
@@ -150,6 +167,7 @@ def save_ss_config(data):
 def ss_public_config(cfg=None):
     """Config for the UI — no developer secrets."""
     cfg = cfg or load_ss_config()
+    apply_account(cfg)
     return {
         "ssid": cfg.get("ssid") or "",
         "sspassword_set": bool(cfg.get("sspassword")),
@@ -158,6 +176,8 @@ def ss_public_config(cfg=None):
         "softname": SS_SOFTNAME,
         "configured": True,
         "user_boost": bool(cfg.get("ssid") and cfg.get("sspassword")),
+        "threads": normalize_threads(cfg.get("threads")),
+        "limits": ss_limits.GATE.snapshot(),
     }
 
 
@@ -233,7 +253,8 @@ def format_ss_error(raw, status=200):
 # Answers that say ScreenScraper refuses us for now (quota, login, API closed):
 # every other game would fail the same way, so a batch scrape stops on them.
 _BLOCKING_KEYS = ("server.ss_quota", "server.ss_login", "server.ss_api_closed",
-                  "server.ss_429", "server.ss_503", "server.ss_too_many")
+                  "server.ss_429", "server.ss_503", "server.ss_too_many",
+                  "server.ss_busy", "server.ss_blacklisted", "server.ss_quota_day", "server.ss_quota_ko")
 
 
 def ss_blocking(message):
@@ -241,11 +262,34 @@ def ss_blocking(message):
     return any(message == st(k) for k in _BLOCKING_KEYS)
 
 
+_RETRY_429 = (3.0, 10.0)        # seconds before retrying an HTTP 429 (then give up)
+
+
+def _wait(seconds):
+    """Back off; a stopped batch does not wait (ss_limits.cancel_scope)."""
+    cancel = ss_limits.current_cancel()
+    if cancel is None:
+        time.sleep(seconds)
+    elif cancel.wait(seconds):
+        raise ss_limits.Cancelled()
+
+
+def apply_account(cfg=None):
+    """Tell the shared limits which member is scraping and the thread setting."""
+    cfg = cfg or load_ss_config()
+    account = cfg["ssid"] if cfg.get("ssid") and cfg.get("sspassword") else None
+    ss_limits.GATE.set_account(account, cfg.get("threads") or 0)
+    return account
+
+
 def ss_request(endpoint, extra_params=None, timeout=25):
     """
     Call ScreenScraper API2. Returns (ok, data_or_error_str, http_status).
     Built-in developer credentials + optional user ssid/sspassword for quota boost.
-    Throttled to avoid burst / quota spikes.
+    Every call takes one of the member's threads and respects the requests per
+    minute and daily quotas (``ss_limits.GATE``); the limits ScreenScraper sends
+    back in ``response.ssuser`` are read from every answer.
+    Raises ``ss_limits.Cancelled`` only inside a stopped batch worker.
     """
     cfg = load_ss_config()
     params = {
@@ -260,41 +304,75 @@ def ss_request(endpoint, extra_params=None, timeout=25):
     if extra_params:
         params.update({k: v for k, v in extra_params.items() if v is not None and v != ""})
     url = f"{SS_API}/{endpoint}"
-    throttle_api("ss")
-    try:
-        r = requests.get(
-            url,
-            params=params,
-            headers={"User-Agent": APP_UA},
-            timeout=timeout,
-        )
-        body = r.text or ""
-        if r.status_code == 429:
-            return False, format_ss_error(body, 429), 429
-        if r.status_code == 503:
-            return False, format_ss_error(body, 503), 503
-        if r.status_code != 200:
-            return False, format_ss_error(body, r.status_code), r.status_code
-        stripped = body.strip()
-        if stripped.startswith("Erreur") or stripped.lower().startswith("api closed"):
-            return False, format_ss_error(stripped, r.status_code), r.status_code
+    apply_account(cfg)
+    gate = ss_limits.GATE
+    attempt = 0
+    while True:
         try:
-            data = r.json()
-        except Exception:
-            # Plain-text quota messages sometimes without "Erreur" prefix
-            if any(k in stripped.lower() for k in ("quota", "thread", "limit")):
-                return False, format_ss_error(stripped, r.status_code), r.status_code
-            return False, st("server.source_bad_answer", source="ScreenScraper", detail=stripped[:300]), r.status_code
-        header = data.get("header") or {}
-        err = (header.get("error") or "").strip()
-        if err and err not in ("OK", "0", "none", "null"):
-            if header.get("success") not in ("true", True, "1", 1):
-                return False, format_ss_error(err, r.status_code), r.status_code
-        return True, data, r.status_code
-    except requests.Timeout:
-        return False, st("server.source_timeout", source="ScreenScraper"), 504
-    except requests.RequestException as e:
-        return False, st("server.source_network", source="ScreenScraper", detail=e), 502
+            with gate.slot():
+                r = requests.get(
+                    url,
+                    params=params,
+                    headers={"User-Agent": APP_UA},
+                    timeout=timeout,
+                )
+        except ss_limits.SSBlocked as e:
+            return False, st(e.key), e.status
+        except requests.Timeout:
+            return False, st("server.source_timeout", source="ScreenScraper"), 504
+        except requests.RequestException as e:
+            return False, st("server.source_network", source="ScreenScraper", detail=e), 502
+        gate.note_status(r.status_code)
+        if r.status_code == 429 and attempt < len(_RETRY_429):
+            # Too many threads / requests per minute: the gate is down to one
+            # thread for a while; wait, then try this request once more.
+            _wait(_RETRY_429[attempt])
+            attempt += 1
+            continue
+        break
+    body = r.text or ""
+    if r.status_code in ss_limits.COOLDOWNS:
+        return False, st(ss_limits.COOLDOWNS[r.status_code][1]), r.status_code
+    if r.status_code == 429:
+        return False, format_ss_error(body, 429), 429
+    if r.status_code == 503:
+        return False, format_ss_error(body, 503), 503
+    if r.status_code != 200:
+        return False, format_ss_error(body, r.status_code), r.status_code
+    stripped = body.strip()
+    if stripped.startswith("Erreur") or stripped.lower().startswith("api closed"):
+        return False, format_ss_error(stripped, r.status_code), r.status_code
+    try:
+        data = r.json()
+    except Exception:
+        # Plain-text quota messages sometimes without "Erreur" prefix
+        if any(k in stripped.lower() for k in ("quota", "thread", "limit")):
+            return False, format_ss_error(stripped, r.status_code), r.status_code
+        return False, st("server.source_bad_answer", source="ScreenScraper", detail=stripped[:300]), r.status_code
+    if not isinstance(data, dict):
+        return False, st("server.source_bad_answer", source="ScreenScraper", detail=stripped[:300]), r.status_code
+    response = data.get("response")
+    if isinstance(response, dict):
+        gate.update_from_user(response.get("ssuser"))
+    header = data.get("header") or {}
+    err = (header.get("error") or "").strip()
+    if err and err not in ("OK", "0", "none", "null"):
+        if header.get("success") not in ("true", True, "1", 1):
+            return False, format_ss_error(err, r.status_code), r.status_code
+    return True, data, r.status_code
+
+
+def refresh_limits(max_age=600):
+    """Ask ScreenScraper for the member's limits when they are unknown or old.
+
+    Without a member login there is nothing to ask: one thread.
+    """
+    if not apply_account():
+        return
+    updated = ss_limits.GATE.limits.get("updated")
+    if ss_limits.GATE.known() and updated and time.time() - updated < max_age:
+        return
+    ss_request("ssuserInfos.php")
 
 
 def _ss_pick_text(entries, prefer_region="fr", key_region="region", key_text="text"):
@@ -504,6 +582,8 @@ def api_ss_config():
             payload["prefer_region"] = (body.get("prefer_region") or "fr").strip()
         if "media_types" in body:
             payload["media_types"] = body.get("media_types") or {}
+        if "threads" in body:
+            payload["threads"] = body.get("threads")
         if body.get("sspassword"):
             payload["sspassword"] = body["sspassword"]
         if body.get("clear_sspassword"):
@@ -532,6 +612,9 @@ def api_ss_test():
                 "level": user.get("niveau") or user.get("level") or "",
                 "maxthreads": user.get("maxthreads") or "",
                 "requeststoday": user.get("requetesauj") or user.get("requeststoday") or "",
+                "maxrequestspermin": user.get("maxrequestspermin") or user.get("maxrequestsperdmin") or "",
+                "maxrequestsperday": user.get("maxrequestsperday") or "",
+                "limits": ss_limits.GATE.snapshot(),
                 "raw_keys": list(user.keys())[:20] if isinstance(user, dict) else [],
             })
         # fall through to infra test with error note
@@ -564,14 +647,31 @@ def api_ss_scrape(index, body=None):
         tree, game = get_game_elem(index)
     except IndexError:
         return api_err(st("server.invalid_index"), 404, code="invalid_index")
-    cfg = load_ss_config()
     body = (request.get_json(silent=True) or {}) if body is None else body
+    data, status = scrape_game(game, body)
+    return jsonify(data), status
+
+
+def _error(message, status, code):
+    return {"error": str(message), "ok": False, "code": code}, status
+
+
+def scrape_game(game, body=None, system=None):
+    """The ScreenScraper lookup of ``game`` → ``(payload, http_status)``.
+
+    Needs no request and no gamelist lock: a batch worker calls it with a
+    copy of the game element (``system``: the ``detect_system_id()`` result
+    taken while the gamelist was locked). Every request goes through
+    ``ss_request``, so through the process-wide ScreenScraper limits.
+    """
+    cfg = load_ss_config()
+    body = body or {}
     force_id = str(body.get("gameid") or "").strip()
 
     path_rel = game.findtext("path", "") or ""
     rom_name = os.path.basename(path_rel) if path_rel else ""
     local_name = game.findtext("name", "") or os.path.splitext(rom_name)[0]
-    system_id, system_folder = detect_system_id()
+    system_id, system_folder = system or detect_system_id()
     prefer = cfg.get("prefer_region") or "fr"
 
     rom_full = resolve_under_base(path_rel) if path_rel else None
@@ -601,14 +701,14 @@ def api_ss_scrape(index, body=None):
             extra["systemeid"] = str(system_id)
         ok, data, _ = ss_request("jeuInfos.php", extra)
         if not ok:
-            return api_err(st("server.ss_gameid_error", id=force_id, detail=data), 404, code="ss_gameid")
+            return _error(st("server.ss_gameid_error", id=force_id, detail=data), 404, "ss_gameid")
         jeu = (data.get("response") or {}).get("jeu")
         if isinstance(jeu, list):
             jeu = jeu[0] if jeu else None
         result = full_from_jeu(jeu, "gameid")
         if not result:
-            return api_err(st("server.ss_empty_gameid"), 404, code="ss_empty")
-        return jsonify(result)
+            return _error(st("server.ss_empty_gameid"), 404, "ss_empty")
+        return result, 200
 
     # --- 1) Hash / exact ROM identification (several variants) ---
     def try_jeu_infos(extra, method):
@@ -656,7 +756,7 @@ def api_ss_scrape(index, body=None):
             seen.add(key)
             result = try_jeu_infos(extra, method)
             if result:
-                return jsonify(result)
+                return result, 200
 
     # --- 2) Search by cleaned name → candidates (never auto-pick a weak match) ---
     search_name = clean_game_name(local_name) or clean_game_name(rom_name) or local_name
@@ -719,10 +819,10 @@ def api_ss_scrape(index, body=None):
                 jeu = jeu[0] if jeu else None
             result = full_from_jeu(jeu, "name-unique")
             if result:
-                return jsonify(result)
+                return result, 200
 
     if candidates:
-        return jsonify({
+        return {
             "success": True,
             "need_choice": True,
             "match_method": "search",
@@ -734,11 +834,11 @@ def api_ss_scrape(index, body=None):
             "hash": hash_info,
             "candidates": candidates[:15],
             "message": st("server.ss_candidates"),
-        })
+        }, 200
 
     # Refused for now (quota, login…): not "not found", and a batch must stop
     if blocked:
-        return api_err(blocked[-1], 503, code="source_blocked")
+        return _error(blocked[-1], 503, "source_blocked")
 
     # Prefer showing login/config errors over a generic "not found"
     login_err = next(
@@ -765,7 +865,7 @@ def api_ss_scrape(index, body=None):
         msg += f" (SS id={system_id}, {system_folder})"
     else:
         msg += f" ({system_folder})"
-    return jsonify({
+    return {
         "error": msg,
         "api_errors": api_errors[-6:],
         "system_id": system_id,
@@ -774,7 +874,7 @@ def api_ss_scrape(index, body=None):
         "local_name": local_name,
         "search": recherche,
         "hash": hash_info,
-    }), 404
+    }, 404
 
 
 @bp.route("/api/ss/apply/<int:index>", methods=["POST"])

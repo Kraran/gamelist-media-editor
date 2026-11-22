@@ -264,7 +264,11 @@
     "ss_type_mix_v1": "Mix Recalbox v1 (mixrbv1)",
     "ss_type_mix_v2": "Mix Recalbox v2 (mixrbv2)",
     "arcade_sys_title": "Remplir les systèmes arcade",
-    "arcade_sys_btn": "Remplir depuis MAME"
+    "arcade_sys_btn": "Remplir depuis MAME",
+    "ss_threads": "Threads simultanés",
+    "ss_threads_auto": "Auto (maximum de ton compte)",
+    "ss_threads_max": "ScreenScraper autorise {n} threads pour ton compte. Ce réglage peut seulement réduire ce nombre.",
+    "ss_threads_unknown": "Sans compte membre, ou avant la première réponse de ScreenScraper : 1 thread. Ce réglage peut seulement réduire le nombre autorisé."
   },
   "scrape": {
     "loading_sub": "Cela peut prendre plusieurs secondes",
@@ -414,7 +418,11 @@
     "stale_gamelist": "La gamelist active a changé. Recharge la liste avant de continuer.",
     "image_unreadable": "image illisible ou corrompue, non enregistrée",
     "image_too_small": "image trop petite ({w}×{h} px), non enregistrée",
-    "image_uniform": "image d’une seule couleur ou vide, non enregistrée"
+    "image_uniform": "image d’une seule couleur ou vide, non enregistrée",
+    "ss_busy": "ScreenScraper est saturé et refuse les non-membres pour le moment (HTTP 401). Réessaie dans quelques minutes, ou ajoute ton compte membre dans les réglages.",
+    "ss_blacklisted": "ScreenScraper refuse cette version du logiciel (HTTP 426). Mets à jour Gamelist Media Editor.",
+    "ss_quota_day": "Quota quotidien ScreenScraper atteint (HTTP 430). Réessaie demain.",
+    "ss_quota_ko": "Trop de ROMs non reconnues aujourd'hui (HTTP 431, quota ScreenScraper). Fais du tri dans tes ROMs et réessaie demain."
   },
   "open_gl": {
     "title": "Ouvrir un gamelist.xml",
@@ -592,7 +600,11 @@
     "new_batch": "Nouveau lot",
     "no_saved": "Aucun lot à reprendre.",
     "invalid": "Options du lot invalides.",
-    "claimed": "Ce lot a été repris dans une autre fenêtre. Rouvre le rapport pour continuer."
+    "claimed": "Ce lot a été repris dans une autre fenêtre. Rouvre le rapport pour continuer.",
+    "stopped_short": "Arrêté",
+    "threads": "Threads : {active}/{limit}",
+    "quota_today": "Requêtes aujourd'hui : {used} / {max}",
+    "penalty": "ScreenScraper demande de ralentir : 1 thread pendant 2 minutes."
   },
   "backups": {
     "title": "Sauvegardes et restauration",

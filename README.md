@@ -33,6 +33,7 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
 - Proposed images are downloaded once and reused when applied (no second ScreenScraper download)
 - **Downloaded images are checked** before they are written: an unreadable or corrupt file (or an error page), a picture under 16 px or 32×32 px, or a single-colour / fully transparent image is refused and reported as failed in the scrape and batch reports; the game keeps its previous media (videos and manuals are not checked)
 - **Batch scrape**: the games ticked in the list (box, `Ctrl`/`Shift`+click, `X`), or all the games shown; fill gaps or replace, chosen fields, progress with *Stop*, report of the updated, uncertain (pick them afterwards) and failed games
+- **Parallel ScreenScraper batches**: with a member login, several games at once, never more than the `maxthreads` ScreenScraper gives your account (1 without a login); requests per minute and the daily quota are respected for every request of the app, and results are still written in list order. *Settings › ScreenScraper › Threads* can lower the number
 - **Resume / retry**: *Last batch* below the game list reopens the saved report for this gamelist. Resume the remaining games after stopping or reopening the app; once finished, retry only failed games and failed fields of partial updates. A new batch starts from *Actions* or the selection bar and replaces the previous saved report
 - **ScreenScraper**: ROM hash match (also inside `.zip`), then name search with a candidate list; media types configurable; system detected from the RetroBat folder name (all RetroBat systems)
 - **Arcade Database**: MAME / FBNeo / Neo-Geo / Atomiswave (PCB → Support, Cabinet → Boxart, Flyer → Boxback, Decal → Marquee) and arcade hardware name (`cps1.cpp` → CPS1)
@@ -54,7 +55,7 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
 - **Keyboard**: `J`/`K` next/previous game, `N` next incomplete, `S` scrape, `Ctrl+S` save, `Ctrl+F` or `/` search, `?` shows the list
 - **Open another `gamelist.xml`** at any time (file browser, the 10 most recent files in one click), **Reload** after an outside edit
 - **Actions** menu (whole gamelist): `.bak` backup, arcade system names from `mame.xml`, **Check ROMs** (gamelist vs files of the folder: add missing ROMs, remove entries without ROM, merge duplicates, export the report), **Check media** (unused media to the Recycle Bin, links to missing files removed, export the report), purge all `<region>` tags
-- **Settings**: theme (dark, light or as the system), language, ScreenScraper member login, region and media types, scrape source and required media per system, keyboard shortcuts (kept in `ui_settings.json`)
+- **Settings**: theme (dark, light or as the system), language, ScreenScraper member login, region, threads and media types, scrape source and required media per system, keyboard shortcuts (kept in `ui_settings.json`)
 - Game ⋯ menu: copy the ROM path, delete the game (ROM, tracks / discs, media and XML entry, listed before; files another game uses are kept; to the Recycle Bin) with optional backup
 - **Backups and restoration** (Actions): the last 30 dated XML copies, with confirmation before restoring and a snapshot of the current XML to undo the restoration. ROMs and media are not restored
 - Application window without address bar when Edge / Chrome / Brave is available; **Quit** stops the server
@@ -115,6 +116,8 @@ Keep `state/batches/` next to the app to retain batch progress and reports. XML 
 
 Please use the scrapers responsibly: requests are throttled, avoid hammering the APIs. ScreenScraper works out of the box; a free member account (Settings › ScreenScraper) raises your quota.
 
+ScreenScraper limits are applied to every request the app sends (API calls and media downloads, single scrapes, previews and batches together): never more simultaneous requests than the `maxthreads` of your account (1 without a member login), at most `maxrequestspermin` per minute (with a 10 % margin), and nothing once the daily quota is used. These numbers come from ScreenScraper's own answers and are re-read with each one. A "too many threads" answer (HTTP 429) drops to one thread for two minutes; a daily quota (430/431), closed API (423) or refused software (426) answer stops the batch and nothing more is sent for a while. The *Threads* setting can only lower the number of threads.
+
 ---
 
 ## Requirements
@@ -148,7 +151,8 @@ Code layout (`app.py` is only the entry point; the overview is in `gme/__init__.
 | `gme/mediacheck.py` | Check media: unused media files and links to missing files, clean-up (`/api/check-media`) |
 | `gme/recent.py` | recently opened gamelists (`recent_gamelists.json` next to `app.py` or the `.exe`) |
 | `gme/settings.py` | interface settings: language, scrape source and required media per system (`ui_settings.json`, `/api/settings`) |
-| `gme/batch_jobs.py` | durable batch plans and per-game checkpoints, resume ownership and selective retry (`/api/batch`) |
+| `gme/batch_jobs.py` | durable batch plans and per-game checkpoints, resume ownership and selective retry, parallel ScreenScraper lookups applied in list order (`/api/batch`) |
+| `gme/scrapers/ss_limits.py` | ScreenScraper limits for the whole process: `maxthreads` semaphore, requests-per-minute limiter, daily quotas, 429/430/431 handling |
 | `gme/backups.py` | dated XML snapshots, bounded history and reversible restoration (`/api/backups`) |
 | `gme/gamedelete.py` | deleting a game: dry run listing its files, then the Recycle Bin (`/api/delete-game`) |
 | `gme/remote_cache.py` | proposed images: previews (`/api/scrape/preview/<key>`), kept in `cache/remote/` and reused when applied |

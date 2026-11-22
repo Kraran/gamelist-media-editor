@@ -264,7 +264,11 @@
     "ss_type_mix_v1": "Recalbox mix v1 (mixrbv1)",
     "ss_type_mix_v2": "Recalbox mix v2 (mixrbv2)",
     "arcade_sys_title": "Arcadesystemen invullen",
-    "arcade_sys_btn": "Invullen vanuit MAME"
+    "arcade_sys_btn": "Invullen vanuit MAME",
+    "ss_threads": "Gelijktijdige threads",
+    "ss_threads_auto": "Auto (maximum van je account)",
+    "ss_threads_max": "ScreenScraper staat {n} threads toe voor je account. Deze instelling kan dat aantal alleen verlagen.",
+    "ss_threads_unknown": "Zonder ledenaccount, of vóór het eerste antwoord van ScreenScraper: 1 thread. Deze instelling kan het toegestane aantal alleen verlagen."
   },
   "scrape": {
     "loading_sub": "Dit kan enkele seconden duren",
@@ -414,7 +418,11 @@
     "stale_gamelist": "De actieve spellenlijst is gewijzigd. Laad de lijst opnieuw voordat je doorgaat.",
     "image_unreadable": "afbeelding onleesbaar of beschadigd, niet opgeslagen",
     "image_too_small": "afbeelding te klein ({w}×{h} px), niet opgeslagen",
-    "image_uniform": "effen of lege afbeelding, niet opgeslagen"
+    "image_uniform": "effen of lege afbeelding, niet opgeslagen",
+    "ss_busy": "ScreenScraper is overbelast en weigert voorlopig niet-leden (HTTP 401). Probeer het over een paar minuten opnieuw of voeg je ledenaccount toe in Instellingen.",
+    "ss_blacklisted": "ScreenScraper weigert deze versie van de software (HTTP 426). Werk Gamelist Media Editor bij.",
+    "ss_quota_day": "Dagquotum van ScreenScraper bereikt (HTTP 430). Probeer het morgen opnieuw.",
+    "ss_quota_ko": "Vandaag te veel niet-herkende ROMs (HTTP 431, ScreenScraper-quotum). Ruim je ROMs op en probeer het morgen opnieuw."
   },
   "open_gl": {
     "title": "Open een gamelist.xml",
@@ -592,7 +600,11 @@
     "new_batch": "Nieuwe batch",
     "no_saved": "Geen batch om te hervatten.",
     "invalid": "Ongeldige batchopties.",
-    "claimed": "Deze batch is in een ander venster hervat. Open het rapport opnieuw om door te gaan."
+    "claimed": "Deze batch is in een ander venster hervat. Open het rapport opnieuw om door te gaan.",
+    "stopped_short": "Gestopt",
+    "threads": "Threads: {active}/{limit}",
+    "quota_today": "Verzoeken vandaag: {used} / {max}",
+    "penalty": "ScreenScraper vraagt om te vertragen: 1 thread gedurende 2 minuten."
   },
   "backups": {
     "title": "Back-ups en herstel",
