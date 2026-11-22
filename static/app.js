@@ -44,7 +44,7 @@ let currentLocale = DEFAULT_LOCALE;
  * ui_settings.json next to the app (gme/settings.py), not in the browser,
  * whose storage the app window can lose.
  */
-let SETTINGS = { locale: null, theme: "dark", scrapers: {}, required_media: {} };
+let SETTINGS = { locale: null, theme: "dark", list_width: null, scrapers: {}, required_media: {} };
 
 /* Theme: dark (default), light, or as the system (follows Windows while open).
  * The page arrives with the saved theme already applied (templates/index.html). */
@@ -734,7 +734,7 @@ function gameRowHtml(g, listIndex, pos, required) {
     ` data-list-index="${listIndex}" aria-selected="${active}" aria-setsize="${viewIndices.length}" aria-posinset="${pos + 1}">` +
     `<span class="gi-thumb">${thumb}<span class="gi-select"><input type="checkbox" tabindex="-1"${ticked ? " checked" : ""}` +
     ` aria-label="${escapeHtml(t("batch.tick", { name: g.name }))}" /></span></span>` +
-    `<span class="gi-text"><span class="name">${escapeHtml(g.name)}</span><span class="path">${escapeHtml(g.path)}</span></span>` +
+    `<span class="gi-text"><span class="name" title="${escapeHtml(g.name)}">${escapeHtml(g.name)}</span><span class="path">${escapeHtml(g.path)}</span></span>` +
     `<span class="gi-count${countCls}" title="${escapeHtml(title)}">${required.length ? `${present}/${required.length}` : "–"}</span>` +
     `</div>`;
 }
@@ -1510,6 +1510,108 @@ document.getElementById("media-filter").addEventListener("change", e => {
     if (e.target.tagName === "IMG") e.target.outerHTML = icon("device-gamepad-2");
   }, true);
   if (window.ResizeObserver) new ResizeObserver(() => renderListWindow(false)).observe(list);
+})();
+
+/* --- Width of the game list ---------------------------------------------------
+ * Drag the handle on the right edge of the list (mouse, pen or touch) to show
+ * long names; the stage and its media tiles shrink while dragging (style.css,
+ * .main). Keyboard: focus the handle, arrows (Shift: bigger steps), Home / End
+ * for the narrowest / widest, Escape cancels a drag. A double-click goes back to
+ * the default width. Saved in ui_settings.json when the drag ends.
+ */
+const LIST_WIDTH_MIN = 260;       // px, = --w-list-min in style.css
+const LIST_CONTENT_MIN = 600;     // px left to the editor, = --w-content-min in style.css
+const LIST_KEY_STEP = 16;
+(function wireListResizer() {
+  const main = document.getElementById("main");
+  const sidebar = document.getElementById("sidebar");
+  const handle = document.getElementById("list-resizer");
+  if (!main || !sidebar || !handle) return;
+  const maxWidth = () => Math.max(LIST_WIDTH_MIN, main.clientWidth - LIST_CONTENT_MIN);
+  const clampWidth = w => Math.round(Math.min(maxWidth(), Math.max(LIST_WIDTH_MIN, w)));
+  const shownWidth = () => Math.round(sidebar.getBoundingClientRect().width);
+  let frame = 0, pending;          // one style change per frame while dragging
+  let saveTimer = 0;
+  let drag = null;
+
+  function updateAria() {
+    handle.setAttribute("aria-valuemin", LIST_WIDTH_MIN);
+    handle.setAttribute("aria-valuemax", maxWidth());
+    handle.setAttribute("aria-valuenow", shownWidth());
+  }
+  /** `w` in px, or null for the default width. */
+  function apply(w) {
+    pending = w;
+    if (frame) return;
+    frame = requestAnimationFrame(() => {
+      frame = 0;
+      if (pending === null) main.style.removeProperty("--w-list");
+      else main.style.setProperty("--w-list", pending + "px");
+      updateAria();
+    });
+  }
+  /** The width about to be drawn (a key held down repeats faster than frames). */
+  const targetWidth = () => (frame && pending !== null ? pending : shownWidth());
+  function save(w, delay = 0) {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      if (SETTINGS.list_width !== w) saveSettings({ list_width: w });
+    }, delay);
+  }
+  function stopDrag(cancel) {
+    const d = drag;
+    drag = null;
+    handle.classList.remove("is-dragging");
+    document.body.classList.remove("is-resizing-list");
+    if (handle.hasPointerCapture(d.id)) handle.releasePointerCapture(d.id);
+    if (cancel) apply(d.before);
+    else if (d.width !== undefined && d.width !== d.start) save(d.width);
+  }
+
+  handle.addEventListener("pointerdown", e => {
+    if (e.button !== 0 || drag) return;
+    e.preventDefault();                                     // no text selection, no focus ring
+    handle.setPointerCapture(e.pointerId);
+    const start = shownWidth();
+    drag = { id: e.pointerId, x: e.clientX, start, before: main.style.getPropertyValue("--w-list") ? start : null };
+    handle.classList.add("is-dragging");
+    document.body.classList.add("is-resizing-list");
+  });
+  handle.addEventListener("pointermove", e => {
+    if (!drag || e.pointerId !== drag.id) return;
+    drag.width = clampWidth(drag.start + e.clientX - drag.x);
+    apply(drag.width);
+  });
+  handle.addEventListener("pointerup", e => { if (drag && e.pointerId === drag.id) stopDrag(false); });
+  handle.addEventListener("pointercancel", e => { if (drag && e.pointerId === drag.id) stopDrag(true); });
+  handle.addEventListener("lostpointercapture", e => { if (drag && e.pointerId === drag.id) stopDrag(false); });
+  document.addEventListener("keydown", e => {
+    if (drag && e.key === "Escape") {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      stopDrag(true);
+    }
+  }, true);
+  handle.addEventListener("dblclick", () => {
+    apply(null);
+    save(null);
+  });
+  handle.addEventListener("keydown", e => {
+    const step = e.shiftKey ? LIST_KEY_STEP * 4 : LIST_KEY_STEP;
+    let w;
+    if (e.key === "ArrowRight") w = targetWidth() + step;
+    else if (e.key === "ArrowLeft") w = targetWidth() - step;
+    else if (e.key === "Home") w = LIST_WIDTH_MIN;
+    else if (e.key === "End") w = maxWidth();
+    else return;
+    e.preventDefault();
+    e.stopPropagation();                                    // not the list shortcuts
+    w = clampWidth(w);
+    apply(w);
+    save(w, 400);
+  });
+  window.addEventListener("resize", updateAria);
+  updateAria();
 })();
 
 function openLightbox(src, label) {

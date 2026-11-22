@@ -49,7 +49,9 @@
     "filter_bezel": "Sans bezel",
     "list_aria": "Liste des jeux",
     "media_missing": "Requis manquants : {list}",
-    "media_complete": "Tous les médias requis sont là"
+    "media_complete": "Tous les médias requis sont là",
+    "resize_aria": "Largeur de la liste des jeux",
+    "resize_title": "Glisse pour élargir la liste (ou flèches gauche/droite) · double-clic : largeur par défaut"
   },
   "editor": {
     "desc_title": "Description",

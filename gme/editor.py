@@ -32,9 +32,10 @@ bp = Blueprint("editor", __name__)
 
 @bp.route("/")
 def index():
-    theme = settings.load()["theme"]
+    prefs = settings.load()
     return render_template("index.html", app_version=APP_VERSION,
-                           app_release_date=APP_RELEASE_DATE, theme=theme)
+                           app_release_date=APP_RELEASE_DATE, theme=prefs["theme"],
+                           list_width=prefs["list_width"])
 
 
 @bp.route("/favicon.ico")

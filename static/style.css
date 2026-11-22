@@ -81,7 +81,9 @@
   --dur: 140ms;
 
   /* Layout */
-  --w-sidebar: clamp(260px, 20vw, 340px);
+  --w-sidebar: clamp(260px, 20vw, 340px);   /* default width of the game list */
+  --w-list-min: 260px;
+  --w-content-min: 600px;                  /* the editor keeps at least this much (= LIST_CONTENT_MIN in app.js) */
   --w-inspector: clamp(320px, 24vw, 440px);
 }
 
@@ -298,12 +300,20 @@ input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px;
 .btn-quit { background: transparent; border-color: transparent; color: var(--text-2); }
 .btn-quit:hover:not(:disabled) { background: var(--danger-fill); border-color: var(--danger-fill); color: #fff; }
 
+/* --w-list: the width dragged by the user (#list-resizer), kept in ui_settings.json
+   and written on .main by the server. Clamped here too, so a smaller window
+   always leaves room for the editor. As the list grows the media tiles get a
+   smaller minimum (--tile-min, used by .media-grid): they shrink with the stage
+   instead of jumping to fewer, larger columns. */
 .main {
+  --w-list-cur: var(--w-list, var(--w-sidebar));
+  --tile-min: clamp(140px, calc(220px - (var(--w-list-cur) - var(--w-sidebar)) / 4), 220px);
   display: grid;
-  grid-template-columns: var(--w-sidebar) minmax(0, 1fr);
+  grid-template-columns: clamp(var(--w-list-min), var(--w-list-cur), max(var(--w-list-min), calc(100% - var(--w-content-min)))) minmax(0, 1fr);
   min-height: 0;
 }
 .sidebar {
+  position: relative;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -311,6 +321,36 @@ input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px;
   background: var(--bg);
 }
 .content { position: relative; min-height: 0; min-width: 0; background: var(--stage); }
+
+/* Drag handle on the right edge of the list: wider than it looks, centered on the border */
+.list-resizer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: -6px;                /* 3 px over the list, clear of its scrollbar thumb */
+  z-index: 5;
+  width: 9px;
+  cursor: col-resize;
+  touch-action: none;
+}
+.list-resizer::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 2px;
+  width: 3px;
+  border-radius: 3px;
+  background: transparent;
+  transition: background var(--dur);
+}
+.list-resizer:hover::after, .list-resizer.is-dragging::after { background: var(--accent-text); }
+.list-resizer:focus-visible { outline: none; }
+.list-resizer:focus-visible::after { background: var(--accent-text); box-shadow: 0 0 0 2px var(--accent-soft); }
+/* While dragging: the same cursor everywhere, no text selection, videos and
+   images do not catch the pointer */
+body.is-resizing-list { cursor: col-resize; user-select: none; -webkit-user-select: none; }
+body.is-resizing-list .content, body.is-resizing-list .game-list { pointer-events: none; }
 
 .editor {
   display: grid;
@@ -364,6 +404,7 @@ input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px;
 @media (max-width: 760px) {
   .main { grid-template-columns: 1fr; grid-template-rows: 40vh minmax(0, 1fr); }
   .sidebar { border-right: 0; border-bottom: 1px solid var(--line); }
+  .list-resizer { display: none; }
   .app-context .ctx-count { display: none; }
 }
 
@@ -625,9 +666,10 @@ input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px;
 
 /* Present media: a masonry of columns, each tile in its own shape (--ar), so
    upright boxes, wide logos and screenshots stack without holes. Columns grow
-   with the stage (cqi = 1% of its width): bigger art on large screens. */
+   with the stage (cqi = 1% of its width): bigger art on large screens, smaller
+   when the game list is widened (--tile-min, see .main). */
 .media-grid {
-  columns: max(220px, 22cqi) auto;
+  columns: max(var(--tile-min, 220px), 22cqi) auto;
   column-gap: var(--s4);
 }
 .media-tile {

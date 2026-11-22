@@ -43,6 +43,7 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
 
 **Workflow**
 - Game list with **thumbnails** and a **required media count** per game (hover it to see what is missing); fast with very large gamelists (a 30,000-game MAME list opens in about a second)
+- **Resizable game list**: drag its right edge to read long names (arrow keys on the focused edge, double-click for the default width); the media tiles shrink as you drag to make room, and the width is kept in `ui_settings.json`
 - **Required media per system** (Settings): the media a game needs to be complete (by default image, video, marquee and box art; no box on arcade systems); the count, the *Required media missing* filter and *Next incomplete* follow them
 - Filter games by **missing media** (counts per media), search
 - **Next incomplete** (`N`): jumps to the next game in the list that is missing a required media (or that matches the media filter)
@@ -164,7 +165,7 @@ Code layout (`app.py` is only the entry point; the overview is in `gme/__init__.
 
 Interface:
 
-- Layout: game list (left), media of the selected game (center), description and metadata (right); below 1100 px wide the metadata moves under the media
+- Layout: game list (left, resizable: `--w-list` on `.main`, clamped so the editor keeps 600 px), media of the selected game (center), description and metadata (right); below 1100 px wide the metadata moves under the media
 - Design tokens (colors, type, spacing) are CSS variables at the top of `static/style.css`; dark is the default theme, a light theme only needs a `[data-theme="light"]` block redefining the color tokens
 - Icons come from `templates/_icons.svg` (Tabler Icons, MIT): use `icon("name")` in `app.js` or `{{ icon("name") }}` in the template; to add one, copy its `<symbol>` from the Tabler outline set
 - Fonts are embedded in `static/fonts/` (IBM Plex Sans for the interface, Saira Condensed for titles; SIL OFL): the app works offline. Third-party licenses: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)

@@ -49,7 +49,9 @@
     "filter_bezel": "Bezel yok",
     "list_aria": "Oyun listesi",
     "media_missing": "Eksik gerekli medya: {list}",
-    "media_complete": "Tüm gerekli medyalar mevcut"
+    "media_complete": "Tüm gerekli medyalar mevcut",
+    "resize_aria": "Oyun listesi genişliği",
+    "resize_title": "Listeyi genişletmek için sürükle (veya sol/sağ ok tuşları) · çift tıklama: varsayılan genişlik"
   },
   "editor": {
     "desc_title": "Açıklama",

@@ -49,7 +49,9 @@
     "filter_bezel": "Ohne Bezel",
     "list_aria": "Spieleliste",
     "media_missing": "Pflicht, fehlt: {list}",
-    "media_complete": "Alle Pflichtmedien vorhanden"
+    "media_complete": "Alle Pflichtmedien vorhanden",
+    "resize_aria": "Breite der Spieleliste",
+    "resize_title": "Ziehe, um die Liste zu verbreitern (oder Pfeiltasten links/rechts) · Doppelklick: Standardbreite"
   },
   "editor": {
     "desc_title": "Beschreibung",

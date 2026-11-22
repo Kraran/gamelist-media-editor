@@ -49,7 +49,9 @@
     "filter_bezel": "Sin bezel",
     "list_aria": "Lista de juegos",
     "media_missing": "Obligatorios que faltan: {list}",
-    "media_complete": "Están todos los medios obligatorios"
+    "media_complete": "Están todos los medios obligatorios",
+    "resize_aria": "Ancho de la lista de juegos",
+    "resize_title": "Arrastra para ensanchar la lista (o flechas izquierda/derecha) · doble clic: ancho predeterminado"
   },
   "editor": {
     "desc_title": "Descripción",

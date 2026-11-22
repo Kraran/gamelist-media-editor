@@ -93,8 +93,8 @@
     </div>
   </header>
 
-  <div class="main">
-    <aside class="sidebar">
+  <div class="main" id="main"{% if list_width %} style="--w-list: {{ list_width }}px"{% endif %}>
+    <aside class="sidebar" id="sidebar">
       <label class="search-box">
         {{ icon("search") }}
         <input type="search" id="search" placeholder="Rechercher un jeu…" data-i18n-placeholder="sidebar.search_placeholder" autocomplete="off" aria-label="Rechercher un jeu" data-i18n-aria="sidebar.search_aria" />
@@ -112,6 +112,9 @@
       </div>
       <div class="game-list" id="game-list" role="listbox" aria-multiselectable="true" tabindex="0" data-i18n-aria="sidebar.list_aria" aria-label="Liste des jeux"></div>
       <button type="button" class="btn btn-ghost saved-batch-entry" id="saved-batch-entry" hidden></button>
+      <div class="list-resizer" id="list-resizer" role="separator" aria-orientation="vertical" aria-controls="sidebar" tabindex="0"
+           data-i18n-aria="sidebar.resize_aria" aria-label="Largeur de la liste des jeux"
+           data-i18n-title="sidebar.resize_title" title="Glisse pour élargir la liste (ou flèches gauche/droite) · double-clic : largeur par défaut"></div>
     </aside>
 
     <section class="content" id="content">
