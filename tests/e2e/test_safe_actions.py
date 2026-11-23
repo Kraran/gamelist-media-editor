@@ -19,23 +19,17 @@ def open_game(page, n=0, name="Alpha"):
     page.wait_for_function(f"document.getElementById('game-name-input').value === '{name}'")
 
 
-def with_region(gamelist, page):
-    xml = gamelist.read_text(encoding="utf-8").replace("<name>Alpha</name>", "<name>Alpha</name><region>eu</region>", 1)
-    gamelist.write_text(xml, encoding="utf-8")
-    page.reload()
-    page.wait_for_selector("#game-list .game-item")
-
-
 def test_enter_on_cancel_cancels(page, gamelist):
-    with_region(gamelist, page)
-    page.click("#btn-actions")
-    page.click("#btn-purge-regions")
+    open_game(page)
+    page.click("#btn-game-menu")
+    page.click("#btn-delete-game")
     page.wait_for_selector("#confirm-modal.open")
     assert page.evaluate("document.activeElement.id") == "confirm-cancel"
     page.keyboard.press("Enter")
     page.wait_for_function("!document.getElementById('confirm-modal').classList.contains('open')")
     page.wait_for_timeout(300)
-    assert "<region>eu</region>" in gamelist.read_text(encoding="utf-8")
+    assert "<name>Alpha</name>" in gamelist.read_text(encoding="utf-8")
+    assert (gamelist.parent / "alpha.zip").exists()
 
 
 def test_enter_on_dont_save_does_not_save(page, gamelist):
@@ -47,18 +41,6 @@ def test_enter_on_dont_save_does_not_save(page, gamelist):
     page.keyboard.press("Enter")
     page.wait_for_function("document.getElementById('game-name-input').value === 'Bravo'")
     assert "Typo Studio" not in gamelist.read_text(encoding="utf-8")
-
-
-def test_purge_clears_the_open_game(page, gamelist):
-    with_region(gamelist, page)
-    open_game(page)
-    assert page.input_value("#meta-region") == "eu"
-    page.click("#btn-actions")
-    page.click("#btn-purge-regions")
-    page.wait_for_selector("#confirm-modal.open")
-    page.click("#confirm-ok")
-    page.wait_for_function("document.getElementById('meta-region').value === ''")
-    assert page.is_hidden("#save-bar")
 
 
 def test_delete_lists_the_files_and_keeps_shared_ones(page, gamelist, trashed):

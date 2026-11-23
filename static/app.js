@@ -2386,7 +2386,7 @@ document.getElementById("btn-required-media").addEventListener("click", () => op
 /* --- Actions on the whole gamelist (app bar ⋯ menu) ----------------------- */
 setupMenu("actions-menu", "btn-actions");
 function setGamelistActionsEnabled(on) {
-  ["btn-bulk", "btn-stats", "btn-batch-scrape", "btn-manual-backup", "btn-backup-history", "btn-fill-arcade", "btn-rom-check", "btn-dat-tool", "btn-media-check", "btn-purge-regions"].forEach(id => {
+  ["btn-bulk", "btn-stats", "btn-batch-scrape", "btn-manual-backup", "btn-backup-history", "btn-fill-arcade", "btn-rom-check", "btn-dat-tool", "btn-media-check"].forEach(id => {
     document.getElementById(id).disabled = !on;
   });
 }
@@ -3280,29 +3280,6 @@ document.getElementById("btn-fill-arcade").addEventListener("click", async () =>
   } catch (e) {
     handleError(e);
   }
-});
-
-document.getElementById("btn-purge-regions").addEventListener("click", async () => {
-  const choice = await askConfirm({
-    title: t("confirm.purge_title"),
-    bodyHtml: t("confirm.purge_body"),
-    okLabel: t("confirm.purge_ok"),
-  });
-  if (!choice.confirmed) return;
-
-  setStatus(t("status.purging_regions"));
-  try {
-    const data = await apiFetch("/api/purge-regions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ backup: choice.backup }),
-    });
-    let msg = t("toast.purge_ok", { n: data.removed });
-    if (data.backup) msg += t("toast.purge_bak");
-    await loadGames();             // the open game and the list lose their region too
-    toast(msg);
-    setStatus(t("status.done"));
-  } catch (e) { handleError(e); }
 });
 
 /** The files a deletion will remove, from the server's dry run (gme/gamedelete.py). */
@@ -4415,11 +4392,17 @@ const BULK_SET_FIELDS = ["genre", "developer", "publisher", "releasedate", "rati
 const BULK_FLAGS = ["favorite", "hidden", "kidgame"];
 const BULK_REPLACE_FIELDS = ["name", "desc", "genre", "developer", "publisher", "players", "lang", "region",
   "family", "arcadesystemname"];
-const BULK_TABS = ["set", "replace", "reset_name", "images", "clear_media", "delete"];
+/* Clear fields: the whole elements go (gme/bulk.py CLEAR_FIELDS); the
+ * technical tags after BULK_CLEAR_MAIN are only listed when some game has them. */
+const BULK_CLEAR_MAIN = ["genre", "developer", "publisher", "releasedate", "rating", "players", "lang", "region",
+  "family", "arcadesystemname", "desc", "favorite", "hidden", "kidgame"];
+const BULK_CLEAR_EXTRA = ["sortname", "playcount", "lastplayed", "gametime", "genreid", "md5", "crc32", "cheevosId", "cheevosHash"];
+const BULK_TABS = ["set", "clear_fields", "replace", "reset_name", "images", "clear_media", "delete"];
 let bulk = null;   // { tab, preview: {...} | null, busy, form: {...} }
 
 function bulkFieldLabel(key) {
   if (BULK_FLAGS.includes(key)) return t("editor." + key);
+  if (BULK_CLEAR_EXTRA.includes(key)) return t("bulk.tag_" + key.toLowerCase());
   if (key === "desc" || COL_META.includes(key)) return t("scrape.field_" + key);
   return fieldLabel(key);
 }
@@ -4451,7 +4434,8 @@ function openBulk(tab, opts) {
     return;
   }
   opts = opts || {};
-  bulk = { tab: BULK_TABS.includes(tab) ? tab : "set", preview: null, busy: false, nameSource: opts.source || "file", dat: null };
+  bulk = { tab: BULK_TABS.includes(tab) ? tab : "set", preview: null, busy: false, nameSource: opts.source || "file", dat: null,
+    clear: new Set(opts.fields || []), counts: null };
   fillBulkScope(opts.scope || (selection.size ? "checked" : "shown"));
   renderBulkForm();
   document.getElementById("bulk-modal").classList.add("open");
@@ -4507,6 +4491,9 @@ function renderBulkForm() {
         <label><span>${escapeHtml(t("imgedit.quality"))}</span><input type="number" id="bulk-img-quality" min="1" max="100" value="90"></label>
       </div>
       <div class="bulk-checks">${check("bulk-img-trim", "imgedit.trim_hint", false)}${check("bulk-img-upscale", "imgedit.upscale", false)}</div>`;
+  } else if (bulk.tab === "clear_fields") {
+    html = `<p class="bulk-hint">${escapeHtml(t("bulk.clear_hint"))}</p>
+      <div class="bulk-checks bulk-clear-list" id="bulk-clear-list"><span class="bulk-empty">${escapeHtml(t("stats.loading"))}</span></div>`;
   } else if (bulk.tab === "clear_media") {
     html = `<p class="bulk-hint">${escapeHtml(t("bulk.media_hint"))}</p>
       <div class="bulk-checks bulk-media-list">${getFields().map(f =>
@@ -4518,7 +4505,31 @@ function renderBulkForm() {
   form.innerHTML = html;
   if (bulk.tab === "set") renderBulkSetValue();
   if (bulk.tab === "reset_name" && bulk.nameSource === "dat") refreshBulkDat();
+  if (bulk.tab === "clear_fields") refreshBulkClear();
   invalidateBulkPreview();
+}
+/* Edit in bulk › Clear fields: one box per tag, with the number of games of
+ * the scope that have it (/api/bulk/fields); re-counted when the scope changes. */
+async function refreshBulkClear() {
+  if (!bulk || bulk.tab !== "clear_fields") return;
+  const paths = bulkPaths(document.getElementById("bulk-scope").value);
+  let counts = {};
+  try {
+    const d = await apiFetch("/api/bulk/fields", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paths }),
+    });
+    counts = d.counts || {};
+  } catch (e) { handleError(e); }
+  const box = document.getElementById("bulk-clear-list");
+  if (!bulk || bulk.tab !== "clear_fields" || !box) return;
+  bulk.counts = counts;
+  const keys = BULK_CLEAR_MAIN.concat(BULK_CLEAR_EXTRA.filter(k => counts[k]));
+  box.innerHTML = keys.map(k => {
+    const n = counts[k] || 0;
+    return `<label class="bulk-check${n ? "" : " is-empty"}"><input type="checkbox" data-bulk-clear="${k}"${bulk.clear.has(k) ? " checked" : ""}>` +
+      ` <span>${escapeHtml(bulkFieldLabel(k))}</span> <code class="bulk-tag">&lt;${k}&gt;</code>` +
+      `<span class="bulk-count" title="${escapeHtml(t("bulk.clear_count", { n: fmtCount(n) }))}">${escapeHtml(fmtCount(n))}</span></label>`;
+  }).join("");
 }
 /* Edit in bulk › Names › from a DAT / MAME list: the one loaded in the DAT
  * tool, or one loaded here with the same controls. */
@@ -4583,6 +4594,9 @@ function bulkOp() {
     if (mw > 0 || mh > 0) ops.resize = { max_w: Math.max(0, mw), max_h: Math.max(0, mh), upscale: v("bulk-img-upscale").checked };
     return { kind: "images", field: v("bulk-img-field").value, ops };
   }
+  if (bulk.tab === "clear_fields") {
+    return { kind: "clear_fields", fields: [...document.querySelectorAll("[data-bulk-clear]:checked")].map(c => c.dataset.bulkClear) };
+  }
   if (bulk.tab === "clear_media") {
     return { kind: "clear_media", fields: [...document.querySelectorAll("[data-bulk-media]:checked")].map(c => c.dataset.bulkMedia) };
   }
@@ -4605,6 +4619,10 @@ async function runBulkPreview() {
   const box = document.getElementById("bulk-preview");
   if (bulk.tab === "clear_media" && !bulkOp().fields.length) {
     box.innerHTML = `<p class="bulk-empty">${escapeHtml(t("bulk.pick_media"))}</p>`;
+    return;
+  }
+  if (bulk.tab === "clear_fields" && !bulkOp().fields.length) {
+    box.innerHTML = `<p class="bulk-empty">${escapeHtml(t("bulk.pick_field"))}</p>`;
     return;
   }
   bulk.busy = true;
@@ -4661,9 +4679,10 @@ function bulkPreviewHtml(data, op) {
   const rows = data.changes.map(c => `<tr>
       <td class="bulk-game" title="${escapeHtml(c.path)}">${escapeHtml(c.name || c.path)}</td>
       <td class="bulk-field">${escapeHtml(bulkFieldLabel(c.field))}</td>
-      <td class="bulk-before">${bulkDiffHtml(op.kind === "set" && BULK_FLAGS.includes(c.field) ? (c.before ? t("bulk.flag_on") : "") : c.before)}</td>
+      <td class="bulk-before">${bulkDiffHtml(op.kind !== "replace" && BULK_FLAGS.includes(c.field) ? (c.before ? t("bulk.flag_on") : "") : c.before)}</td>
       <td class="bulk-arrow" aria-hidden="true">→</td>
-      <td class="bulk-after">${bulkDiffHtml(op.kind === "set" && BULK_FLAGS.includes(c.field) ? (c.after ? t("bulk.flag_on") : "") : c.after)}</td>
+      <td class="bulk-after">${op.kind === "clear_fields" ? `<em class="bulk-none">${escapeHtml(t("bulk.tag_removed"))}</em>`
+        : bulkDiffHtml(op.kind === "set" && BULK_FLAGS.includes(c.field) ? (c.after ? t("bulk.flag_on") : "") : c.after)}</td>
     </tr>`).join("");
   const more = data.total > data.changes.length
     ? `<p class="bulk-more">${escapeHtml(t("bulk.more", { n: fmtCount(data.total - data.changes.length) }))}</p>` : "";
@@ -4721,6 +4740,14 @@ async function applyBulk() {
       `<p class="muted">${escapeHtml(t("bulk.roms_kept"))}</p>`;
     const choice = await askConfirm({ title: t("bulk.delete_title"), bodyHtml: body, showBackup: false,
       okLabel: t("bulk.remove_n", { n: fmtCount(data.games) }), okClass: "btn-danger" });
+    if (!choice.confirmed || !bulk) return;
+  }
+  if (tab === "clear_fields") {
+    const { op, data } = bulk.preview;
+    const body = `<p>${escapeHtml(t("bulk.clear_confirm", { fields: op.fields.map(bulkFieldLabel).join(", "), n: fmtCount(data.games) }))}</p>` +
+      `<p class="muted">${escapeHtml(t("bulk.backup_note"))}</p>`;
+    const choice = await askConfirm({ title: t("bulk.clear_title"), bodyHtml: body, showBackup: false,
+      okLabel: t("bulk.clear_n", { n: fmtCount(data.games) }), okClass: "btn-danger" });
     if (!choice.confirmed || !bulk) return;
   }
   bulk.busy = true;
@@ -4801,7 +4828,10 @@ document.getElementById("bulk-tabs").addEventListener("click", e => {
   bulk.tab = b.dataset.bulkTab;
   renderBulkForm();
 });
-document.getElementById("bulk-scope").addEventListener("change", invalidateBulkPreview);
+document.getElementById("bulk-scope").addEventListener("change", () => {
+  invalidateBulkPreview();
+  refreshBulkClear();
+});
 document.getElementById("bulk-form").addEventListener("input", invalidateBulkPreview);
 document.getElementById("bulk-form").addEventListener("change", e => {
   if (e.target.name === "bulk-name-src" && bulk) {
@@ -4810,6 +4840,9 @@ document.getElementById("bulk-form").addEventListener("change", e => {
     return;
   }
   if (e.target.id === "bulk-set-field") renderBulkSetValue();
+  if (e.target.dataset && e.target.dataset.bulkClear && bulk) {
+    bulk.clear[e.target.checked ? "add" : "delete"](e.target.dataset.bulkClear);
+  }
   invalidateBulkPreview();
 });
 document.getElementById("bulk-form").addEventListener("keydown", e => {

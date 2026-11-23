@@ -103,6 +103,7 @@ Pour tout le gamelist :
 - **Scraper par lot** : les jeux cochés dans la liste, sinon tous ceux affichés ; voir [Scrapers](Scrapers#scraper-par-lot)
 - **Modifier en masse** (aussi le crayon de la barre de sélection) : sur les jeux cochés, affichés ou tous, avec un **aperçu** avant → après obligatoire, une sauvegarde datée avant d’appliquer et **Annuler** dans la notification :
   - *Champ* : une valeur pour genre, développeur, éditeur, date, note, joueurs, langue, région, famille, système arcade, favori / caché / enfant
+  - *Supprimer des champs* : retire entièrement les balises cochées (`<region>`, `<genre>`, `<desc>`, `<sortname>`, `<playcount>`, `<cheevosId>`…, même vides). Chaque balise affiche le nombre de jeux qui l’ont ; une confirmation rappelle les champs et le nombre de jeux. `<name>`, `<path>` et les médias ne sont pas proposés (les médias ont leur onglet). Pour retirer toutes les régions : coche *Région* sur « Toute la gamelist »
   - *Rechercher / remplacer* dans le nom, la description ou un champ texte (texte simple ou expression régulière)
   - *Noms* : d’après le nom du fichier ROM, ou d’après un DAT / une liste MAME (`pacman.zip` → `Pac-Man (Midway)`), avec ou sans les mentions `(Europe)`, `[!]`…
   - *Images* : rogner, réduire ou convertir un média de tous ces jeux (copie des originaux, **Annuler**)
@@ -125,7 +126,6 @@ Pour tout le gamelist :
 
   **Nettoyer** met les fichiers cochés à la **Corbeille** (récupérables ; décoche l’option pour les supprimer définitivement) et retire les balises cassées cochées (sauvegarde `.bak` avant). Un fichier utilisé par n’importe quelle balise d’un jeu n’est jamais proposé. Si plus de la moitié des médias semblent inutilisés (dossier partagé avec un autre gamelist ?), rien n’est coché.
 - **Remplir les systèmes arcade** depuis un dump MAME `mame.xml` (`mame.exe -listxml`) ; les jeux qui ont déjà une valeur sont laissés tels quels
-- **Supprimer toutes les balises `<region>`** (confirmation, sauvegarde optionnelle)
 
 ## Réglages (roue dentée)
 

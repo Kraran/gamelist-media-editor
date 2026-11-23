@@ -1674,6 +1674,12 @@ ul.batch-warning { margin: 0; padding-left: var(--s4); }
 .bulk-media-list { gap: var(--s2) var(--s3); }
 .bulk-check { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-sm); cursor: pointer; }
 .bulk-check .icon { width: 15px; height: 15px; color: var(--text-3); }
+.bulk-clear-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: var(--s2) var(--s3); }
+.bulk-clear-list .bulk-check { display: flex; min-width: 0; }
+.bulk-clear-list .bulk-tag { color: var(--text-3); font-size: var(--fs-xs); white-space: nowrap; }
+.bulk-count { margin-left: auto; padding: 0 6px; border-radius: 999px; background: var(--line); color: var(--text-2); font-size: var(--fs-xs); font-variant-numeric: tabular-nums; }
+.bulk-check.is-empty { color: var(--text-3); }
+.bulk-check.is-empty .bulk-count { background: transparent; }
 .bulk-hint { display: flex; align-items: flex-start; gap: 6px; margin: 0; color: var(--text-3); font-size: var(--fs-sm); }
 .bulk-hint:empty { display: none; }
 .bulk-hint .icon { flex: 0 0 auto; width: 15px; height: 15px; margin-top: 2px; }
