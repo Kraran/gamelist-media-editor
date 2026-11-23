@@ -78,6 +78,23 @@ def screenscraper_offline(monkeypatch, tmp_path):
 
 
 @pytest.fixture(autouse=True)
+def fallback_sources_offline(monkeypatch, tmp_path):
+    """Fallback sources: settings and caches in tmp, no real API reachable, all off."""
+    from gme.scrapers import igdb, launchbox, sources, tgdb
+    monkeypatch.setattr(sources, "config_path", lambda: str(tmp_path / "sources_config.json"))
+    monkeypatch.setattr(sources, "CACHE_DIR", str(tmp_path / "sources-api-cache"))
+    monkeypatch.setattr(launchbox, "LB_DIR", str(tmp_path / "launchbox"))
+    monkeypatch.setattr(launchbox, "METADATA_URL", "http://127.0.0.1:9/Metadata.zip")
+    monkeypatch.setattr(tgdb, "API", "http://127.0.0.1:9/tgdb")
+    monkeypatch.setattr(igdb, "API", "http://127.0.0.1:9/igdb")
+    monkeypatch.setattr(igdb, "TOKEN_URL", "http://127.0.0.1:9/token")
+    igdb.forget_token()
+    tgdb._allowance.update(remaining=None, until=0.0)
+    launchbox._fuzzy_cache.clear()
+    yield
+
+
+@pytest.fixture(autouse=True)
 def trashed(monkeypatch):
     """Nothing goes to the real Recycle Bin: what would is recorded, then removed."""
     paths = []

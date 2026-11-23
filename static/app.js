@@ -2340,12 +2340,13 @@ function setupMenu(id, buttonId, onOpen) {
 }
 
 /* --- Settings: General, ScreenScraper, scrape sources, shortcuts --------- */
-const SETTINGS_PANES = ["general", "ss", "sources", "ssmedia", "required", "keys"];
+const SETTINGS_PANES = ["general", "ss", "sources", "fallback", "ssmedia", "required", "keys"];
 
 function openSettings(pane) {
   closeMenu(null, false);
   wireLanguageControls();
   loadSsConfig();
+  loadFallbackConfig();
   renderScrapeSources();
   renderRequiredMedia();
   document.getElementById("settings-modal").classList.add("open");
@@ -4038,6 +4039,230 @@ async function testSsConfig() {
 });
 document.getElementById("btn-ss-test").addEventListener("click", testSsConfig);
 
+/* --- Settings › Fallback sources (LaunchBox, TheGamesDB, IGDB) ------------- */
+// Fields in the scrape dialog's order (gme/scrapers/compare.py META_KEYS + MEDIA_KEYS)
+const SCRAPE_FIELD_ORDER = ["name", "desc", "rating", "releasedate", "developer", "publisher", "genre", "players",
+  "image", "titleshot", "thumbnail", "marquee", "wheel", "boxart", "boxback", "cartridge", "fanart"];
+const FB_LABELS = { screenscraper: "ScreenScraper", launchbox: "LaunchBox", thegamesdb: "TheGamesDB", igdb: "IGDB" };
+let fbConfig = null;
+let lbPollTimer = 0;
+
+async function loadFallbackConfig() {
+  try {
+    fbConfig = await apiFetch("/api/sources/config");
+  } catch (e) {
+    return;
+  }
+  renderFallback();
+}
+
+function fbFocusKey() {
+  const el = document.activeElement;
+  if (!el || !el.closest || !el.closest("#pane-fallback")) return null;
+  for (const attr of ["data-fb-enable", "data-fb-move", "data-fb-field"]) {
+    if (el.hasAttribute(attr)) return `[${attr}="${el.getAttribute(attr)}"]` + (el.dataset.src ? `[data-src="${el.dataset.src}"]` : "");
+  }
+  return null;
+}
+
+function renderFallback() {
+  const cfg = fbConfig;
+  if (!cfg) return;
+  const focus = fbFocusKey();
+  const order = cfg.order || [];
+  document.getElementById("fb-order").innerHTML = order.map((src, i) => {
+    const label = FB_LABELS[src] || src;
+    const main = src === "screenscraper";
+    const on = main || !!cfg.enabled[src];
+    const ready = main || !!cfg.configured[src];
+    const state = main ? "main" : !on ? "off" : ready ? "on" : "setup";
+    const note = t("fallback.state_" + state);
+    const check = main
+      ? `<span class="fb-check-spacer" aria-hidden="true"></span>`
+      : `<input type="checkbox" data-fb-enable="${src}" ${on ? "checked" : ""} aria-label="${escapeHtml(t("fallback.enable", { source: label }))}">`;
+    const move = (dir, ic, key, disabled) =>
+      `<button type="button" class="btn btn-sm btn-ghost fb-move" data-fb-move="${dir}" data-src="${src}" ` +
+      `aria-label="${escapeHtml(t(key, { source: label }))}" data-tip="${escapeHtml(t(key, { source: label }))}"${disabled ? " disabled" : ""}>${icon(ic)}</button>`;
+    return `<li class="fb-row" data-src="${src}" data-state="${state}">${check}` +
+      `<span class="fb-rank">${i + 1}</span><span class="fb-name">${escapeHtml(label)}</span>` +
+      `<span class="fb-note">${escapeHtml(note)}</span>` +
+      move(-1, "arrow-up", "fallback.up", i === 0) + move(1, "arrow-down", "fallback.down", i === order.length - 1) +
+      `</li>`;
+  }).join("");
+  document.getElementById("fb-continue").checked = cfg.on_ss_quota !== "stop";
+  const keyPh = set => set ? t("fallback.key_saved") : "";
+  document.getElementById("fb-tgdb-key").placeholder = keyPh(cfg.tgdb_apikey_set);
+  document.getElementById("fb-igdb-id").placeholder = keyPh(cfg.igdb_client_id_set);
+  document.getElementById("fb-igdb-cs").placeholder = keyPh(cfg.igdb_client_secret_set);
+  document.getElementById("btn-tgdb-clear").hidden = !cfg.tgdb_apikey_set;
+  document.getElementById("btn-igdb-clear").hidden = !(cfg.igdb_client_id_set || cfg.igdb_client_secret_set);
+  // Field × source grid, sources in the chain order
+  const fbs = order.filter(s => s !== "screenscraper");
+  const fields = SCRAPE_FIELD_ORDER.filter(f => fbs.some(s => (cfg.supported[s] || []).includes(f)));
+  document.getElementById("fb-fields").innerHTML = `<table class="fb-table"><thead><tr><th scope="col">${escapeHtml(t("fallback.col_field"))}</th>` +
+    fbs.map(s => `<th scope="col">${escapeHtml(FB_LABELS[s])}</th>`).join("") + `</tr></thead><tbody>` +
+    fields.map(f => `<tr><th scope="row">${escapeHtml(scrapeFieldLabel(f))}</th>` + fbs.map(s => {
+      if (!(cfg.supported[s] || []).includes(f)) return `<td class="fb-na" aria-label="${escapeHtml(t("fallback.na"))}">—</td>`;
+      const on = (cfg.fields[s] || []).includes(f);
+      return `<td><input type="checkbox" data-fb-field="${f}" data-src="${s}" ${on ? "checked" : ""} ` +
+        `aria-label="${escapeHtml(scrapeFieldLabel(f) + " · " + FB_LABELS[s])}"></td>`;
+    }).join("") + `</tr>`).join("") + `</tbody></table>`;
+  renderLaunchboxStatus(cfg.launchbox || {});
+  if (focus) {
+    const el = document.querySelector("#pane-fallback " + focus);
+    if (el && !el.disabled) el.focus();
+    else if (el) document.getElementById("fb-order").querySelector("button:not([disabled]), input")?.focus();
+  }
+}
+
+function renderLaunchboxStatus(lb) {
+  const st = document.getElementById("lb-status");
+  const btn = document.getElementById("btn-lb-update");
+  const bar = document.getElementById("lb-progress");
+  const label = btn.querySelector("span");
+  label.textContent = t(lb.ready ? "fallback.lb_update" : "fallback.lb_download");
+  bar.hidden = !lb.running;
+  btn.disabled = !!lb.running || (lb.ready && lb.next_in > 0);
+  btn.removeAttribute("data-tip");
+  if (lb.ready && lb.next_in > 0 && !lb.running) {
+    btn.dataset.tip = t("fallback.lb_next", { hours: Math.max(1, Math.ceil(lb.next_in / 3600)) });
+  }
+  st.className = "ss-status";
+  if (lb.running) {
+    const pct = lb.total ? Math.min(100, Math.round(lb.done * 100 / lb.total)) : 0;
+    document.getElementById("lb-progress-bar").style.width = (lb.phase === "download" ? pct : 100) + "%";
+    st.textContent = lb.phase === "download"
+      ? t("fallback.lb_downloading", { pct })
+      : t("fallback.lb_indexing", { n: fmtCount(lb.done || 0) });
+    clearTimeout(lbPollTimer);
+    lbPollTimer = setTimeout(pollLaunchbox, 1000);
+    return;
+  }
+  if (lb.error) {
+    st.textContent = t("fallback.lb_error", { detail: lb.error });
+    st.className = "ss-status err";
+  } else if (lb.ready) {
+    const when = new Date((lb.downloaded || 0) * 1000).toLocaleString(currentLocale || "fr", { dateStyle: "medium", timeStyle: "short" });
+    st.textContent = t("fallback.lb_ready", { date: when, n: fmtCount(lb.games) });
+    st.className = "ss-status ok";
+  } else {
+    st.textContent = t("fallback.lb_missing");
+  }
+}
+
+async function pollLaunchbox() {
+  const modal = document.getElementById("settings-modal");
+  try {
+    const lb = await apiFetchInner("/api/sources/launchbox");
+    const wasRunning = fbConfig && fbConfig.launchbox && fbConfig.launchbox.running;
+    if (fbConfig) fbConfig.launchbox = lb;
+    if (!lb.running && wasRunning) {
+      await loadFallbackConfig();       // ready now: the chain's states change
+      if (lb.ready) toast(t("fallback.lb_done", { n: fmtCount(lb.games) }));
+      return;
+    }
+    if (modal.classList.contains("open") || lb.running) renderLaunchboxStatus(lb);
+  } catch (_) { /* next open of the settings shows it */ }
+}
+
+async function saveFallback(patch) {
+  try {
+    const res = await apiFetch("/api/sources/config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    fbConfig = res.config;
+    renderFallback();
+    return true;
+  } catch (e) {
+    handleError(e);
+    return false;
+  }
+}
+
+document.getElementById("fb-order").addEventListener("change", e => {
+  const box = e.target.closest("[data-fb-enable]");
+  if (!box) return;
+  saveFallback({ enabled: { [box.dataset.fbEnable]: box.checked } });
+});
+document.getElementById("fb-order").addEventListener("click", e => {
+  const btn = e.target.closest("[data-fb-move]");
+  if (!btn || !fbConfig) return;
+  const order = fbConfig.order.slice();
+  const i = order.indexOf(btn.dataset.src);
+  const j = i + Number(btn.dataset.fbMove);
+  if (i < 0 || j < 0 || j >= order.length) return;
+  [order[i], order[j]] = [order[j], order[i]];
+  saveFallback({ order });
+});
+document.getElementById("fb-fields").addEventListener("change", e => {
+  const box = e.target.closest("[data-fb-field]");
+  if (!box || !fbConfig) return;
+  const src = box.dataset.src;
+  const list = new Set(fbConfig.fields[src] || []);
+  if (box.checked) list.add(box.dataset.fbField); else list.delete(box.dataset.fbField);
+  saveFallback({ fields: { [src]: [...list] } });
+});
+document.getElementById("fb-continue").addEventListener("change", e => {
+  saveFallback({ on_ss_quota: e.target.checked ? "continue" : "stop" });
+});
+[["fb-tgdb-key", "tgdb_apikey"], ["fb-igdb-id", "igdb_client_id"], ["fb-igdb-cs", "igdb_client_secret"]].forEach(([id, key]) => {
+  const input = document.getElementById(id);
+  input.addEventListener("change", async () => {
+    const value = input.value.trim();
+    if (!value) return;
+    if (await saveFallback({ [key]: value })) {
+      input.value = "";
+      toast(t("fallback.key_saved_toast"));
+    }
+  });
+});
+document.getElementById("btn-tgdb-clear").addEventListener("click", () => saveFallback({ clear_tgdb_apikey: true }));
+document.getElementById("btn-igdb-clear").addEventListener("click", () =>
+  saveFallback({ clear_igdb_client_id: true, clear_igdb_client_secret: true }));
+
+async function testFallbackSource(src, statusId, inputs) {
+  const st = document.getElementById(statusId);
+  // A key typed but not saved yet (it saves when the field loses the focus)
+  const patch = {};
+  inputs.forEach(([id, key]) => {
+    const v = document.getElementById(id).value.trim();
+    if (v) patch[key] = v;
+  });
+  if (Object.keys(patch).length) {
+    if (!(await saveFallback(patch))) return;
+    inputs.forEach(([id]) => { document.getElementById(id).value = ""; });
+  }
+  st.textContent = t("status.testing");
+  st.className = "ss-status";
+  try {
+    const data = await apiFetch("/api/sources/test/" + src, { method: "POST" });
+    let msg = t("scrape.test_ok_short");
+    if (src === "thegamesdb" && data.remaining != null) {
+      msg += " · " + t("fallback.tgdb_left", { n: fmtCount((data.remaining || 0) + (data.extra || 0)) });
+    }
+    st.textContent = msg;
+    st.className = "ss-status ok";
+  } catch (e) {
+    st.textContent = e.message;
+    st.className = "ss-status err";
+  }
+}
+document.getElementById("btn-tgdb-test").addEventListener("click", () =>
+  testFallbackSource("thegamesdb", "tgdb-status", [["fb-tgdb-key", "tgdb_apikey"]]));
+document.getElementById("btn-igdb-test").addEventListener("click", () =>
+  testFallbackSource("igdb", "igdb-status", [["fb-igdb-id", "igdb_client_id"], ["fb-igdb-cs", "igdb_client_secret"]]));
+document.getElementById("btn-lb-update").addEventListener("click", async () => {
+  try {
+    const lb = await apiFetch("/api/sources/launchbox/update", { method: "POST" });
+    if (fbConfig) fbConfig.launchbox = lb;
+    renderLaunchboxStatus(lb);
+  } catch (e) {
+    handleError(e);
+  }
+});
+
 const SCRAPERS = {
   screenscraper: { label: "ScreenScraper", icon: "cloud-download", scrape: "/api/ss/scrape/", apply: "/api/ss/apply/", idKey: "gameid" },
   arcadeitalia: { label: "Arcade Database", icon: "coin", scrape: "/api/adb/scrape/", apply: "/api/adb/apply/", idKey: "romset" },
@@ -4191,7 +4416,7 @@ function setScrapeTitle(source, text) {
   document.getElementById("ss-modal-title").innerHTML = icon(sc.icon) + `<span>${escapeHtml(text)}</span>`;
 }
 function scrapeFieldLabel(key) {
-  return t("scrape.field_" + key, null, key);
+  return t("scrape.field_" + key, null, fieldLabel(key));
 }
 function scrapeMatchLabel(method, picked) {
   if (picked) return t("scrape.match_pick");
@@ -4201,6 +4426,28 @@ function scrapeMatchLabel(method, picked) {
   return t("scrape.match_name");
 }
 function scrapeInfoText(source, data, picked) {
+  const p = data.proposed || {};
+  const fb = data.fallback;
+  if (fb) {
+    const extra = (fb.used || []).filter(s => s !== "screenscraper").map(s => FB_LABELS[s] || s);
+    if (fb.ss !== "ok") {
+      const matched = Object.values(fb.matches || {}).find(m => m && m.name);
+      let txt = t("fallback.found_only", { name: p.name || (matched && matched.name) || "?", sources: extra.join(", ") || "?" });
+      txt += " · " + t(fb.ss === "blocked" ? "fallback.ss_blocked_note" : "fallback.ss_missing_note");
+      return txt + fallbackErrorsText(fb);
+    }
+    if (extra.length) {
+      return scrapeInfoTextBase(source, data, picked) + " · " + t("fallback.completed", { sources: extra.join(", ") }) +
+        fallbackErrorsText(fb);
+    }
+    return scrapeInfoTextBase(source, data, picked) + fallbackErrorsText(fb);
+  }
+  return scrapeInfoTextBase(source, data, picked);
+}
+function fallbackErrorsText(fb) {
+  return Object.entries(fb.errors || {}).map(([s, msg]) => " · " + labelValue(FB_LABELS[s] || s, msg)).join("");
+}
+function scrapeInfoTextBase(source, data, picked) {
   const p = data.proposed || {};
   const id = source === "steam" ? "AppID " + (p.steam_appid || data.steam_appid || "?")
     : source === "arcadeitalia" ? (p.adb_romset || data.romset || "?")
@@ -4233,6 +4480,17 @@ function fmtScrapeValue(key, value) {
   if (key === "region") return regionLabel(v);
   return v;
 }
+/** "ScreenScraper, LaunchBox…": the sources asked for this scrape. */
+function scrapeSourcesLabel(sc, data) {
+  const chain = (data.fallback && data.fallback.chain) || [];
+  return [sc.label, ...chain.map(s => FB_LABELS[s] || s)].join(", ");
+}
+/** Where a field comes from when it is not ScreenScraper (fallback sources). */
+function scrapeSourceChip(r) {
+  if (!r.source || r.source === "screenscraper") return "";
+  const label = FB_LABELS[r.source] || r.source;
+  return `<span class="ss-src" data-src="${escapeHtml(r.source)}" title="${escapeHtml(t("fallback.from", { source: label }))}">${escapeHtml(label)}</span>`;
+}
 function scrapeBadge(status) {
   const key = SCRAPE_BADGES[status];
   return key ? `<span class="ss-badge" data-status="${status}">${escapeHtml(t(key))}</span>` : "";
@@ -4256,7 +4514,7 @@ function scrapeMediaCardHtml(r) {
   const typeTitle = r.media_type ? ` title="${escapeHtml(r.media_type)}"` : "";
   return `<label class="ss-media-card" data-status="${r.status}">` +
     `<span class="ss-card-head"><input type="checkbox" data-ss-field="${r.key}">` +
-    `<span class="ss-card-title">${icon(ic)}<span>${escapeHtml(label)}</span></span>${scrapeBadge(r.status)}</span>` +
+    `<span class="ss-card-title">${icon(ic)}<span>${escapeHtml(label)}</span></span>${scrapeSourceChip(r)}${scrapeBadge(r.status)}</span>` +
     `<span class="ss-pair${single ? " is-single" : ""}">` +
     (single ? "" :
       `<span class="ss-pane is-current"><span class="ss-frame">${current}</span>` +
@@ -4271,7 +4529,7 @@ function scrapeMetaRowHtml(r) {
   const star = r.key === "rating" ? icon("star", "ss-star") : "";
   return `<label class="ss-meta-row${r.key === "desc" ? " is-long" : ""}" data-status="${r.status}">` +
     `<input type="checkbox" data-ss-field="${r.key}">` +
-    `<span class="ss-meta-label"><span>${escapeHtml(scrapeFieldLabel(r.key))}</span>${scrapeBadge(r.status)}</span>` +
+    `<span class="ss-meta-label"><span>${escapeHtml(scrapeFieldLabel(r.key))}</span>${scrapeSourceChip(r)}${scrapeBadge(r.status)}</span>` +
     `<span class="ss-val is-current" title="${escapeHtml(cur)}">${cur ? `<span class="ss-old">${star}${escapeHtml(cur)}</span>` : `<span class="ss-none">${escapeHtml(t("scrape.none"))}</span>`}</span>` +
     `<span class="ss-arrow" aria-hidden="true">→</span>` +
     `<span class="ss-val is-proposed" title="${escapeHtml(nw)}">${star}${escapeHtml(nw)}</span>` +
@@ -4307,7 +4565,7 @@ function showScrapeCompare(source, data, picked) {
   }
   const rest = [];
   if (same.length) rest.push(`<p class="ss-rest">${icon("check")}<span><b>${escapeHtml(t("scrape.rest_same"))}</b> ${names(same)}</span></p>`);
-  if (none.length) rest.push(`<p class="ss-rest">${icon("x")}<span><b>${escapeHtml(t("scrape.rest_unavailable", { source: sc.label }))}</b> ${names(none)}</span></p>`);
+  if (none.length) rest.push(`<p class="ss-rest">${icon("x")}<span><b>${escapeHtml(t("scrape.rest_unavailable", { source: scrapeSourcesLabel(sc, data) }))}</b> ${names(none)}</span></p>`);
   if (rest.length) html += `<div class="ss-rests">${rest.join("")}</div>`;
 
   const box = document.getElementById("ss-fields");

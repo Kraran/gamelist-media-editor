@@ -16,6 +16,7 @@ Thumbs.db
 *.log
 
 screenscraper_config.json
+sources_config.json
 recent_gamelists.json
 recent_roms_roots.json
 ui_settings.json

@@ -822,6 +822,7 @@
           <button type="button" class="settings-tab" role="tab" id="tab-general" aria-controls="pane-general" aria-selected="true" data-pane="general">{{ icon("language") }}<span data-i18n="settings.tab_general">Général</span></button>
           <button type="button" class="settings-tab" role="tab" id="tab-ss" aria-controls="pane-ss" aria-selected="false" tabindex="-1" data-pane="ss">{{ icon("cloud-download") }}<span>ScreenScraper</span></button>
           <button type="button" class="settings-tab" role="tab" id="tab-sources" aria-controls="pane-sources" aria-selected="false" tabindex="-1" data-pane="sources">{{ icon("plug-connected") }}<span data-i18n="settings.tab_sources">Sources de scrape</span></button>
+          <button type="button" class="settings-tab" role="tab" id="tab-fallback" aria-controls="pane-fallback" aria-selected="false" tabindex="-1" data-pane="fallback">{{ icon("lifebuoy") }}<span data-i18n="fallback.tab">Sources de secours</span></button>
           <button type="button" class="settings-tab" role="tab" id="tab-ssmedia" aria-controls="pane-ssmedia" aria-selected="false" tabindex="-1" data-pane="ssmedia">{{ icon("photo-cog") }}<span data-i18n="settings.tab_ssmedia">Médias ScreenScraper</span></button>
           <button type="button" class="settings-tab" role="tab" id="tab-required" aria-controls="pane-required" aria-selected="false" tabindex="-1" data-pane="required">{{ icon("list-check") }}<span data-i18n="settings.tab_required">Médias requis</span></button>
           <button type="button" class="settings-tab" role="tab" id="tab-keys" aria-controls="pane-keys" aria-selected="false" tabindex="-1" data-pane="keys">{{ icon("keyboard") }}<span data-i18n="settings.tab_keys">Raccourcis clavier</span></button>
@@ -921,6 +922,60 @@
             <h4 class="settings-h" data-i18n="settings.sources_title">Source de scrape par système</h4>
             <p class="settings-desc" data-i18n="settings.sources_desc">Le bouton Scraper choisit la source selon le système : Arcade Database pour les dossiers arcade, Steam pour steam, ScreenScraper pour les autres. Un autre choix fait dans son menu est retenu ici.</p>
             <div class="sources-list" id="sources-list"></div>
+          </section>
+
+          <section class="settings-pane" role="tabpanel" id="pane-fallback" aria-labelledby="tab-fallback" hidden>
+            <h4 class="settings-h" data-i18n="fallback.title">Sources de secours</h4>
+            <p class="settings-desc" data-i18n="fallback.desc">Quand ScreenScraper n’a pas le jeu, pas un champ ou un média, ou que son quota est atteint, ces sources complètent, dans l’ordre ci-dessous. Elles servent au scrape d’un jeu, au scrape en lot et aux actions sur plusieurs systèmes. Toutes sont désactivées tant que tu ne les coches pas.</p>
+            <h5 class="fb-h" data-i18n="fallback.order_title">Ordre de la chaîne</h5>
+            <ol class="fb-order" id="fb-order" aria-labelledby="tab-fallback"></ol>
+            <label class="check-option fb-continue"><input type="checkbox" id="fb-continue" /><span data-i18n="fallback.continue">Quota ScreenScraper atteint : continuer avec les sources de secours (aucune requête de plus vers ScreenScraper)</span></label>
+
+            <div class="fb-source" id="fb-box-launchbox">
+              <h5 class="fb-h">LaunchBox Games Database</h5>
+              <p class="ss-hint" data-i18n="fallback.lb_desc">Aucune clé. La base publique de LaunchBox (archive de 110 Mo mise à jour chaque jour) est téléchargée une fois puis consultée sur ton PC : aucune requête par jeu. Environ 250 Mo sur le disque, dans cache/launchbox.</p>
+              <div class="ss-form-actions">
+                <button type="button" class="btn" id="btn-lb-update">{{ icon("cloud-download") }}<span data-i18n="fallback.lb_download">Télécharger la base</span></button>
+                <span class="ss-status" id="lb-status" role="status"></span>
+              </div>
+              <div class="fb-progress" id="lb-progress" hidden><div class="fb-progress-bar" id="lb-progress-bar"></div></div>
+            </div>
+
+            <div class="fb-source" id="fb-box-thegamesdb">
+              <h5 class="fb-h">TheGamesDB</h5>
+              <p class="ss-hint" data-i18n-html="fallback.tgdb_desc">Clé API personnelle à demander sur le <a href="https://forums.thegamesdb.net/" target="_blank" rel="noopener">forum TheGamesDB</a> (section « API Requests »). Petit quota mensuel : chaque réponse est gardée en cache.</p>
+              <div class="ss-form-row">
+                <label for="fb-tgdb-key" data-i18n="fallback.tgdb_key">Clé API TheGamesDB</label>
+                <input type="password" id="fb-tgdb-key" autocomplete="off" />
+              </div>
+              <div class="ss-form-actions">
+                <button type="button" class="btn" id="btn-tgdb-test" data-i18n="tools.ss_test">Tester la connexion</button>
+                <button type="button" class="btn btn-ghost" id="btn-tgdb-clear" data-i18n="fallback.clear_key">Effacer la clé</button>
+                <span class="ss-status" id="tgdb-status" role="status"></span>
+              </div>
+            </div>
+
+            <div class="fb-source" id="fb-box-igdb">
+              <h5 class="fb-h">IGDB</h5>
+              <p class="ss-hint" data-i18n-html="fallback.igdb_desc">Gratuit pour un usage non commercial. Crée une application sur la <a href="https://dev.twitch.tv/console/apps" target="_blank" rel="noopener">console développeur Twitch</a> (compte Twitch avec double authentification, URL de redirection « http://localhost », client « Confidentiel »), puis colle son Client ID et son Client Secret.</p>
+              <div class="ss-form-row">
+                <label for="fb-igdb-id" data-i18n="fallback.igdb_id">Client ID</label>
+                <input type="password" id="fb-igdb-id" autocomplete="off" />
+              </div>
+              <div class="ss-form-row">
+                <label for="fb-igdb-cs" data-i18n="fallback.igdb_cs">Client Secret</label>
+                <input type="password" id="fb-igdb-cs" autocomplete="off" />
+              </div>
+              <div class="ss-form-actions">
+                <button type="button" class="btn" id="btn-igdb-test" data-i18n="tools.ss_test">Tester la connexion</button>
+                <button type="button" class="btn btn-ghost" id="btn-igdb-clear" data-i18n="fallback.clear_key">Effacer la clé</button>
+                <span class="ss-status" id="igdb-status" role="status"></span>
+              </div>
+            </div>
+
+            <h5 class="fb-h" data-i18n="fallback.fields_title">Champs que chaque source peut remplir</h5>
+            <div class="fb-fields" id="fb-fields"></div>
+            <p class="ss-hint" data-i18n="fallback.terms">Les textes de LaunchBox, TheGamesDB et IGDB sont en anglais. Leurs images restent la propriété de leurs auteurs : usage personnel.</p>
           </section>
 
           <section class="settings-pane" role="tabpanel" id="pane-required" aria-labelledby="tab-required" hidden>

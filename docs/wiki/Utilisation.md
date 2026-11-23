@@ -165,6 +165,7 @@ Pour tout le gamelist :
 | ScreenScraper | Compte membre, région préférée, **threads** (Auto ou moins), **cache** des réponses, test de connexion ; chaque réglage est enregistré dès qu’il change |
 | Médias ScreenScraper | Pour chaque média : activé ou non, type ScreenScraper et région essayée en premier |
 | Sources de scrape | Les sources forcées par système depuis le menu ▾ du bouton Scraper, avec retour à l’automatique |
+| Sources de secours | LaunchBox, TheGamesDB, IGDB : activation, ordre de la chaîne, clés, téléchargement de la base LaunchBox, champs par source, « continuer au quota ScreenScraper » (voir [Scrapers](Scrapers#sources-de-secours-launchbox-thegamesdb-igdb)) ; gardé dans `sources_config.json` |
 | Médias requis | Les médias qu’un jeu du système ouvert doit avoir, et les autres systèmes personnalisés |
 | Raccourcis clavier | La liste ci-dessous |
 

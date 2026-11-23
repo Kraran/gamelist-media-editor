@@ -22,7 +22,7 @@ from gme.http import api_err
 from gme.i18n import get_request_locale, locale_scope, st
 from gme.media import MAX_DOWNLOAD_BYTES
 from gme.paths import APP_DIR
-from gme.scrapers import adb, ss, ss_limits, steam
+from gme.scrapers import adb, fallback, sources, ss, ss_limits, steam
 from gme.scrapers.apply import apply_route
 from gme.scrapers.compare import MEDIA_KEYS, META_KEYS, compare_rows, current_from_game, fields_for_preset
 from gme.systems import detect_system_id
@@ -332,7 +332,7 @@ def _process(job, target):
 # member's maxthreads (1 without login), lowered by the setting or after an
 # HTTP 429. Every HTTP request also takes one of the gate's slots, so the
 # number of simultaneous requests can never exceed maxthreads, whatever runs.
-LOOKUPS = {"screenscraper": ss.scrape_game}
+LOOKUPS = {"screenscraper": fallback.scrape_game}   # ScreenScraper, then the fallback sources
 _CANCELLED = ("cancelled", None, False)
 _executor = ThreadPoolExecutor(max_workers=ss_limits.MAX_USER_THREADS, thread_name_prefix="gme-scrape")
 _prefetchers = {}
@@ -390,6 +390,8 @@ class _Prefetch:
             except ss_limits.Cancelled:
                 return _CANCELLED
             except ss_limits.SSBlocked as exc:  # a media download refused: quota, ban…
+                if sources.continue_on_ss_block():
+                    return "errors", {**target, "message": str(exc)}, False
                 self.halted = True
                 return "errors", {**target, "message": str(exc)}, True
             except Exception as exc:
@@ -400,13 +402,14 @@ class _Prefetch:
             return _CANCELLED
         if game is None:
             return "errors", {**target, "message": st("server.stale_game")}, False
-        data, status = LOOKUPS[self.source](game, dict(self.body), self.system)
+        wanted = set(target.get("fields", self.fields))
+        body = dict(self.body, fields=sorted(wanted), mode=self.mode)   # what the fallbacks may fill
+        data, status = LOOKUPS[self.source](game, body, self.system)
         final = _classify({"source": self.source}, target, status, data)
         if final:
             if final[2]:
                 self.halted = True          # quota, ban…: start nothing more
             return final
-        wanted = set(target.get("fields", self.fields))
         rows = compare_rows(data.get("proposed") or {}, current_from_game(game), previews=False)
         medias = (data.get("proposed") or {}).get("medias") or {}
         for field in fields_for_preset(rows, self.mode):
@@ -419,7 +422,7 @@ class _Prefetch:
             except (ss_limits.Cancelled, ss_limits.SSBlocked):
                 raise
             except Exception:
-                reason = ss_limits.GATE.blocked()
+                reason = ss_limits.GATE.blocked() if ss_limits.is_ss_url(url) else None
                 if reason:                  # that answer was a quota / ban status
                     raise ss_limits.SSBlocked(*reason)
                 # else the apply step downloads it again and reports why

@@ -22,6 +22,7 @@ from gme.settings import bp as settings_bp
 from gme.stats import bp as stats_bp
 from gme.remote_cache import bp as remote_cache_bp
 from gme.scrapers.adb import bp as adb_bp
+from gme.scrapers.fallback import bp as sources_bp
 from gme.scrapers.ss import bp as ss_bp
 from gme.scrapers.steam import bp as steam_bp
 from gme.thumbs import bp as thumbs_bp
@@ -44,5 +45,5 @@ app.before_request(security.check_game_identity)
 app.after_request(security.flag_reindexed)
 app.teardown_request(security.end_gamelist_request)
 
-for blueprint in (editor_bp, gamedelete_bp, ss_bp, adb_bp, steam_bp, thumbs_bp, remote_cache_bp, recent_bp, romcheck_bp, mediacheck_bp, settings_bp, backups_bp, batch_bp, bulk_bp, stats_bp, dattool_bp, newgamelist_bp, imageedit_bp, solidimages_bp, overview_bp, multibatch_bp):
+for blueprint in (editor_bp, gamedelete_bp, ss_bp, adb_bp, steam_bp, thumbs_bp, remote_cache_bp, recent_bp, romcheck_bp, mediacheck_bp, settings_bp, backups_bp, batch_bp, bulk_bp, stats_bp, dattool_bp, newgamelist_bp, imageedit_bp, solidimages_bp, overview_bp, multibatch_bp, sources_bp):
     app.register_blueprint(blueprint)

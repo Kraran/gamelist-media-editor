@@ -71,7 +71,40 @@ Pour cocher : la case qui apparaît sur la miniature d’une ligne, `Ctrl`+clic 
 
 - Le dossier parent (`snes`, `mame`, `amiga500`…) donne le système ; tous les dossiers RetroBat sont reconnus
 - En cas d’ambiguïté, choisis le bon candidat
-- L’app respecte les limites du compte (requêtes par minute, quota du jour, `maxthreads`) ; en cas de quota atteint, attends le lendemain
+- L’app respecte les limites du compte (requêtes par minute, quota du jour, `maxthreads`) ; en cas de quota atteint, attends le lendemain, ou active des [sources de secours](#sources-de-secours-launchbox-thegamesdb-igdb)
+
+## Sources de secours (LaunchBox, TheGamesDB, IGDB)
+
+**Réglages › Sources de secours**. Elles complètent ce que ScreenScraper n’a pas : un jeu inconnu, un champ ou un média manquant, ou tout quand son quota est atteint. **Toutes sont désactivées** tant que tu ne les coches pas.
+
+- **Ordre de la chaîne** : ScreenScraper en premier par défaut ; les flèches ↑ / ↓ changent l’ordre. Pour chaque champ, c’est la première source de la chaîne qui l’a (et qui a le droit de le remplir) qui gagne.
+- **Champs par source** : une grille champ × source dit ce que chacune peut remplir (le **nom** est décoché par défaut : le nom du gamelist reste le tien).
+- **Quota ScreenScraper atteint : continuer** (coché par défaut) : plus **aucune requête** n’est envoyée à ScreenScraper (son limiteur les refuse avant l’envoi ; ses réponses en cache servent encore) et le lot ou les actions sur plusieurs systèmes **continuent** avec les autres sources au lieu de s’arrêter. Décoché, le quota arrête tout comme avant.
+- Un jeu introuvable partout est un simple « introuvable » (le lot continue). Si ScreenScraper propose une **liste de candidats**, c’est toujours à toi de choisir.
+- Dans la comparaison, une **pastille** (LaunchBox, TheGamesDB, IGDB) indique chaque champ qui ne vient pas de ScreenScraper, et l’en-tête dit « complété par … » ou « trouvé par …, absent de ScreenScraper ».
+- Les textes de ces sources sont **en anglais**. Leurs images restent la propriété de leurs auteurs : usage personnel.
+
+| Source | Ce qu’il faut | Limites |
+|---|---|---|
+| **LaunchBox Games Database** | Rien : bouton **Télécharger la base** (archive publique de 110 Mo, gratuite pour toute application) | Une mise à jour par jour au plus ; ~250 Mo dans `cache/launchbox/` ; aucune requête par jeu |
+| **TheGamesDB** | Une **clé API** personnelle, à demander sur le [forum TheGamesDB](https://forums.thegamesdb.net/) (section « API Requests ») | Petit quota mensuel : une requête par seconde, réponses en cache, la source se met en pause à zéro jusqu’au renouvellement ; **Tester** affiche ce qui reste |
+| **IGDB** | Une application sur la [console développeur Twitch](https://dev.twitch.tv/console/apps) : compte Twitch avec **double authentification**, URL de redirection `http://localhost`, client « Confidentiel » ; colle le **Client ID** et le **Client Secret** | Usage non commercial ; une requête par jeu, 0,3 s d’écart (IGDB en autorise 4 par seconde), réponses en cache |
+
+Correspondances :
+
+| Champ | LaunchBox | TheGamesDB | IGDB |
+|---|---|---|---|
+| Image | Screenshot - Gameplay | screenshot | screenshot (1080p) |
+| Écran titre | Screenshot - Game Title | titlescreen | — |
+| Miniature | Box - Front | boxart front | cover |
+| Boxart | Box - 3D | — | — |
+| Boxback | Box - Back | boxart back | — |
+| Marquee / Wheel | Clear Logo | clearlogo | — |
+| Support | Cart - Front / Disc | — | — |
+| Fanart | Fanart - Background | fanart | artwork |
+| Infos | résumé, date, développeur, éditeur, genres, joueurs, note | résumé, date, développeur, éditeur, genres, joueurs | résumé, date, développeur, éditeur, genres, note |
+
+Le jeu est cherché sur la plateforme du système (table pour 135 systèmes) : par **CRC de la ROM** puis par le nom sur TheGamesDB, par le nom, les **noms alternatifs** et les orthographes très proches sur LaunchBox, par le nom sur IGDB. La région des images LaunchBox suit la **région préférée** (Réglages › ScreenScraper). Les clés sont gardées dans `sources_config.json` à côté de l’app, jamais réaffichées, jamais écrites dans le journal ni dans le cache. Les médias désactivés dans *Médias ScreenScraper* (wheel, titleshot par défaut) ne sont pas proposés non plus par les sources de secours. Les systèmes arcade (Arcade Database) et `steam` (Steam) n’utilisent pas la chaîne.
 
 ## Arcade Database (Arcade Italia)
 

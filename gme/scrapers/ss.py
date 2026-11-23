@@ -740,7 +740,8 @@ def api_ss_scrape(index, body=None):
     except IndexError:
         return api_err(st("server.invalid_index"), 404, code="invalid_index")
     body = (request.get_json(silent=True) or {}) if body is None else body
-    data, status = scrape_game(game, body)
+    from gme.scrapers import fallback        # ScreenScraper first, then the fallback sources
+    data, status = fallback.scrape_game(game, body)
     return jsonify(data), status
 
 
