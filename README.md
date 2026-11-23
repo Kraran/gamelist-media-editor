@@ -4,7 +4,7 @@
 
 Local web app to edit the media and metadata of EmulationStation **RetroBat** (and Batocera / Recalbox) `gamelist.xml` files, with drag-and-drop and built-in scrapers.
 
-**Version 1.6.0** · [Documentation (Wiki)](https://github.com/Kraran/gamelist-media-editor/wiki) · [Releases](https://github.com/Kraran/gamelist-media-editor/releases) · [Changelog](CHANGELOG.md)
+**Version 1.7.0** · [Documentation (Wiki)](https://github.com/Kraran/gamelist-media-editor/wiki) · [Releases](https://github.com/Kraran/gamelist-media-editor/releases) · [Changelog](CHANGELOG.md)
 
 **▶ Demo video (YouTube)**
 
@@ -22,6 +22,8 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
 - RetroBat extra from ScreenScraper: **Pad2Key** (`.keys`)
 - Image lightbox, upload limit 50 MB; a replaced file goes to the Recycle Bin, never when another game still uses it
 - **Image editor** (the pen-on-picture button of any image tile: image, thumbnail, marquee, wheel, titleshot, boxart, cartridge, mix, fanart…): crop (free or 1:1, 4:3, 3:4, 16:9, 9:16, 2:1, 3:1, original), rotate 90° and flip, **transparent background** for logos (the colour touching the edges, or one colour everywhere, with a tolerance; shown over a checkerboard), **auto-trim** of transparent or single-colour borders, maximum width / height (keeps the proportions), PNG / JPG / WebP with a quality setting. The preview is rendered by the app (Pillow) as you change a setting; *Save* replaces the file (a copy of the original is kept; a new format gets the new extension and the gamelist path follows) or writes a new `-edit` file next to it. A file another media also uses is never overwritten. The toast's **Undo** puts the original back
+
+![Image editor: white background removed from the edges and borders trimmed, previewed over a checkerboard](docs/screenshots/image-editor.png)
 
 **Metadata**
 - Name, description, genre, rating (**stars**), release date (**date picker**), developer, publisher, family, players, language and region (**named lists**), `arcadesystemname`; suggestions from the values already in the gamelist
@@ -67,6 +69,11 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
 - **Statistics** (Actions): games, scraped, complete (all required media), with description, rated, dated, favorites, hidden, played and play time; per media present / broken (tag without file) / missing, with *Show* to list the games missing it; main genres
 - **DAT tool** (Actions): load a No-Intro, Redump, FBNeo or MAME DAT you have (Logiqx XML, MAME `-listxml` or ClrMamePro text; nothing is bundled) and compare the system's ROMs with it, by file name or, if you ask, by CRC32 (zip index, fast) / SHA1, in the background with progress: OK, misnamed, bad dump, incomplete romset, unknown and missing games, clone / BIOS / CHD flags, filters and CSV export. It never renames, moves or deletes ROM files; display names can then be taken from the DAT (*Edit in bulk* › *Names*)
 - **New gamelist from a ROM folder** (*Gamelist…* › *Create a gamelist here…*): one `<game>` per ROM with the usual extensions of the system (editable), preview, then the new `gamelist.xml` opens; a folder that already has one gets *Add the missing ROMs…* (Check ROMs)
+
+![Edit in bulk: names from a DAT, previewed before → after](docs/screenshots/bulk-edit.png)
+
+![DAT tool: the ROMs compared with a DAT by name and CRC32](docs/screenshots/dat-tool.png)
+
 - **Next incomplete** (`N`): jumps to the next game in the list that is missing a required media (or that matches the media filter)
 - **Keyboard**: `J`/`K` next/previous game, `N` next incomplete, `S` scrape, `Ctrl+S` save, `Ctrl+F` or `/` search, `?` shows the list
 - **Open another `gamelist.xml`** at any time (file browser, the 10 most recent files in one click), **Reload** after an outside edit
@@ -91,7 +98,7 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
 
 ### Option A — Windows executable (recommended)
 
-1. Download **`GamelistMediaEditor-Windows-v1.6.0.zip`** from the [v1.6.0 release](https://github.com/Kraran/gamelist-media-editor/releases/tag/v1.6.0)
+1. Download **`GamelistMediaEditor-Windows-v1.7.0.zip`** from the [v1.7.0 release](https://github.com/Kraran/gamelist-media-editor/releases/tag/v1.7.0)
 2. Extract anywhere and run **`GamelistMediaEditor.exe`** (no Python needed)
 3. The app window opens on http://127.0.0.1:5050 — use **Gamelist…** to open a `gamelist.xml`
 

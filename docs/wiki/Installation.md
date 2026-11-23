@@ -1,11 +1,11 @@
 # Installation
 
-Version documentée : **1.6.0**
+Version documentée : **1.7.0**
 
 ## Option A — Exécutable Windows (recommandé)
 
-1. Ouvre la [release v1.6.0](https://github.com/Kraran/gamelist-media-editor/releases/tag/v1.6.0)
-2. Télécharge **`GamelistMediaEditor-Windows-v1.6.0.zip`**
+1. Ouvre la [release v1.7.0](https://github.com/Kraran/gamelist-media-editor/releases/tag/v1.7.0)
+2. Télécharge **`GamelistMediaEditor-Windows-v1.7.0.zip`**
 3. Décompresse où tu veux
 4. Lance **`GamelistMediaEditor.exe`**
 
@@ -66,14 +66,18 @@ Les fichiers **Pad2Key** (`.keys`) vont **à côté de la ROM**, pas dans `image
 | `ui_settings.json` | Thème, langue, sources de scrape et médias requis par système |
 | `cache\thumbs\` | Miniatures de la liste (recréées à la demande) |
 | `cache\remote\` | Images proposées par un scrape, gardées un jour (pas de second téléchargement) |
+| `cache\ss-api\` | Réponses ScreenScraper gardées (30 jours par défaut) : rescraper ne consomme pas de quota |
+| `state\batches\` | Lots de scrape à reprendre (*Dernier lot*) |
+
+À côté de chaque gamelist, `.gme-backups\` garde les sauvegardes datées et les originaux des images modifiées.
 
 Le dossier `cache` peut être supprimé sans risque.
 
-## Mise à jour vers 1.6.0
+## Mise à jour vers 1.7.0
 
 - Remplace les fichiers de l’app (garde `screenscraper_config.json`, `ui_settings.json` et `recent_gamelists.json`)
 - Aucune migration du `gamelist.xml` ; aucune nouvelle dépendance depuis la 1.5.0
-- Le thème reste sombre : le **thème clair** se choisit dans **Réglages › Général**
+- Les types de médias ScreenScraper gardent les valeurs de la 1.6.0 : **wheel** et **titleshot** restent désactivés tant que tu ne les coches pas dans **Réglages › Médias ScreenScraper**
 
 Depuis une version antérieure à la 1.5.0 :
 - En source : `python -m pip install -r requirements.txt` (dépendance **Send2Trash**, pour la Corbeille)
@@ -82,4 +86,4 @@ Depuis une version antérieure à la 1.5.0 :
 
 Depuis la 1.3.0 : les **Outils** sont devenus **Réglages** (roue dentée) et **Actions** (⋯), voir [Utilisation](Utilisation).
 
-**Gamelist Media Editor** · v1.6.0
+**Gamelist Media Editor** · v1.7.0
