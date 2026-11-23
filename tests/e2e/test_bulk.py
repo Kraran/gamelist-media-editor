@@ -142,6 +142,92 @@ def test_remove_games_keeps_roms_and_can_be_undone(page, gamelist, trashed):
     assert xml_names(gamelist) == ["alpha", "Bravo Shoot", "Charlie", "Delta"]
 
 
+def with_regions(page, gamelist):
+    xml = gamelist.read_text(encoding="utf-8")
+    xml = xml.replace("<name>alpha</name>", "<name>alpha</name><region>eu</region>", 1)
+    xml = xml.replace("<name>Delta</name>", "<name>Delta</name><region>us</region><region/>", 1)
+    gamelist.write_text(xml, encoding="utf-8")
+    page.reload()
+    page.wait_for_selector("#game-list .game-item")
+
+
+def tags(xml, tag):
+    return [len(g.findall(tag)) for g in etree.parse(str(xml)).getroot().findall("game")]
+
+
+def open_clear_fields(page):
+    open_bulk(page, "clear_fields")
+    page.wait_for_selector("#bulk-clear-list [data-bulk-clear]")
+
+
+def test_clear_fields_with_counts_confirmation_and_undo(page, gamelist):
+    with_regions(page, gamelist)
+    page.click("#game-list .game-item >> nth=0")
+    page.wait_for_function("document.getElementById('meta-region').value === 'eu'")
+    open_clear_fields(page)
+    count = lambda k: page.inner_text(f'#bulk-clear-list label:has([data-bulk-clear="{k}"]) .bulk-count')
+    assert count("genre") == "3" and count("region") == "2" and count("publisher") == "0"
+    assert page.locator('[data-bulk-clear="playcount"]').count() == 1      # a tag some game has
+    assert page.locator('[data-bulk-clear="md5"]').count() == 0            # one no game has
+    assert page.locator('[data-bulk-clear="name"], [data-bulk-clear="path"], [data-bulk-clear="image"]').count() == 0
+    run_preview(page)
+    assert "Cochez au moins un champ" in page.inner_text("#bulk-preview")
+    page.check('[data-bulk-clear="region"]')
+    page.check('[data-bulk-clear="favorite"]')
+    run_preview(page)
+    assert page.locator("#bulk-preview tbody tr").count() == 3     # region of alpha and Delta, favorite of alpha
+    assert "balise retirée" in page.inner_text("#bulk-preview")
+    if SHOTS:
+        page.screenshot(path=os.path.join(SHOTS, "bulk-clear-fields.png"))
+    before = gamelist.read_bytes()
+    page.click("#bulk-apply")
+    page.wait_for_selector("#confirm-modal.open")
+    assert page.evaluate("document.activeElement.id") == "confirm-cancel"
+    body = page.inner_text("#confirm-body")
+    assert "Région" in body and "Favori" in body and "2 jeu" in body
+    if SHOTS:
+        page.screenshot(path=os.path.join(SHOTS, "bulk-clear-fields-confirm.png"))
+    page.click("#confirm-cancel")
+    page.wait_for_timeout(200)
+    assert gamelist.read_bytes() == before                         # cancelled: nothing written
+    page.click("#bulk-apply")
+    page.wait_for_selector("#confirm-modal.open")
+    page.click("#confirm-ok")
+    page.wait_for_selector("#toast.show .toast-action")
+    assert not page.is_visible("#bulk-modal")
+    assert tags(gamelist, "region") == [0, 0, 0, 0] and tags(gamelist, "favorite") == [0, 0, 0, 0]
+    assert "<region" not in gamelist.read_text(encoding="utf-8")   # no empty tag left
+    assert tags(gamelist, "genre") == [1, 1, 1, 0]
+    page.wait_for_function("document.getElementById('meta-region').value === ''")   # the open game too
+    assert (gamelist.parent / "Alpha (Europe).zip").read_bytes() == b"x" * 10
+    undo(page)
+    assert tags(gamelist, "region") == [1, 0, 0, 2] and tags(gamelist, "favorite") == [1, 0, 0, 0]
+
+
+def test_clear_fields_follows_the_scope(page, gamelist):
+    with_regions(page, gamelist)
+    page.click("#game-list .game-item >> nth=3", modifiers=["Control"])
+    page.click("#btn-bulk-selection")
+    page.wait_for_selector("#bulk-modal.open")
+    page.click('[data-bulk-tab="clear_fields"]')
+    page.wait_for_selector("#bulk-clear-list [data-bulk-clear]")
+    assert page.inner_text('#bulk-clear-list label:has([data-bulk-clear="region"]) .bulk-count') == "1"
+    page.check('[data-bulk-clear="region"]')
+    page.select_option("#bulk-scope", "all")                      # re-counted, the tick is kept
+    page.wait_for_function("""document.querySelector('#bulk-clear-list label:has([data-bulk-clear="region"]) .bulk-count')
+                              .textContent === '2'""")
+    assert page.is_checked('[data-bulk-clear="region"]')
+    page.select_option("#bulk-scope", "checked")
+    page.wait_for_function("""document.querySelector('#bulk-clear-list label:has([data-bulk-clear="region"]) .bulk-count')
+                              .textContent === '1'""")
+    run_preview(page)
+    page.click("#bulk-apply")
+    page.wait_for_selector("#confirm-modal.open")
+    page.click("#confirm-ok")
+    page.wait_for_selector("#toast.show .toast-action")
+    assert tags(gamelist, "region") == [1, 0, 0, 0]               # only Delta, the ticked game
+
+
 def test_column_filter_combines_with_the_other_filters_and_ctrl_a(page, gamelist):
     page.click("#btn-col-filter")
     assert page.is_visible("#col-filter")

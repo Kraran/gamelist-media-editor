@@ -21,6 +21,12 @@ Games are designated by their <path> (every game with that path). ``op``:
   (``pacman.zip`` → ``Pac-Man (Midway)``); games the DAT does not know keep theirs.
 - ``{"kind": "clear_media", "fields": ["video", …]}``: removes the tags; the
   files stay on disk (``/api/clear`` does the same for one game).
+- ``{"kind": "clear_fields", "fields": ["region", "genre", …]}``: removes the
+  whole elements (one of ``CLEAR_FIELDS``: text fields and flags, never
+  ``<name>``, ``<path>`` or a media tag), empty ones included.
+
+POST /api/bulk/fields {"paths": [...]} counts, for each of ``CLEAR_FIELDS``,
+the games that have the tag (the *Clear fields* tab shows it).
 
 Every apply first makes a dated snapshot (Actions › Backups) and returns its
 id, which the interface uses to undo with ``/api/backups/restore``. A preview
@@ -53,6 +59,11 @@ SET_FIELDS = ("genre", "developer", "publisher", "releasedate", "rating", "playe
               "family", "arcadesystemname", "favorite", "hidden", "kidgame")
 REPLACE_FIELDS = ("name", "desc", "genre", "developer", "publisher", "players", "lang", "region",
                   "family", "arcadesystemname")
+# Tags "Clear fields" may remove: text and flags. Media tags have their own
+# operation (clear_media); <name> and <path> identify the game and stay.
+CLEAR_FIELDS = ("genre", "developer", "publisher", "releasedate", "rating", "players", "lang", "region",
+                "family", "arcadesystemname", "desc", "sortname", "favorite", "hidden", "kidgame",
+                "playcount", "lastplayed", "gametime", "genreid", "md5", "crc32", "cheevosId", "cheevosHash")
 _DATE = re.compile(r"^(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?$")
 _ES_DATE = re.compile(r"^\d{8}T\d{6}$")
 _TAGS = re.compile(r"\s*[\(\[][^\(\)\[\]]*[\)\]]")
@@ -247,8 +258,23 @@ def _clear_media_op(op):
     return change, write
 
 
+def _clear_fields_op(op):
+    fields = op.get("fields")
+    if not isinstance(fields, list) or not fields or any(f not in CLEAR_FIELDS for f in fields):
+        raise BulkError("bulk.bad_field")
+    fields = list(dict.fromkeys(fields))
+
+    def change(game):
+        return [(f, game.findtext(f, "") or "", "") for f in fields if game.find(f) is not None]
+
+    def write(game, field, _after):
+        for elem in game.findall(field):
+            game.remove(elem)
+    return change, write
+
+
 OPS = {"set": _set_op, "replace": _replace_op, "reset_name": _reset_name_op, "dat_name": _dat_name_op,
-       "clear_media": _clear_media_op}
+       "clear_media": _clear_media_op, "clear_fields": _clear_fields_op}
 
 
 def _operation(body):
@@ -275,6 +301,23 @@ def _row(game, field, before, after):
 
 def _error(e):
     return api_err(st(e.key, **e.params), 400, code=e.key.replace(".", "_"))
+
+
+@bp.route("/api/bulk/fields", methods=["POST"])
+def api_bulk_fields():
+    err = require_gamelist()
+    if err:
+        return err
+    body = request.get_json(silent=True) or {}
+    try:
+        games = _targets(load_xml(), _paths(body))
+    except BulkError as e:
+        return _error(e)
+    counts = {f: 0 for f in CLEAR_FIELDS}
+    for game in games:
+        for f in {c.tag for c in game if isinstance(c.tag, str)} & counts.keys():
+            counts[f] += 1
+    return jsonify({"games": len(games), "counts": counts})
 
 
 @bp.route("/api/bulk/preview", methods=["POST"])

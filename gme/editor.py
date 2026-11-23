@@ -391,35 +391,6 @@ def api_backup():
         return jsonify({"error": str(e)}), 500
 
 
-@bp.route("/api/purge-regions", methods=["POST"])
-def purge_regions():
-    err = require_gamelist()
-    if err:
-        return err
-    try:
-        body = request.get_json(silent=True) or {}
-        do_backup = bool(body.get("backup", False))
-        backup_path = None
-        if do_backup:
-            backup_path = backup_xml()
-
-        tree = load_xml()
-        root = tree.getroot()
-        count = 0
-        for game in root.findall("game"):
-            for region_elem in list(game.findall("region")):
-                game.remove(region_elem)
-                count += 1
-        save_xml(tree)
-        return jsonify({
-            "success": True,
-            "removed": count,
-            "backup": backup_path,
-        })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
 @bp.route("/api/fill-arcadesystem", methods=["POST"])
 def fill_arcadesystem():
     """Fill <arcadesystemname> from a MAME -listxml dump (mame.xml)."""

@@ -46,10 +46,10 @@ Version documentée : **1.7.0**
 
 - Démarre **sans** gamelist
 - Ouvrir un autre XML (explorateur + récents), recharger depuis le disque
-- **Actions** : `.bak` manuel, systèmes arcade depuis `mame.xml`, **Vérifier les ROMs** (ROMs absentes du gamelist, entrées sans ROM, doublons ; mise à jour et rapport), **Vérifier les médias** (médias inutilisés à la Corbeille, liens cassés retirés ; rapport), purge globale `<region>`
+- **Actions** : `.bak` manuel, systèmes arcade depuis `mame.xml`, **Vérifier les ROMs** (ROMs absentes du gamelist, entrées sans ROM, doublons ; mise à jour et rapport), **Vérifier les médias** (médias inutilisés à la Corbeille, liens cassés retirés ; rapport)
 - Supprimer un jeu (menu ⋯ du jeu) : la fenêtre liste les fichiers qui partent (ROM, pistes et disques, médias) et ceux gardés car un autre jeu les utilise ; tout va à la Corbeille
 - Copier le chemin de la ROM
-- **Modifier en masse** : champ, rechercher / remplacer (regex), noms d’après le fichier ou un DAT / une liste MAME, images (rogner, réduire, convertir), retirer des médias ou des jeux ; aperçu avant → après, sauvegarde datée et **Annuler**
+- **Modifier en masse** : champ, supprimer des champs entiers (région, genre…), rechercher / remplacer (regex), noms d’après le fichier ou un DAT / une liste MAME, images (rogner, réduire, convertir), retirer des médias ou des jeux ; aperçu avant → après, sauvegarde datée et **Annuler**
 - **Outil DAT** (No-Intro, Redump, FBNeo, MAME) : comparaison par nom, CRC32 ou SHA1, rapport filtrable et export CSV ; ROMs jamais modifiées
 - **Créer un gamelist ici…** à partir d’un dossier de ROMs (extensions du système)
 - **Statistiques** et **Sauvegardes** (30 copies datées, restaurables)

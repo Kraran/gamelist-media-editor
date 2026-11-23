@@ -102,7 +102,7 @@ def test_actions_menu_backup(page, gamelist):
     assert page.get_attribute("#btn-actions", "aria-expanded") == "true"
     assert page.evaluate("document.activeElement.id") == "btn-batch-scrape"
     page.keyboard.press("ArrowUp")                           # wraps to the last item
-    assert page.evaluate("document.activeElement.id") == "btn-purge-regions"
+    assert page.evaluate("document.activeElement.id") == "btn-export-csv"
     page.keyboard.press("ArrowDown")                         # back to the first
     page.keyboard.press("ArrowDown")
     assert page.evaluate("document.activeElement.id") == "btn-bulk"

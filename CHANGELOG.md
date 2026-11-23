@@ -2,6 +2,16 @@
 
 All notable changes to Gamelist Media Editor are documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- **Clear fields** (*Edit in bulk* › *Clear fields*): removes whole tags from the ticked games, the games shown or the whole gamelist: genre, developer, publisher, date, rating, players, language, region, family, arcade system, description, favorite / hidden / kids, and, when some game has them, `<sortname>`, `<playcount>`, `<lastplayed>`, `<gametime>`, `<genreid>`, `<md5>`, `<crc32>`, `<cheevosId>`, `<cheevosHash>`. Each tag shows how many games of the scope have it; the element goes, empty ones included, never an empty tag left. Same preview, dated backup and *Undo* as the other bulk operations, plus a confirmation naming the fields and the number of games. `<name>`, `<path>` and media tags are not offered (media have the *Media* tab). New operation `clear_fields` of `/api/bulk` and route `POST /api/bulk/fields` (counts per tag).
+
+### Removed
+
+- **Actions › Remove all `<region>` tags** and its route `POST /api/purge-regions`: *Edit in bulk* › *Clear fields* › *Region* on the whole gamelist does the same, with a preview, a dated backup and *Undo*.
+
 ## [1.7.0] - 2026-11-23
 
 Parallel ScreenScraper batch scrape within the account's `maxthreads`, answer cache, media type per media (wheel, titleshot, music), edit in bulk with preview and undo, DAT tool, new gamelist from a ROM folder, built-in image editor, resizable game list, more filters and CSV export. Release notes: [docs/release-notes/RELEASE_NOTES_v1.7.0.md](docs/release-notes/RELEASE_NOTES_v1.7.0.md).

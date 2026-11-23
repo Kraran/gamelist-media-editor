@@ -60,6 +60,7 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
 - **Tick every game shown**: `Ctrl+A` in the list or the button next to the filters (search and filters applied)
 - **Edit in bulk** (Actions, or the pencil in the selection bar), on the ticked games, the games shown or the whole gamelist, always with a **preview** (before → after) before *Apply*:
   - *Field*: one value for genre, developer, publisher, date (`YYYY`, `YYYY-MM` or `YYYY-MM-DD`), rating, players, language, region, family, arcade system, favorite / hidden / kids (empty clears)
+  - *Clear fields*: remove whole tags (`<region>`, `<genre>`, `<desc>`, `<sortname>`, `<playcount>`, `<cheevosId>`…, empty ones included) from the games; each tag shows how many games of the scope have it, and a confirmation names the fields and the number of games. `<name>`, `<path>` and media tags are not offered (media have their own tab)
   - *Find / replace* in the name, the description or any text field (or all of them): plain text or regular expression (`\1` for a group), case-sensitive or not; a name never becomes empty
   - *Names*: the name becomes the ROM file name without its extension, or the full name a DAT or a MAME list gives (`pacman.zip` → `Pac-Man (Midway)`), optionally without the `(Europe)`, `[!]`… tags
   - *Images*: for one media of the games (e.g. every wheel), auto-trim, maximum width / height and/or PNG / JPG / WebP conversion; the preview shows before → after (size, format, weight) for the first 40, images that already fit are left alone; **Undo** puts the originals and the gamelist back
@@ -77,7 +78,7 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
 - **Next incomplete** (`N`): jumps to the next game in the list that is missing a required media (or that matches the media filter)
 - **Keyboard**: `J`/`K` next/previous game, `N` next incomplete, `S` scrape, `Ctrl+S` save, `Ctrl+F` or `/` search, `?` shows the list
 - **Open another `gamelist.xml`** at any time (file browser, the 10 most recent files in one click), **Reload** after an outside edit
-- **Actions** menu (whole gamelist): `.bak` backup, arcade system names from `mame.xml`, **Check ROMs** (gamelist vs files of the folder: add missing ROMs, remove entries without ROM, merge duplicates, export the report), **Check media** (unused media to the Recycle Bin, links to missing files removed, export the report), purge all `<region>` tags
+- **Actions** menu (whole gamelist): `.bak` backup, arcade system names from `mame.xml`, **Check ROMs** (gamelist vs files of the folder: add missing ROMs, remove entries without ROM, merge duplicates, export the report), **Check media** (unused media to the Recycle Bin, links to missing files removed, export the report)
 - **Settings**: theme (dark, light or as the system), language, ScreenScraper member login, region, threads, answer cache, media type / region / on-off per media, scrape source and required media per system, keyboard shortcuts (kept in `ui_settings.json`)
 - Game ⋯ menu: copy the ROM path, delete the game (ROM, tracks / discs, media and XML entry, listed before; files another game uses are kept; to the Recycle Bin) with optional backup
 - **Backups and restoration** (Actions): the last 30 dated XML copies, with confirmation before restoring and a snapshot of the current XML to undo the restoration. ROMs and media are not restored
@@ -135,7 +136,7 @@ Keep `state/batches/` next to the app to retain batch progress and reports. XML 
 1. Open your system's `gamelist.xml` (for example `RetroBat\roms\snes\gamelist.xml`). Media go to `images/`, `videos/` and `manuals/` next to it.
 2. Select a game, then drop files on the media, or click **Scrape**, check what changes and apply (Enter).
 3. Edit the metadata and save (`Ctrl+S`).
-4. Use **Actions** for the whole gamelist (backup, `<region>` purge…), **Reload** if you edited the XML outside the app.
+4. Use **Actions** for the whole gamelist (backup, checks, edit in bulk…), **Reload** if you edited the XML outside the app.
 
 Please use the scrapers responsibly: requests are throttled, avoid hammering the APIs. ScreenScraper works out of the box; a free member account (Settings › ScreenScraper) raises your quota.
 
@@ -179,7 +180,7 @@ Code layout (`app.py` is only the entry point; the overview is in `gme/__init__.
 | `gme/scrapers/ss_cache.py` | On-disk cache of ScreenScraper game lookups (`cache/ss-api/`): keys without credentials, TTL, never caches errors |
 | `gme/backups.py` | dated XML snapshots, bounded history and reversible restoration (`/api/backups`) |
 | `gme/imageedit.py` | image editor and batch image edits (Pillow): preview, save with a copy of the original, undo (`/api/image-edit`) |
-| `gme/bulk.py` | edit in bulk and removing many games: preview then one backup and one write (`/api/bulk`, `/api/bulk-delete`) |
+| `gme/bulk.py` | edit in bulk and removing many games: preview then one backup and one write (`/api/bulk`, `/api/bulk-delete`; `/api/bulk/fields` counts the tags for *Clear fields*) |
 | `gme/datfile.py`, `gme/dattool.py` | DAT reading (Logiqx XML, MAME listxml, ClrMamePro) and the DAT tool: background load and comparison, report (`/api/dat`) |
 | `gme/newgamelist.py` | new gamelist from a ROM folder, extensions per system (`/api/new-gamelist`) |
 | `gme/stats.py` | statistics of the open gamelist (`/api/stats`) |

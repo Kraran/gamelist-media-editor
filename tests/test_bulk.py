@@ -156,6 +156,63 @@ def test_clear_media_keeps_the_files(folder, client):
     assert (folder / "images" / "alpha.png").exists() and (folder / "videos" / "alpha.mp4").exists()
 
 
+def test_clear_fields_removes_whole_elements(folder, client):
+    xml = (folder / "gamelist.xml").read_text(encoding="utf-8")
+    xml = xml.replace("<name>Bravo</name>", "<name>Bravo</name><region>eu</region><region>us</region>", 1)
+    xml = xml.replace("<name>Charlie</name>", "<name>Charlie</name><region/>", 1)    # an empty tag goes too
+    xml = xml.replace("<name>Delta</name>", "<name>Delta</name><region>jp</region>", 1)
+    (folder / "gamelist.xml").write_text(xml, encoding="utf-8")
+    op = {"kind": "clear_fields", "fields": ["region", "genre", "favorite", "playcount"]}
+    before = (folder / "gamelist.xml").read_bytes()
+    data = preview(client, ALL[:3], op)                         # Delta is not in the scope
+    assert data["games"] == 3
+    assert sorted((c["path"], c["field"]) for c in data["changes"]) == sorted([
+        (ALL[0], "genre"), (ALL[0], "favorite"), (ALL[0], "playcount"),
+        (ALL[1], "region"), (ALL[1], "genre"), (ALL[2], "region")])
+    assert all(c["after"] == "" for c in data["changes"])
+    assert (folder / "gamelist.xml").read_bytes() == before     # a dry run
+    res = apply(client, ALL[:3], op)
+    assert res["games"] == 3 and res["changed"] == 6 and res["snapshot"]
+    g = games(folder)
+    for path in ALL[:3]:
+        assert all(g[path].find(f) is None for f in op["fields"]), path
+    assert g[ALL[3]].findtext("region") == "jp"                  # outside the scope
+    assert g[ALL[0]].findtext("desc") == "An Alpha game." and g[ALL[0]].findtext("gametime") == "4000"
+    assert g[ALL[0]].findtext("name") == "alpha" and g[ALL[0]].findtext("image") == "./images/alpha.png"
+    assert (folder / "Alpha (Europe) [!].zip").read_bytes() == b"x" * 10   # ROMs untouched
+    again = apply(client, ALL[:3], op)
+    assert again["changed"] == 0 and again["snapshot"] is None
+
+
+def test_clear_fields_undo_restores(folder, client):
+    res = apply(client, ALL, {"kind": "clear_fields", "fields": ["genre", "desc"]})
+    assert res["changed"] == 3
+    assert client.post("/api/backups/restore", headers=LOCAL, json={"id": res["snapshot"]}).status_code == 200
+    assert games(folder)[ALL[1]].findtext("genre") == "Shoot'em up / Vertical"
+    assert games(folder)[ALL[0]].findtext("desc") == "An Alpha game."
+
+
+@pytest.mark.parametrize("fields", [["name"], ["path"], ["image"], ["video"], ["region", "music"], [], "region"])
+def test_clear_fields_refuses_name_path_and_media(folder, client, fields):
+    r = post(client, "/api/bulk", paths=ALL, op={"kind": "clear_fields", "fields": fields})
+    assert r.status_code == 400 and r.get_json()["code"] == "bulk_bad_field"
+
+
+def test_field_counts_for_the_scope(folder, client):
+    r = post(client, "/api/bulk/fields", paths=ALL[:2])
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data["games"] == 2
+    assert data["counts"]["genre"] == 2 and data["counts"]["playcount"] == 1
+    assert data["counts"]["region"] == 0 and data["counts"]["rating"] == 1
+    assert "name" not in data["counts"] and "image" not in data["counts"]
+    assert post(client, "/api/bulk/fields", paths=[]).status_code == 400
+
+
+def test_purge_regions_route_is_gone(folder, client):
+    assert post(client, "/api/purge-regions").status_code in (404, 405)
+
+
 def test_nothing_to_change_makes_no_backup(folder, client):
     res = apply(client, ALL, {"kind": "set", "field": "genre", "value": "Platform"})
     assert res["changed"] == 3                                    # Alpha already had it
@@ -233,3 +290,14 @@ def test_stats(folder, client):
     assert d["complete"] == 1                                       # only Alpha has image + boxart
     assert d["scraped"] == 3 and d["no_genre"] == 2
     assert sorted(g["genre"] for g in d["genres"]) == ["PLATFORM", "SHOOT'EM UP"] and d["genre_count"] == 2
+
+
+def test_clear_fields_keeps_the_case_of_retroachievements_tags(folder, client):
+    xml = (folder / "gamelist.xml").read_text(encoding="utf-8")
+    xml = xml.replace("<name>Bravo</name>", "<name>Bravo</name><cheevosId>21620</cheevosId><cheevosHash>62AB</cheevosHash>", 1)
+    (folder / "gamelist.xml").write_text(xml, encoding="utf-8")
+    counts = post(client, "/api/bulk/fields", paths=ALL).get_json()["counts"]
+    assert counts["cheevosId"] == 1 and counts["cheevosHash"] == 1
+    res = apply(client, ALL, {"kind": "clear_fields", "fields": ["cheevosId", "cheevosHash"]})
+    assert res["changed"] == 2
+    assert games(folder)["./bravo.zip"].find("cheevosId") is None
