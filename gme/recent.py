@@ -19,7 +19,9 @@ from gme.paths import APP_DIR
 bp = Blueprint("recent", __name__)
 
 RECENT_FILE = os.path.join(APP_DIR, "recent_gamelists.json")
+ROOTS_FILE = os.path.join(APP_DIR, "recent_roms_roots.json")   # multi-system overview
 RECENT_MAX = 12          # the dialog shows the 10 most recent other than the open one
+ROOTS_MAX = 6
 _lock = threading.Lock()
 
 
@@ -28,18 +30,19 @@ def _key(path):
     return os.path.normcase(os.path.normpath(path))
 
 
-def _read():
+def _read(file=None):
     try:
-        with open(RECENT_FILE, encoding="utf-8") as f:
+        with open(file or RECENT_FILE, encoding="utf-8") as f:
             data = json.load(f)
     except (OSError, ValueError):
         return []
     return [p for p in data if isinstance(p, str) and p] if isinstance(data, list) else []
 
 
-def _write(paths):
+def _write(paths, file=None, limit=None):
     try:
-        atomic_write(RECENT_FILE, json.dumps(paths[:RECENT_MAX], ensure_ascii=False, indent=1).encode("utf-8"))
+        atomic_write(file or RECENT_FILE,
+                     json.dumps(paths[:limit or RECENT_MAX], ensure_ascii=False, indent=1).encode("utf-8"))
     except OSError as e:
         log.warning("Could not save the recent gamelists (%s)", e)
 
@@ -69,6 +72,29 @@ def forget(path):
         kept = [p for p in paths if _key(p) != _key(path)]
         if len(kept) != len(paths):
             _write(kept)
+
+
+def recent_roots():
+    with _lock:
+        return _read(ROOTS_FILE)
+
+
+def remember_root(path):
+    """The roms folders opened in the multi-system overview, newest first."""
+    if not path:
+        return
+    path = os.path.abspath(path)
+    with _lock:
+        paths = _read(ROOTS_FILE)
+        _write([path] + [p for p in paths if _key(p) != _key(path)], ROOTS_FILE, ROOTS_MAX)
+
+
+def forget_root(path):
+    with _lock:
+        paths = _read(ROOTS_FILE)
+        kept = [p for p in paths if _key(p) != _key(path)]
+        if len(kept) != len(paths):
+            _write(kept, ROOTS_FILE, ROOTS_MAX)
 
 
 @bp.route("/api/recent")

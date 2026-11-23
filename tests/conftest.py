@@ -44,6 +44,7 @@ def recent_file(tmp_path, monkeypatch):
     """Recent gamelists go to a temporary file, never next to app.py."""
     path = tmp_path / "recent_gamelists.json"
     monkeypatch.setattr(recent, "RECENT_FILE", str(path))
+    monkeypatch.setattr(recent, "ROOTS_FILE", str(tmp_path / "recent_roms_roots.json"))
     return path
 
 
