@@ -20,6 +20,8 @@ sources_config.json
 recent_gamelists.json
 recent_roms_roots.json
 ui_settings.json
+network_places.json
+network_credentials.json
 app-window/
 
 # PyInstaller output (exe stays on GitHub Releases only)

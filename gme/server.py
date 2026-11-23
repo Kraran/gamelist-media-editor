@@ -14,6 +14,7 @@ from gme.mediacheck import bp as mediacheck_bp
 from gme.newgamelist import bp as newgamelist_bp
 from gme.overview import bp as overview_bp
 from gme.multibatch import bp as multibatch_bp
+from gme.network import bp as network_bp
 from gme.imageedit import bp as imageedit_bp
 from gme.solidimages import bp as solidimages_bp
 from gme.recent import bp as recent_bp
@@ -45,5 +46,5 @@ app.before_request(security.check_game_identity)
 app.after_request(security.flag_reindexed)
 app.teardown_request(security.end_gamelist_request)
 
-for blueprint in (editor_bp, gamedelete_bp, ss_bp, adb_bp, steam_bp, thumbs_bp, remote_cache_bp, recent_bp, romcheck_bp, mediacheck_bp, settings_bp, backups_bp, batch_bp, bulk_bp, stats_bp, dattool_bp, newgamelist_bp, imageedit_bp, solidimages_bp, overview_bp, multibatch_bp, sources_bp):
+for blueprint in (editor_bp, gamedelete_bp, ss_bp, adb_bp, steam_bp, thumbs_bp, remote_cache_bp, recent_bp, romcheck_bp, mediacheck_bp, settings_bp, backups_bp, batch_bp, bulk_bp, stats_bp, dattool_bp, newgamelist_bp, imageedit_bp, solidimages_bp, overview_bp, multibatch_bp, sources_bp, network_bp):
     app.register_blueprint(blueprint)

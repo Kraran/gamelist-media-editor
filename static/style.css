@@ -2029,3 +2029,37 @@ th[aria-sort="ascending"] .ov-sort, th[aria-sort="descending"] .ov-sort { color:
 .mb-state .spinner { width: 12px; height: 12px; }
 .mb-backup { margin-top: 4px; }
 .mb-row.is-running td { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+
+/* Network shares (gme/network.py) */
+.network-badge { display: inline-flex; align-items: center; gap: 4px; border: 0; cursor: pointer; font: inherit; font-size: var(--fs-xs); font-weight: 600; line-height: 1.6; }
+.network-badge .icon { width: 13px; height: 13px; }
+.network-badge:hover { filter: brightness(1.1); }
+.open-gl-net { display: grid; gap: var(--s2); margin-top: var(--s2); padding: var(--s2) var(--s3); border: 1px solid var(--line); border-radius: var(--r-control); }
+.open-gl-net-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); }
+.open-gl-net-bar .open-gl-label { display: inline-flex; align-items: center; gap: 4px; margin: 0; }
+.open-gl-net-host { flex: 1 1 200px; min-width: 0; }
+.open-gl-net-favs { display: flex; flex-wrap: wrap; gap: 6px; }
+.open-gl-net-favs[hidden], .open-gl-net-results[hidden], .open-gl-net-login[hidden] { display: none; }
+.open-gl-net-fav { display: inline-flex; align-items: center; gap: 2px; }
+.open-gl-net-fav .open-gl-drive { display: inline-flex; align-items: center; gap: 4px; max-width: 280px; }
+.open-gl-net-fav .open-gl-drive span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.open-gl-net-fav .icon { width: 13px; height: 13px; flex: none; }
+.open-gl-net-results { display: grid; gap: 6px; font-size: var(--fs-sm); }
+.open-gl-net-machine { padding: 6px var(--s2); border-radius: var(--r-control); background: var(--raised); opacity: .75; }
+.open-gl-net-machine.is-found { opacity: 1; }
+.open-gl-net-name { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); }
+.open-gl-net-name .icon { width: 15px; height: 15px; }
+.open-gl-net-status { flex: 1 1 160px; color: var(--text-2); }
+.open-gl-net-api { margin-top: 2px; color: var(--text-2); font-size: var(--fs-xs); }
+.open-gl-net-login { display: grid; gap: var(--s2); margin: 0 0 var(--s2); padding: var(--s2) var(--s3); border-radius: var(--r-control); background: var(--accent-soft); font-size: var(--fs-sm); }
+.open-gl-net-login-head { display: flex; align-items: center; gap: var(--s2); font-weight: 600; }
+.open-gl-net-login-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--s2); }
+.open-gl-net-login-row label:not(.bulk-check) { display: grid; gap: 2px; }
+.open-gl-net-login-row input[type="text"], .open-gl-net-login-row input[type="password"] { width: 170px; }
+.open-gl-listing-empty.is-net-error { color: var(--warn); }
+.network-body { display: grid; gap: var(--s3); padding: 0 var(--s4) var(--s3); }
+.network-api { font-size: var(--fs-sm); }
+.network-warn { display: flex; gap: var(--s2); align-items: flex-start; padding: var(--s2) var(--s3); border-radius: var(--r-control); background: var(--warn-soft); font-size: var(--fs-sm); }
+.network-warn .icon { flex: none; margin-top: 2px; }
+.network-modal { width: min(720px, 100%); height: auto; }
+.network-modal .tools-footer { flex-wrap: wrap; }

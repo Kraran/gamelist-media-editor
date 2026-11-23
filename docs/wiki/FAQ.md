@@ -15,6 +15,10 @@ Non. **📂 Gamelist…**, ou glisse le XML sur l’exe.
 
 Oui. Ouvre `ES-DE/gamelists/<système>/gamelist.xml` (ou le dossier `ES-DE` pour la vue d’ensemble) : les médias sont lus et écrits dans `downloaded_media`, au nom de la ROM, sans balise dans le gamelist. Détails et correspondance des dossiers : [ES-DE](ES-DE).
 
+### Puis-je modifier directement le gamelist de ma Batocera ou de ma Recalbox ?
+
+Oui, par le réseau : *Gamelist…* › bloc **Réseau** › **Rechercher**, ou tape `\\BATOCERA\share\roms\<système>` dans le chemin. Les sauvegardes restent sur ce PC, et GME peut recharger les listes sur Batocera après l'enregistrement. Détails, mot de passe et précautions : [Réseau](Réseau).
+
 ### Est-ce que ça vérifie les ROM Batocera / RetroBat ?
 
 Non. L’outil édite le XML et les médias, il ne teste pas les cores.

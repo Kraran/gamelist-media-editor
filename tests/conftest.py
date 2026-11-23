@@ -49,6 +49,21 @@ def recent_file(tmp_path, monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def network_files(tmp_path, monkeypatch):
+    """Network favourites and sign-ins go to temporary files; no reload timer survives a test."""
+    from gme import network
+    monkeypatch.setattr(network, "PLACES_FILE", str(tmp_path / "network_places.json"))
+    monkeypatch.setattr(network, "CREDENTIALS_FILE", str(tmp_path / "network_credentials.json"))
+    monkeypatch.setattr(network, "_connected", set())
+    network._reload["last"] = None
+    yield
+    timer = network._reload.get("timer")
+    if timer is not None:
+        timer.cancel()
+    network._reload["timer"] = None
+
+
+@pytest.fixture(autouse=True)
 def settings_file(tmp_path, monkeypatch):
     """Interface settings go to a temporary file, never next to app.py."""
     path = tmp_path / "ui_settings.json"

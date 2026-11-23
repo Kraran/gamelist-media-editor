@@ -822,6 +822,7 @@ function updateFilterHighlights() {
 function updateSystemBadge(system) {
   currentSystem = system || null;
   updateScrapeButton();
+  updateNetworkBadge(system);
   const el = document.getElementById("system-name");
   if (!el) return;
   if (!system || !system.label) {
@@ -3566,7 +3567,9 @@ async function browseDirectory(path) {
   try {
     const q = path ? `?path=${encodeURIComponent(path)}` : "";
     const data = await apiFetch(`/api/browse${q}`);
+    netLoginShow(null);
     __browsePath = data.path || null;
+    __browseNetwork = data.network || null;
     __browseParent = data.parent || null;
     if (pathEl) pathEl.textContent = __browsePath || "—";
     const newBtn = document.getElementById("open-gl-new");
@@ -3648,13 +3651,237 @@ async function browseDirectory(path) {
       });
     });
   } catch (e) {
+    const code = e && e.code;
+    if (code === "net_auth" && e.data) netLoginShow({ host: e.data.host, share: e.data.share, path });
+    // A network folder that did not open: show which one, the previous folder is no longer listed
+    if (code && code.startsWith("net_") && path && pathEl) pathEl.textContent = path;
     if (listing) {
-      listing.innerHTML = `<div class="open-gl-listing-empty">${escapeHtml((e && e.message) || t("open_gl.browse_error"))}</div>`;
+      const retry = (code === "net_timeout" || code === "net_unreachable")
+        ? ` <button type="button" class="btn btn-sm" id="open-gl-net-retry">${icon("refresh")}<span>${escapeHtml(t("network.retry"))}</span></button>`
+        : "";
+      listing.innerHTML = `<div class="open-gl-listing-empty${code && code.startsWith("net_") ? " is-net-error" : ""}">` +
+        `${escapeHtml((e && e.message) || t("open_gl.browse_error"))}${retry}</div>`;
+      const btn = document.getElementById("open-gl-net-retry");
+      if (btn) btn.addEventListener("click", () => browseDirectory(path));
     }
   } finally {
     if (listing) listing.removeAttribute("aria-busy");
   }
 }
+
+/* --- Network shares (gme/network.py): favourites, discovery, sign-in --- */
+let __browseNetwork = null;
+let __netLogin = null;
+
+function netLoginShow(target) {
+  __netLogin = target;
+  const box = document.getElementById("open-gl-net-login");
+  if (!box) return;
+  box.hidden = !target;
+  if (!target) return;
+  document.getElementById("open-gl-net-login-text").textContent =
+    t("network.login_for", { path: `\\\\${target.host}\\${target.share || ""}` });
+  const pass = document.getElementById("open-gl-net-pass");
+  if (pass) { pass.value = ""; setTimeout(() => pass.focus(), 30); }
+}
+
+async function netConnect() {
+  if (!__netLogin) return;
+  const btn = document.getElementById("open-gl-net-connect");
+  if (btn.dataset.busy) return;
+  setBusy(btn, true);
+  try {
+    await apiFetch("/api/network/connect", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        host: __netLogin.host, share: __netLogin.share,
+        user: document.getElementById("open-gl-net-user").value,
+        password: document.getElementById("open-gl-net-pass").value,
+        remember: document.getElementById("open-gl-net-remember").checked,
+      }),
+    });
+    document.getElementById("open-gl-net-pass").value = "";
+    toast(t("network.connected", { host: __netLogin.host }));
+    const again = __netLogin.path;
+    netLoginShow(null);
+    browseDirectory(again);
+  } catch (e) {
+    handleError(e);
+  } finally {
+    setBusy(btn, false);
+  }
+}
+
+async function loadNetworkPlaces() {
+  try {
+    const data = await apiFetch("/api/network");
+    renderNetworkFavorites(data.favorites || []);
+    return data;
+  } catch (_) {
+    return null;
+  }
+}
+
+function renderNetworkFavorites(favs) {
+  const el = document.getElementById("open-gl-net-favs");
+  if (!el) return;
+  el.hidden = !favs.length;
+  el.innerHTML = favs.map((f) =>
+    `<span class="open-gl-net-fav" role="listitem">` +
+      `<button type="button" class="open-gl-drive open-gl-net-fav-open" data-path="${escapeHtml(f.path)}" title="${escapeHtml(f.path)}">${icon("star")}<span>${escapeHtml(f.label || f.path)}</span></button>` +
+      `<button type="button" class="btn btn-icon btn-xs open-gl-net-fav-del" data-path="${escapeHtml(f.path)}" title="${escapeHtml(t("network.fav_remove"))}" aria-label="${escapeHtml(t("network.fav_remove"))}">${icon("x")}</button>` +
+    `</span>`).join("");
+  el.querySelectorAll(".open-gl-net-fav-open").forEach((b) => b.addEventListener("click", () => browseDirectory(b.dataset.path)));
+  el.querySelectorAll(".open-gl-net-fav-del").forEach((b) => b.addEventListener("click", async () => {
+    try {
+      const data = await apiFetch("/api/network/favorites", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "remove", path: b.dataset.path }),
+      });
+      renderNetworkFavorites(data.favorites || []);
+    } catch (e) { handleError(e); }
+  }));
+}
+
+async function addNetworkFavorite() {
+  if (!__browsePath) return;
+  try {
+    const data = await apiFetch("/api/network/favorites", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path: __browsePath }),
+    });
+    renderNetworkFavorites(data.favorites || []);
+    toast(t("network.fav_added", { path: __browsePath }));
+  } catch (e) { handleError(e); }
+}
+
+function netApiText(api, kind) {
+  const state = api && api.state;
+  if (state === "ok") return t("network.api_ok", { version: api.version || "?" });
+  if (state === "forbidden") return t("network.api_forbidden");
+  return t(kind === "recalbox" ? "network.api_recalbox" : "network.api_off");
+}
+
+async function scanNetwork() {
+  const btn = document.getElementById("open-gl-net-scan");
+  const out = document.getElementById("open-gl-net-results");
+  if (!btn || btn.dataset.busy) return;
+  const host = (document.getElementById("open-gl-net-host").value || "").trim().replace(/^[\\/]+/, "");
+  setBusy(btn, true);
+  out.hidden = false;
+  out.innerHTML = busyHtml(t("network.scanning"));
+  try {
+    const data = await apiFetch("/api/network/discover", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(host ? { host } : {}),
+    });
+    const machines = data.machines || [];
+    const rows = machines.map((m) => {
+      const found = !!m.address;
+      const status = !found ? t("network.not_found")
+        : !m.smb ? t("network.no_smb", { address: m.address })
+        : m.roms ? t("network.found_roms", { address: m.address })
+        : t("network.found", { address: m.address });
+      const open = found && m.smb
+        ? `<button type="button" class="btn btn-sm open-gl-net-go" data-path="${escapeHtml(m.roms || ("\\\\" + m.host))}">${icon("folder-open")}<span>${escapeHtml(t(m.roms ? "network.open_roms" : "network.open_shares"))}</span></button>`
+        : "";
+      const api = found ? `<div class="open-gl-net-api">${escapeHtml(netApiText(m.api, m.kind))}</div>` : "";
+      return `<div class="open-gl-net-machine${found ? " is-found" : ""}">` +
+        `<div class="open-gl-net-name">${icon(found && m.smb ? "plug-connected" : "world")}<strong>${escapeHtml(m.host)}</strong>` +
+        `<span class="open-gl-net-status">${escapeHtml(status)}</span>${open}</div>${api}</div>`;
+    });
+    if (!data.windows) rows.push(`<p class="bulk-hint">${escapeHtml(t("network.mount_hint"))}</p>`);
+    if (!machines.some((m) => m.address)) rows.push(`<p class="bulk-hint">${escapeHtml(t("network.none_hint"))}</p>`);
+    out.innerHTML = rows.join("");
+    out.querySelectorAll(".open-gl-net-go").forEach((b) => b.addEventListener("click", () => browseDirectory(b.dataset.path)));
+  } catch (e) {
+    out.innerHTML = `<div class="open-gl-listing-empty">${escapeHtml(e.message || "")}</div>`;
+  } finally {
+    setBusy(btn, false);
+  }
+}
+
+/* The header badge of a gamelist opened from a share, and its dialog */
+function updateNetworkBadge(system) {
+  const badge = document.getElementById("system-network");
+  if (!badge) return;
+  const net = system && system.network;
+  badge.hidden = !net;
+  window.__gmeNetwork = net || null;
+  if (net) document.getElementById("system-network-host").textContent = net.host;
+}
+
+async function openNetworkModal() {
+  const net = window.__gmeNetwork;
+  if (!net) return;
+  document.getElementById("network-where").textContent = `\\\\${net.host}\\${net.share || ""}`;
+  const auto = document.getElementById("network-reload-auto");
+  auto.checked = !!net.reload_after_save;
+  const apiEl = document.getElementById("network-api");
+  const reloadBtn = document.getElementById("network-reload-now");
+  apiEl.innerHTML = busyHtml(t("network.api_checking"));
+  reloadBtn.disabled = true;
+  document.getElementById("network-modal").classList.add("open");
+  try {
+    const data = await apiFetch("/api/network/api-status");
+    const api = data.api || { state: "off" };
+    let text = netApiText(api, net.kind);
+    const last = data.current && data.current.last_reload;
+    if (last) text += " " + t(last.ok ? "network.last_ok" : "network.last_failed", { error: last.error || "" });
+    apiEl.textContent = text;
+    apiEl.dataset.state = api.state;
+    reloadBtn.disabled = api.state !== "ok";
+    auto.disabled = api.state !== "ok" && !auto.checked;
+  } catch (e) {
+    apiEl.textContent = e.message || "";
+  }
+}
+
+function closeNetworkModal() {
+  document.getElementById("network-modal").classList.remove("open");
+}
+
+document.getElementById("system-network")?.addEventListener("click", openNetworkModal);
+document.getElementById("network-close")?.addEventListener("click", closeNetworkModal);
+document.getElementById("network-cancel")?.addEventListener("click", closeNetworkModal);
+document.getElementById("network-modal")?.addEventListener("click", (e) => {
+  if (e.target.id === "network-modal") closeNetworkModal();
+});
+document.getElementById("network-reload-auto")?.addEventListener("change", async (e) => {
+  try {
+    const data = await apiFetch("/api/network/settings", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reload_after_save: e.target.checked }),
+    });
+    if (window.__gmeNetwork) window.__gmeNetwork.reload_after_save = data.reload_after_save;
+  } catch (err) {
+    e.target.checked = !e.target.checked;
+    handleError(err);
+  }
+});
+document.getElementById("network-reload-now")?.addEventListener("click", async () => {
+  const btn = document.getElementById("network-reload-now");
+  if (btn.dataset.busy) return;
+  setBusy(btn, true);
+  try {
+    await apiFetch("/api/network/reload", { method: "POST" });
+    toast(t("network.reloaded", { host: (window.__gmeNetwork || {}).host || "" }));
+  } catch (e) {
+    handleError(e);
+  } finally {
+    setBusy(btn, false);
+  }
+});
+document.getElementById("open-gl-net-scan")?.addEventListener("click", scanNetwork);
+document.getElementById("open-gl-net-host")?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") { e.preventDefault(); scanNetwork(); }
+});
+document.getElementById("open-gl-net-fav")?.addEventListener("click", addNetworkFavorite);
+document.getElementById("open-gl-net-connect")?.addEventListener("click", netConnect);
+document.getElementById("open-gl-net-pass")?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") { e.preventDefault(); netConnect(); }
+});
 
 /** Open the in-app folder browser (defaults to parent of current gamelist or RetroBat/roms). */
 function openGamelistModal() {
@@ -3665,6 +3892,8 @@ function openGamelistModal() {
   if (input) input.value = "";
   renderRecentGamelists();
   renderRecentRoots();
+  loadNetworkPlaces();
+  netLoginShow(null);
   modal.classList.add("open");
   // Default browse: parent of current gamelist (server decides when path omitted)
   browseDirectory(null);
@@ -3761,7 +3990,10 @@ document.getElementById("open-gl-apply").addEventListener("click", applyOpenGame
 document.getElementById("open-gl-path").addEventListener("keydown", (e) => {
   if (e.key === "Enter") {
     e.preventDefault();
-    applyOpenGamelist();
+    const typed = (e.target.value || "").trim().replace(/^["']|["']$/g, "");
+    // A folder or a machine (\\BATOCERA\share\roms): show it; a .xml: open it
+    if (typed && !/\.xml$/i.test(typed)) browseDirectory(typed);
+    else applyOpenGamelist();
   }
 });
 document.getElementById("open-gamelist-modal").addEventListener("click", (e) => {

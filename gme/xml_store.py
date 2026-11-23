@@ -187,6 +187,8 @@ def save_xml(tree):
         except OSError:
             _xml_cache["mtime"] = None
             _xml_cache["tree"] = None
+        from gme import network
+        network.after_save(XML_PATH)
 
 
 def backup_xml():
