@@ -64,6 +64,7 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
   - *Find / replace* in the name, the description or any text field (or all of them): plain text or regular expression (`\1` for a group), case-sensitive or not; a name never becomes empty
   - *Names*: the name becomes the ROM file name without its extension, or the full name a DAT or a MAME list gives (`pacman.zip` → `Pac-Man (Midway)`), optionally without the `(Europe)`, `[!]`… tags
   - *Images*: for one media of the games (e.g. every wheel), auto-trim, maximum width / height and/or PNG / JPG / WebP conversion; the preview shows before → after (size, format, weight) for the first 40, images that already fit are left alone; **Undo** puts the originals and the gamelist back
+  - *Solid images*: finds the pictures of a single colour or fully transparent (placeholders, blank downloads) among the media types you tick, with a preview (thumbnail, colour, file) and removes their tags. *Also delete the files from disk* (off by default) sends them to the Recycle Bin after a confirmation, but only files inside the gamelist folder that no other tag of any game uses; ROMs are never deleted. **Undo** restores the gamelist, not the files (recover them from the Recycle Bin)
   - *Media*: remove media tags (the files stay on disk)
   - *Remove*: take games out of `gamelist.xml` after a confirmation; their media can also go to the Recycle Bin (off by default, files another game uses are kept); **ROMs are never deleted**
   - Every apply makes a dated backup first and its toast has **Undo**, which restores it (files sent to the Recycle Bin are recovered from the Recycle Bin)
@@ -180,6 +181,7 @@ Code layout (`app.py` is only the entry point; the overview is in `gme/__init__.
 | `gme/scrapers/ss_cache.py` | On-disk cache of ScreenScraper game lookups (`cache/ss-api/`): keys without credentials, TTL, never caches errors |
 | `gme/backups.py` | dated XML snapshots, bounded history and reversible restoration (`/api/backups`) |
 | `gme/imageedit.py` | image editor and batch image edits (Pillow): preview, save with a copy of the original, undo (`/api/image-edit`) |
+| `gme/solidimages.py` | *Solid images*: one-colour or transparent pictures, their tags removed and, on request, their unused files sent to the Recycle Bin (`/api/solid-images`) |
 | `gme/bulk.py` | edit in bulk and removing many games: preview then one backup and one write (`/api/bulk`, `/api/bulk-delete`; `/api/bulk/fields` counts the tags for *Clear fields*) |
 | `gme/datfile.py`, `gme/dattool.py` | DAT reading (Logiqx XML, MAME listxml, ClrMamePro) and the DAT tool: background load and comparison, report (`/api/dat`) |
 | `gme/newgamelist.py` | new gamelist from a ROM folder, extensions per system (`/api/new-gamelist`) |

@@ -4397,7 +4397,7 @@ const BULK_REPLACE_FIELDS = ["name", "desc", "genre", "developer", "publisher", 
 const BULK_CLEAR_MAIN = ["genre", "developer", "publisher", "releasedate", "rating", "players", "lang", "region",
   "family", "arcadesystemname", "desc", "favorite", "hidden", "kidgame"];
 const BULK_CLEAR_EXTRA = ["sortname", "playcount", "lastplayed", "gametime", "genreid", "md5", "crc32", "cheevosId", "cheevosHash"];
-const BULK_TABS = ["set", "clear_fields", "replace", "reset_name", "images", "clear_media", "delete"];
+const BULK_TABS = ["set", "clear_fields", "replace", "reset_name", "images", "solid", "clear_media", "delete"];
 let bulk = null;   // { tab, preview: {...} | null, busy, form: {...} }
 
 function bulkFieldLabel(key) {
@@ -4494,6 +4494,13 @@ function renderBulkForm() {
   } else if (bulk.tab === "clear_fields") {
     html = `<p class="bulk-hint">${escapeHtml(t("bulk.clear_hint"))}</p>
       <div class="bulk-checks bulk-clear-list" id="bulk-clear-list"><span class="bulk-empty">${escapeHtml(t("stats.loading"))}</span></div>`;
+  } else if (bulk.tab === "solid") {
+    /* Solid images: pictures of one colour or fully transparent (gme/solidimages.py). */
+    html = `<p class="bulk-hint">${escapeHtml(t("bulk.solid_hint"))}</p>
+      <div class="bulk-checks bulk-media-list">${getFields().filter(f => isImageField(f.key)).map(f =>
+        `<label class="bulk-check"><input type="checkbox" data-bulk-solid="${f.key}" checked> ${icon(f.icon)}<span>${escapeHtml(f.label)}</span></label>`).join("")}</div>
+      <div class="bulk-checks">${check("bulk-solid-files", "bulk.solid_files", false)}</div>
+      <p class="bulk-hint">${icon("shield-check")}<span>${escapeHtml(t("bulk.solid_files_hint"))}</span></p>`;
   } else if (bulk.tab === "clear_media") {
     html = `<p class="bulk-hint">${escapeHtml(t("bulk.media_hint"))}</p>
       <div class="bulk-checks bulk-media-list">${getFields().map(f =>
@@ -4597,6 +4604,10 @@ function bulkOp() {
   if (bulk.tab === "clear_fields") {
     return { kind: "clear_fields", fields: [...document.querySelectorAll("[data-bulk-clear]:checked")].map(c => c.dataset.bulkClear) };
   }
+  if (bulk.tab === "solid") {
+    return { kind: "solid", fields: [...document.querySelectorAll("[data-bulk-solid]:checked")].map(c => c.dataset.bulkSolid),
+      files: v("bulk-solid-files").checked };
+  }
   if (bulk.tab === "clear_media") {
     return { kind: "clear_media", fields: [...document.querySelectorAll("[data-bulk-media]:checked")].map(c => c.dataset.bulkMedia) };
   }
@@ -4607,8 +4618,9 @@ function invalidateBulkPreview() {
   bulk.preview = null;
   const apply = document.getElementById("bulk-apply");
   apply.disabled = true;
-  apply.classList.toggle("btn-danger", bulk.tab === "delete");
-  apply.classList.toggle("btn-accent", bulk.tab !== "delete");
+  const danger = bulk.tab === "delete" || (bulk.tab === "solid" && document.getElementById("bulk-solid-files").checked);
+  apply.classList.toggle("btn-danger", danger);
+  apply.classList.toggle("btn-accent", !danger);
   document.getElementById("bulk-apply-label").textContent = t(bulk.tab === "delete" ? "bulk.remove" : "bulk.apply");
   document.getElementById("bulk-note").textContent = t(bulk.tab === "images" ? "imgedit.batch_note" : "bulk.backup_note");
   document.getElementById("bulk-preview").innerHTML = `<p class="bulk-empty">${escapeHtml(t("bulk.preview_first"))}</p>`;
@@ -4618,6 +4630,10 @@ async function runBulkPreview() {
   const paths = bulkPaths(document.getElementById("bulk-scope").value);
   const box = document.getElementById("bulk-preview");
   if (bulk.tab === "clear_media" && !bulkOp().fields.length) {
+    box.innerHTML = `<p class="bulk-empty">${escapeHtml(t("bulk.pick_media"))}</p>`;
+    return;
+  }
+  if (bulk.tab === "solid" && !bulkOp().fields.length) {
     box.innerHTML = `<p class="bulk-empty">${escapeHtml(t("bulk.pick_media"))}</p>`;
     return;
   }
@@ -4637,6 +4653,16 @@ async function runBulkPreview() {
       if (!bulk || bulk.tab !== tab) return;
       bulk.preview = { paths, media, data };
       box.innerHTML = bulkDeletePreviewHtml(data, media);
+    } else if (tab === "solid") {
+      const op = bulkOp();
+      box.innerHTML = `<p class="bulk-empty">${escapeHtml(t("bulk.solid_scanning"))}</p>`;
+      data = await apiFetch("/api/solid-images/preview", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paths, fields: op.fields, files: op.files }),
+      });
+      if (!bulk || bulk.tab !== tab) return;
+      bulk.preview = data.total ? { paths, op, data } : null;
+      box.innerHTML = bulkSolidPreviewHtml(data, op.files);
     } else if (tab === "images") {
       const op = bulkOp();
       data = await apiFetch("/api/image-edit/batch/preview", {
@@ -4691,6 +4717,34 @@ function bulkPreviewHtml(data, op) {
     <th>${escapeHtml(t("bulk.col_before"))}</th><th></th><th>${escapeHtml(t("bulk.col_after"))}</th></tr></thead>
     <tbody>${rows}</tbody></table>${more}`;
 }
+function bulkSolidPreviewHtml(data, files) {
+  let html = `<p class="bulk-summary">${escapeHtml(t("bulk.solid_summary", { n: fmtCount(data.total), games: fmtCount(data.games), checked: fmtCount(data.checked) }))}</p>`;
+  if (data.missing) html += `<p class="bulk-hint">${escapeHtml(t("bulk.solid_missing", { n: fmtCount(data.missing) }))}</p>`;
+  if (!data.total) return html + `<p class="bulk-empty">${escapeHtml(t("bulk.solid_none"))}</p>`;
+  const swatch = c => c === "transparent"
+    ? `<span class="solid-swatch is-transparent" aria-hidden="true"></span><span>${escapeHtml(t("bulk.solid_transparent"))}</span>`
+    : `<span class="solid-swatch" style="background:${escapeHtml(c)}" aria-hidden="true"></span><code>${escapeHtml(c)}</code>`;
+  const rows = data.rows.map(r => `<tr>
+      <td class="solid-thumb"><img src="${escapeHtml(thumbUrl(r.file))}" alt="" loading="lazy"></td>
+      <td class="bulk-game" title="${escapeHtml(r.path)}">${escapeHtml(r.name || r.path)}</td>
+      <td class="bulk-field">${escapeHtml(fieldLabel(r.field))}</td>
+      <td class="solid-colour">${swatch(r.colour)}</td>
+      <td class="bulk-field" title="${escapeHtml(r.file)}">${escapeHtml(baseName(r.file))} <span class="bulk-size">${r.width} × ${r.height}</span></td>
+    </tr>`).join("");
+  html += `<table class="bulk-table solid-table"><thead><tr><th></th><th>${escapeHtml(t("bulk.col_game"))}</th><th>${escapeHtml(t("bulk.col_media"))}</th>
+    <th>${escapeHtml(t("bulk.col_colour"))}</th><th>${escapeHtml(t("imgedit.col_file"))}</th></tr></thead><tbody>${rows}</tbody></table>`;
+  if (data.total > data.rows.length) {
+    html += `<p class="bulk-more">${escapeHtml(t("bulk.more", { n: fmtCount(data.total - data.rows.length) }))}</p>`;
+  }
+  if (files) {
+    html += `<p class="bulk-summary">${escapeHtml(t("bulk.solid_files_summary", { n: fmtCount(data.delete_total), size: fmtSize(data.delete_bytes) }))}</p>`;
+    if (data.kept_total) {
+      html += `<p class="bulk-hint">${escapeHtml(t("bulk.solid_kept", { n: fmtCount(data.kept_total) }))}</p>` +
+        `<ul class="bulk-list">${data.kept.map(k => `<li><code>${escapeHtml(k.path)}</code> <span class="bulk-size">${escapeHtml(t("bulk.solid_kept_" + k.reason))}</span></li>`).join("")}</ul>`;
+    }
+  }
+  return html;
+}
 function bulkImgSide(s) {
   return `${s.width} × ${s.height} · ${escapeHtml(String(s.format).toUpperCase())} · ${escapeHtml(fmtSize(s.bytes))}`;
 }
@@ -4742,6 +4796,19 @@ async function applyBulk() {
       okLabel: t("bulk.remove_n", { n: fmtCount(data.games) }), okClass: "btn-danger" });
     if (!choice.confirmed || !bulk) return;
   }
+  if (tab === "solid") {
+    const { op, data } = bulk.preview;
+    let body = `<p>${escapeHtml(t("bulk.solid_confirm", { n: fmtCount(data.total), games: fmtCount(data.games) }))}</p>`;
+    if (op.files && data.delete_total) {
+      body += `<p class="bulk-warn"><strong>${escapeHtml(t("bulk.solid_confirm_files", { n: fmtCount(data.delete_total), size: fmtSize(data.delete_bytes) }))}</strong></p>`;
+    }
+    if (op.files && data.kept_total) body += `<p>${escapeHtml(t("bulk.solid_kept", { n: fmtCount(data.kept_total) }))}</p>`;
+    body += `<p class="muted">${escapeHtml(t("bulk.roms_kept"))}</p>`;
+    const choice = await askConfirm({ title: t("bulk.solid_title"), bodyHtml: body, showBackup: false,
+      okLabel: op.files && data.delete_total ? t("bulk.solid_ok_files", { n: fmtCount(data.delete_total) }) : t("bulk.solid_ok", { n: fmtCount(data.total) }),
+      okClass: "btn-danger" });
+    if (!choice.confirmed || !bulk) return;
+  }
   if (tab === "clear_fields") {
     const { op, data } = bulk.preview;
     const body = `<p>${escapeHtml(t("bulk.clear_confirm", { fields: op.fields.map(bulkFieldLabel).join(", "), n: fmtCount(data.games) }))}</p>` +
@@ -4762,6 +4829,15 @@ async function applyBulk() {
       paths.forEach(p => selection.delete(p));
       selectionChanged(false);
       msg = t("bulk.removed", { n: fmtCount(res.removed) });
+      if (res.deleted_files.length) msg += " " + t("bulk.removed_files", { n: fmtCount(res.deleted_files.length) });
+      if (res.failed_files.length) msg += " " + t("bulk.failed_files", { n: fmtCount(res.failed_files.length) });
+    } else if (tab === "solid") {
+      const op = bulk.preview.op;
+      res = await apiFetch("/api/solid-images", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paths, fields: op.fields, files: op.files }),
+      });
+      msg = t("bulk.solid_applied", { n: fmtCount(res.removed), games: fmtCount(res.games) });
       if (res.deleted_files.length) msg += " " + t("bulk.removed_files", { n: fmtCount(res.deleted_files.length) });
       if (res.failed_files.length) msg += " " + t("bulk.failed_files", { n: fmtCount(res.failed_files.length) });
     } else if (tab === "images") {
@@ -4792,7 +4868,7 @@ async function applyBulk() {
     await loadGames();
     const snapshot = res.snapshot;
     toast(msg, res.failed_files && res.failed_files.length ? "warning" : "success",
-      snapshot ? { label: t("bulk.undo"), run: () => undoBulk(snapshot, tab === "delete" && res.deleted_files.length) } : null);
+      snapshot ? { label: t("bulk.undo"), run: () => undoBulk(snapshot, (tab === "delete" || tab === "solid") && res.deleted_files.length) } : null);
   } catch (e) {
     handleError(e);
     if (bulk) { bulk.busy = false; invalidateBulkPreview(); }
