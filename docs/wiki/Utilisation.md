@@ -1,6 +1,6 @@
 # Utilisation
 
-Version documentée : **1.6.0**
+Version documentée : **1.7.0**
 
 ## Démarrage
 
@@ -40,6 +40,9 @@ Les médias présents s’affichent **dans leur forme** (boîte verticale, logo 
 | Maps | `<map>` | `images/` |
 | Miniature | `<thumbnail>` | `images/` |
 | Bezel | `<bezel>` | `images/` |
+| Wheel | `<wheel>` | `images/` |
+| Titleshot | `<titleshot>` | `images/` |
+| Musique | `<music>` | `music/` |
 
 - **Ajouter** : glisse un fichier (ou une image d’une page web) sur un média manquant, ou clique dessus pour choisir un fichier
 - **Remplacer** : glisse sur le média, ou bouton *Remplacer le fichier*
@@ -47,6 +50,18 @@ Les médias présents s’affichent **dans leur forme** (boîte verticale, logo 
 - **Retirer** : la corbeille retire la balise du XML (le fichier reste sur le disque)
 
 Limite : 50 Mo par fichier.
+
+### Éditeur d’images
+
+Le bouton **Éditer l’image** d’une vignette d’image (pas les vidéos, manuels ni musiques) ouvre l’original et le résultat, sur un damier :
+
+- **Recadrage** : trace un rectangle sur l’original et déplace-le ; libre ou en 1:1, 4:3, 3:4, 16:9, 9:16, 2:1, 3:1 ou aux proportions d’origine
+- **Pivoter** de 90° et **miroir** horizontal / vertical
+- **Fond transparent** : *Depuis les bords* (la couleur des coins qui touche les bords, l’intérieur d’un logo reste opaque) ou *Cette couleur partout*, avec une tolérance
+- **Rognage automatique** des bords transparents ou d’une seule couleur
+- **Taille maximale** (proportions gardées) et **format** PNG / JPG / WebP avec la qualité
+
+L’aperçu suit chaque réglage et n’écrit rien. **Enregistrer** remplace le fichier (une copie de l’original est gardée ; un nouveau format prend la nouvelle extension et le chemin du gamelist suit) ou crée un nouveau fichier `…-edit`. Un fichier qu’une autre balise utilise n’est jamais écrasé. **Annuler** dans la notification remet l’original (20 dernières modifications).
 
 ## Métadonnées
 
@@ -86,6 +101,16 @@ Elle sert au compteur de la liste (`3/4`), au filtre **Média requis manquant** 
 Pour tout le gamelist :
 
 - **Scraper par lot** : les jeux cochés dans la liste, sinon tous ceux affichés ; voir [Scrapers](Scrapers#scraper-par-lot)
+- **Modifier en masse** (aussi le crayon de la barre de sélection) : sur les jeux cochés, affichés ou tous, avec un **aperçu** avant → après obligatoire, une sauvegarde datée avant d’appliquer et **Annuler** dans la notification :
+  - *Champ* : une valeur pour genre, développeur, éditeur, date, note, joueurs, langue, région, famille, système arcade, favori / caché / enfant
+  - *Rechercher / remplacer* dans le nom, la description ou un champ texte (texte simple ou expression régulière)
+  - *Noms* : d’après le nom du fichier ROM, ou d’après un DAT / une liste MAME (`pacman.zip` → `Pac-Man (Midway)`), avec ou sans les mentions `(Europe)`, `[!]`…
+  - *Images* : rogner, réduire ou convertir un média de tous ces jeux (copie des originaux, **Annuler**)
+  - *Médias* : retirer des balises (les fichiers restent) ; *Retirer* : sortir des jeux du gamelist (leurs médias à la Corbeille en option) ; **les ROMs ne sont jamais supprimées**
+- **Outil DAT** : charge un DAT No-Intro, Redump, FBNeo ou MAME que tu as et compare tes ROMs par nom ou, si tu le demandes, par CRC32 / SHA1 : OK, mal nommé, mauvais dump, incomplet, inconnu, manquant ; filtres et export CSV. Les ROMs ne sont jamais renommées, déplacées ni supprimées
+- **Statistiques** : jeux scrapés, complets, médias présents / cassés / manquants par type (avec *Afficher*), genres
+- **Exporter la liste (CSV)** : les jeux affichés, dans l’ordre de la liste
+- **Sauvegardes** : les 30 dernières copies datées du gamelist, restaurables
 - **Sauvegarder (.bak)** : copie `gamelist.xml.bak` à côté du fichier
 - **Vérifier les ROMs** : compare le gamelist aux fichiers du dossier et liste
   - les **ROMs absentes du gamelist** (à ajouter : nom du fichier, prêtes à scraper avec `S` puis `N`),
@@ -107,7 +132,8 @@ Pour tout le gamelist :
 | Onglet | Contenu |
 |---|---|
 | Général | Thème (sombre, clair ou comme le système) et langue de l’interface, appliqués immédiatement |
-| ScreenScraper | Compte membre (boost), région préférée, types d’images, test de connexion ; chaque réglage est enregistré dès qu’il change |
+| ScreenScraper | Compte membre, région préférée, **threads** (Auto ou moins), **cache** des réponses, test de connexion ; chaque réglage est enregistré dès qu’il change |
+| Médias ScreenScraper | Pour chaque média : activé ou non, type ScreenScraper et région essayée en premier |
 | Sources de scrape | Les sources forcées par système depuis le menu ▾ du bouton Scraper, avec retour à l’automatique |
 | Médias requis | Les médias qu’un jeu du système ouvert doit avoir, et les autres systèmes personnalisés |
 | Raccourcis clavier | La liste ci-dessous |
@@ -137,4 +163,4 @@ Les lettres ne font rien pendant la saisie dans un champ.
 
 **Quitter** arrête le serveur. Fermer la fenêtre application l’arrête aussi.
 
-**Gamelist Media Editor** · v1.6.0
+**Gamelist Media Editor** · v1.7.0
