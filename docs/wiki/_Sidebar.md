@@ -6,6 +6,7 @@
 - [Scrapers](Scrapers)
 - [Fonctionnalités](Fonctionnalités)
 - [ES-DE](ES-DE)
+- [Réseau](Réseau)
 - [FAQ](FAQ)
 - [Dépannage](Dépannage)
 

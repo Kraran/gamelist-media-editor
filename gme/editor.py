@@ -10,7 +10,7 @@ import requests
 from flask import Blueprint, Response, jsonify, render_template, request, send_from_directory
 from lxml import etree
 
-from gme import csv_export, esde, recent, settings, xml_store
+from gme import csv_export, esde, network, recent, settings, xml_store
 from gme.arcade import find_mame_listxml, index_mame_listxml, pretty_arcade_system
 from gme.fields import FieldError, clean_meta, set_desc, set_meta, set_name
 from gme.fsutil import atomic_write
@@ -113,31 +113,105 @@ def api_browse():
     List folders + .xml files for the in-app file picker.
     Query: ?path=  (optional). Default = parent of current gamelist.xml.
     Local-only tool — directory listing is intentional.
+    Network folders (``\\\\HOST\\share``, mapped drives, SMB mounts) are listed
+    with a time limit; ``\\\\HOST`` alone lists the machine's shares.
     """
     raw = (request.args.get("path") or "").strip().strip('"').strip("'")
+    if raw and network.is_unc(raw):
+        host, share, _ = network.split_unc(raw)
+        if not host:
+            return api_err(st("server.browse_not_dir", path=raw), 404, code="browse_not_dir")
+        try:
+            if not share:
+                return _browse_shares(host)
+            network.reachable(host)
+            network.auto_connect(raw)
+            return network.call(_browse_listing, network.normalize(raw), host=host)
+        except network.NetworkError as e:
+            return e.response()
+        except OSError as e:
+            err = network.os_error(e, host, share)
+            if err:
+                return err.response()
+            return api_err(st("server.browse_denied", path=raw, detail=e), 403, code="browse_denied")
     if raw:
         target = os.path.abspath(raw)
     else:
         # Default: parent of current gamelist, else common RetroBat/ES folders, else home
-        if has_gamelist():
+        if has_gamelist() and not network.location(xml_store.XML_PATH):
             start = xml_store.BASE_DIR if os.path.isdir(xml_store.BASE_DIR) else os.path.dirname(xml_store.XML_PATH)
             parent = os.path.dirname(start)
             target = parent if parent and os.path.isdir(parent) else start
+        elif has_gamelist():
+            # A gamelist on the network: its own folder, with a time limit
+            return api_browse_network_default()
         else:
-            candidates = []
-            home = os.path.expanduser("~")
-            for p in (
-                os.path.join(home, "RetroBat", "roms"),
-                os.path.join(home, "emulationstation", "roms"),
-                "C:\\RetroBat\\roms",
-                "D:\\RetroBat\\roms",
-                "E:\\RetroBat\\roms",
-                home,
-            ):
-                if p and os.path.isdir(p):
-                    candidates.append(p)
-            target = candidates[0] if candidates else (home if os.path.isdir(home) else os.getcwd())
+            target = _default_browse_start()
+    try:
+        loc = network.location(target)
+        if loc:
+            return network.call(_browse_listing, target, host=loc["host"])
+        return _browse_listing(target)
+    except network.NetworkError as e:
+        return e.response()
 
+
+def _default_browse_start():
+    candidates = []
+    home = os.path.expanduser("~")
+    for p in (
+        os.path.join(home, "RetroBat", "roms"),
+        os.path.join(home, "emulationstation", "roms"),
+        "C:\\RetroBat\\roms",
+        "D:\\RetroBat\\roms",
+        "E:\\RetroBat\\roms",
+        home,
+    ):
+        if p and os.path.isdir(p):
+            candidates.append(p)
+    return candidates[0] if candidates else (home if os.path.isdir(home) else os.getcwd())
+
+
+def api_browse_network_default():
+    folder = os.path.dirname(xml_store.XML_PATH)
+    loc = network.location(folder)
+    try:
+        if network.is_unc(folder):
+            network.reachable(loc["host"])
+        return network.call(_browse_listing, folder, host=loc["host"])
+    except (network.NetworkError, OSError):
+        # The machine is gone: start from the local folders rather than fail
+        return _browse_listing(_default_browse_start())
+
+
+def _browse_shares(host):
+    """``\\\\HOST``: the machine's shares, as folders."""
+    names = network.shares(host)
+    return jsonify({
+        "path": network.unc(host),
+        "parent": None,
+        "esde": None,
+        "dirs": [{"name": n, "path": network.unc(host, n)} for n in names],
+        "files": [],
+        "has_gamelist": False,
+        "drives": _drives(),
+        "network": {"host": host, "share": "", "via": "unc", "kind": network.kind_of(host)},
+    })
+
+
+def _drives():
+    """Drive roots on Windows (C:\\, D:\\, …)."""
+    drives = []
+    if os.name == "nt":
+        import string
+        for letter in string.ascii_uppercase:
+            root = f"{letter}:\\"
+            if os.path.isdir(root):
+                drives.append({"name": f"{letter}:", "path": root})
+    return drives
+
+
+def _browse_listing(target):
     if os.path.isfile(target):
         target = os.path.dirname(target)
 
@@ -147,6 +221,10 @@ def api_browse():
     try:
         names = os.listdir(target)
     except OSError as e:
+        loc = network.location(target)
+        err = network.os_error(e, loc["host"], loc["share"]) if loc else None
+        if err:
+            return err.response()
         return api_err(st("server.browse_denied", path=target, detail=e), 403, code="browse_denied")
 
     dirs = []
@@ -170,18 +248,14 @@ def api_browse():
     dirs.sort(key=lambda d: d["name"].lower())
     xmls.sort(key=lambda f: (not f["is_gamelist"], f["name"].lower()))
 
+    loc = network.location(target)
     parent = os.path.dirname(target)
     # On Windows, dirname("C:\\") == "C:\\" — treat as no parent
     has_parent = bool(parent) and parent != target and os.path.isdir(parent)
-
-    # Drive roots on Windows (C:\, D:\, …)
-    drives = []
-    if os.name == "nt":
-        import string
-        for letter in string.ascii_uppercase:
-            root = f"{letter}:\\"
-            if os.path.isdir(root):
-                drives.append({"name": f"{letter}:", "path": root})
+    if loc and loc["via"] == "unc" and not has_parent:
+        host, share, rest = network.split_unc(target)
+        if not rest:                      # \\\\HOST\\share: up = the machine's shares
+            parent, has_parent = network.unc(host), True
 
     home = esde.find_home(target)
     return jsonify({
@@ -191,7 +265,8 @@ def api_browse():
         "dirs": dirs,
         "files": xmls,
         "has_gamelist": os.path.isfile(os.path.join(target, "gamelist.xml")),
-        "drives": drives,
+        "drives": _drives(),
+        "network": dict(loc, kind=network.kind_of(loc["host"])) if loc else None,
     })
 
 
@@ -220,9 +295,19 @@ def api_open_gamelist():
     if hint:
         return hint
     try:
+        if network.is_unc(raw):
+            host, share, _ = network.split_unc(raw)
+            network.reachable(host)
+            network.auto_connect(raw)
+            raw = network.normalize(raw)
+        loc = network.location(raw) if raw else None
+        if loc:
+            # Answering within a few seconds proves the share works; the switch
+            # itself runs here, never in a thread that could finish later.
+            network.call(os.path.isfile, raw, host=loc["host"])
         info = set_gamelist_path(raw)
-        recent.remember(info["xml_path"])
         games = get_games(load_xml())
+        recent.remember(info["xml_path"])
         return jsonify({
             "success": True,
             "xml_path": info["xml_path"],
@@ -232,11 +317,20 @@ def api_open_gamelist():
             "count": len(games),
             "session_id": xml_store.SESSION_ID,
         })
+    except network.NetworkError as e:
+        return e.response()
     except FileNotFoundError as e:
-        recent.forget(os.path.abspath(str(raw).strip().strip('"').strip("'")))
+        recent.forget(network.normalize(raw))
         return api_err(str(e), 404, code="open_not_found")
     except ValueError as e:
         return api_err(str(e), 400, code="open_invalid")
+    except OSError as e:
+        loc = network.location(raw)
+        err = network.os_error(e, loc["host"], loc["share"]) if loc else None
+        if err:
+            return err.response()
+        log.exception("open-gamelist failed")
+        return api_err(st("server.open_failed", detail=e), 500, code="open_failed")
     except Exception as e:
         log.exception("open-gamelist failed")
         return api_err(st("server.open_failed", detail=e), 500, code="open_failed")

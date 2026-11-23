@@ -129,4 +129,11 @@ def get_system_info():
         "id": sid,
         "scraper": default_scraper(folder),
         "profile": xml_store.profile_info(),
+        "network": _network_info(),
     }
+
+
+def _network_info():
+    """The share of a gamelist opened over the network (no network access)."""
+    from gme import network
+    return network.describe(xml_store.XML_PATH) if xml_store.has_gamelist() else None

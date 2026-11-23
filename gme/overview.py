@@ -399,7 +399,8 @@ def wait(timeout=10.0):
 # --- routes -------------------------------------------------------------------------
 
 def _recent_payload():
-    return [{"path": p, "exists": os.path.isdir(p)} for p in recent.recent_roots()]
+    from gme import network
+    return [{"path": p, "exists": network.quick_exists(p, os.path.isdir)} for p in recent.recent_roots()]
 
 
 @bp.route("/api/overview/scan", methods=["POST"])

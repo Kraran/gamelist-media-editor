@@ -1,4 +1,4 @@
-"""Dated XML snapshots next to each gamelist, with reversible restoration."""
+"""Dated XML snapshots next to each gamelist (on this PC for a network share), with reversible restoration."""
 import io
 import os
 import re
@@ -8,17 +8,50 @@ from datetime import datetime, timezone
 from flask import Blueprint, jsonify, request
 from lxml import etree
 
-from gme import xml_store
+from gme import network, xml_store
 from gme.fsutil import atomic_write
 from gme.http import api_err
 from gme.i18n import st
+from gme.paths import APP_DIR
 
 bp = Blueprint("backups", __name__)
 MAX_BACKUPS = 30
 _ID = re.compile(r"^\d{8}T\d{12}Z-[0-9a-f]{8}(?:-(?P<reason>backup|restore|legacy))?\.bak$")
 
 
+def _safe(part):
+    return re.sub(r"[^A-Za-z0-9._ -]", "_", part).strip(" .") or "_"
+
+
+def network_backup_root():
+    """Where the snapshots of the gamelists opened from a network share go."""
+    return os.path.join(APP_DIR, ".gme-backups", "network")
+
+
 def backup_dir():
+    """Snapshots of a local gamelist: next to it, in ``.gme-backups/<xml name>``.
+
+    A gamelist on a network share (Batocera, Recalbox…) keeps them on this PC,
+    in ``.gme-backups/network/<host>/<share>/<folders>/<xml name>`` next to the
+    app: a backup must survive the very thing it protects against (the machine
+    going off the network, a full or reflashed SD card), restoring one must not
+    depend on the network, and 30 snapshots would otherwise be written over
+    Wi-Fi to the console's card and shown by its file manager.
+    """
+    loc = network.location(xml_store.XML_PATH)
+    if loc:
+        unc_path = network.unc_path_of(xml_store.XML_PATH) or xml_store.XML_PATH
+        host, share, rest = network.split_unc(unc_path) if network.is_unc(unc_path) else (loc["host"], loc["share"], "")
+        if not rest and loc.get("mount"):
+            rest = os.path.relpath(xml_store.XML_PATH, loc["mount"])
+        folders = [p for p in re.split(r"[\\/]+", rest)[:-1] if p and p not in (".", "..")]
+        root = network_backup_root()
+        directory = os.path.join(root, _safe(host.lower()), _safe(share.lower() or "_"),
+                                 *[_safe(p) for p in folders], _safe(os.path.basename(xml_store.XML_PATH)))
+        base, real = os.path.realpath(root), os.path.realpath(directory)
+        if os.path.commonpath([base, real]) != base:
+            raise ValueError(st("backups.invalid"))
+        return directory
     directory = os.path.join(xml_store.BASE_DIR, ".gme-backups", os.path.basename(xml_store.XML_PATH))
     base, real = os.path.realpath(xml_store.BASE_DIR), os.path.realpath(directory)
     if os.path.commonpath([base, real]) != base:

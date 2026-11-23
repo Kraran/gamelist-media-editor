@@ -43,6 +43,7 @@
       <span class="ctx-system" data-i18n-title="header.system_title" title="Système (dossier du gamelist.xml)">
         {{ icon("device-gamepad-2") }}<span class="system-badge" id="system-name">—</span>
         <span class="profile-badge" id="system-profile" hidden>ES-DE</span>
+        <button type="button" class="profile-badge network-badge" id="system-network" hidden data-i18n-title="network.badge_title" title="Gamelist sur le réseau : options de la machine">{{ icon("world") }}<span id="system-network-host"></span></button>
       </span>
       <div class="menu-wrap systems-wrap" id="systems-wrap" hidden>
         <button type="button" class="btn btn-ghost btn-icon systems-btn" id="btn-systems" aria-haspopup="menu" aria-expanded="false" aria-controls="systems-menu" data-i18n-title="overview.switch_title" title="Changer de système" data-i18n-aria="overview.switch_title" aria-label="Changer de système">{{ icon("chevron-down") }}</button>
@@ -455,7 +456,29 @@
         <div id="open-gl-drives" class="open-gl-drives" hidden></div>
         <div id="open-gl-esde" class="open-gl-esde" hidden>{{ icon("info-circle") }}<span id="open-gl-esde-text" data-i18n="esde.browse_hint">Installation ES-DE détectée : les gamelists sont dans ES-DE/gamelists/&lt;système&gt;, les médias dans downloaded_media.</span>
           <button type="button" class="btn btn-sm" id="open-gl-esde-overview">{{ icon("chart-bar") }}<span data-i18n="esde.open_overview">Vue d'ensemble ES-DE</span></button></div>
+        <div id="open-gl-net-login" class="open-gl-net-login" hidden>
+          <div class="open-gl-net-login-head">{{ icon("lock") }}<span id="open-gl-net-login-text"></span></div>
+          <div class="open-gl-net-login-row">
+            <label><span data-i18n="network.user">Utilisateur</span><input type="text" id="open-gl-net-user" autocomplete="off" spellcheck="false" placeholder="root"></label>
+            <label><span data-i18n="network.password">Mot de passe</span><input type="password" id="open-gl-net-pass" autocomplete="off"></label>
+            <label class="bulk-check"><input type="checkbox" id="open-gl-net-remember"> <span data-i18n="network.remember">Mémoriser sur ce PC</span></label>
+            <button type="button" class="btn btn-accent btn-sm" id="open-gl-net-connect">{{ icon("plug-connected") }}<span data-i18n="network.connect">Se connecter</span></button>
+          </div>
+          <p class="bulk-hint" data-i18n="network.login_hint">Batocera avec « Sécurité renforcée » : utilisateur root et le mot de passe affiché dans Paramètres système &gt; Sécurité. Recalbox n'en demande pas.</p>
+        </div>
         <div id="open-gl-listing" class="open-gl-listing" role="list"></div>
+      </div>
+
+      <div class="open-gl-net" id="open-gl-net">
+        <div class="open-gl-net-bar">
+          <span class="open-gl-label">{{ icon("world") }}<span data-i18n="network.title">Réseau</span></span>
+          <input type="text" id="open-gl-net-host" class="open-gl-net-host" spellcheck="false" autocomplete="off"
+            data-i18n-placeholder="network.host_ph" placeholder="BATOCERA, RECALBOX ou 192.168.1.20" aria-label="Machine" data-i18n-aria="network.host_ph">
+          <button type="button" class="btn btn-sm" id="open-gl-net-scan" data-i18n-title="network.scan_title" title="Cherche BATOCERA et RECALBOX sur le réseau (et la machine saisie)">{{ icon("search") }}<span data-i18n="network.scan">Rechercher</span></button>
+          <button type="button" class="btn btn-sm btn-ghost" id="open-gl-net-fav" data-i18n-title="network.fav_add_title" title="Ajouter le dossier affiché aux favoris">{{ icon("star") }}<span data-i18n="network.fav_add">Favori</span></button>
+        </div>
+        <div id="open-gl-net-favs" class="open-gl-net-favs" role="list" hidden></div>
+        <div id="open-gl-net-results" class="open-gl-net-results" aria-live="polite" hidden></div>
       </div>
 
       <div class="form-row open-gl-row">
@@ -740,6 +763,26 @@
         <button type="button" class="btn" id="newgl-cancel" data-i18n="confirm.cancel">Annuler</button>
         <button type="button" class="btn" id="newgl-preview-btn">{{ icon("zoom-in") }}<span data-i18n="bulk.preview">Aperçu</span></button>
         <button type="button" class="btn btn-accent" id="newgl-create" disabled>{{ icon("check") }}<span id="newgl-create-label" data-i18n="newgl.create">Créer le gamelist</span></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="network-modal" role="dialog" aria-modal="true" aria-labelledby="network-title">
+    <div class="modal check-modal network-modal">
+      <div class="tools-header">
+        <h3 class="modal-title" id="network-title">{{ icon("world") }}<span data-i18n="network.modal_title">Machine sur le réseau</span></h3>
+        <button type="button" class="btn btn-icon" id="network-close" data-i18n-title="tools.close" title="Fermer">{{ icon("x") }}</button>
+      </div>
+      <div class="network-body">
+        <div class="open-gl-current"><div class="open-gl-label" data-i18n="network.share">Partage</div><code class="open-gl-path" id="network-where">—</code></div>
+        <div class="network-api" id="network-api" aria-live="polite"></div>
+        <label class="bulk-check"><input type="checkbox" id="network-reload-auto"> <span data-i18n="network.reload_auto">Recharger les listes de jeux sur la machine après chaque enregistrement</span></label>
+        <div class="network-warn">{{ icon("alert-triangle") }}<span data-i18n="network.warn">EmulationStation garde les listes en mémoire et réécrit, en recharge ou en quittant, les jeux qu'il a modifiés lui-même (parties jouées, favoris…) : les modifications faites ici sur ces jeux-là seraient perdues. Pour être sûr, modifie quand la machine n'est pas en train de jouer et recharge les listes juste après.</span></div>
+        <p class="bulk-hint" data-i18n="network.backups_local">Les sauvegardes datées de ce gamelist restent sur ce PC (dossier .gme-backups/network de l'application) : elles restent disponibles même si la machine est éteinte ou sa carte effacée.</p>
+      </div>
+      <div class="tools-footer">
+        <button type="button" class="btn" id="network-cancel" data-i18n="tools.close">Fermer</button>
+        <button type="button" class="btn btn-accent" id="network-reload-now">{{ icon("refresh") }}<span data-i18n="network.reload_now">Recharger les listes maintenant</span></button>
       </div>
     </div>
   </div>

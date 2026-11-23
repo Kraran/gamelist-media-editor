@@ -47,6 +47,12 @@ def _write(paths, file=None, limit=None):
         log.warning("Could not save the recent gamelists (%s)", e)
 
 
+def _abs(path):
+    """Absolute path; a ``\\\\HOST\\share`` path keeps its form on every system."""
+    from gme import network
+    return network.normalize(path)
+
+
 def recent_paths():
     with _lock:
         return _read()
@@ -56,7 +62,7 @@ def remember(path, at_end=False):
     """Put ``path`` first (or last, for imported entries) without duplicates."""
     if not path:
         return
-    path = os.path.abspath(path)
+    path = _abs(path)
     with _lock:
         paths = _read()
         if at_end:
@@ -83,7 +89,7 @@ def remember_root(path):
     """The roms folders opened in the multi-system overview, newest first."""
     if not path:
         return
-    path = os.path.abspath(path)
+    path = _abs(path)
     with _lock:
         paths = _read(ROOTS_FILE)
         _write([path] + [p for p in paths if _key(p) != _key(path)], ROOTS_FILE, ROOTS_MAX)
@@ -99,7 +105,8 @@ def forget_root(path):
 
 @bp.route("/api/recent")
 def api_recent():
-    return jsonify({"recent": [{"path": p, "exists": os.path.isfile(p)} for p in recent_paths()]})
+    from gme import network
+    return jsonify({"recent": [{"path": p, "exists": network.quick_exists(p)} for p in recent_paths()]})
 
 
 @bp.route("/api/recent/forget", methods=["POST"])
