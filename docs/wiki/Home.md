@@ -1,6 +1,6 @@
 # Gamelist Media Editor — Wiki
 
-**Version documentée : 1.7.0**
+**Version documentée : 1.7.5**
 
 ## En deux mots
 
@@ -19,7 +19,7 @@ Tout est écrit **directement** dans ton `gamelist.xml`. Aucun cloud obligatoire
 
 ## Installation rapide (Windows)
 
-1. Télécharge **`GamelistMediaEditor-Windows-v1.7.0.zip`** sur la [release v1.7.0](https://github.com/Kraran/gamelist-media-editor/releases/tag/v1.7.0)
+1. Télécharge **`GamelistMediaEditor-Windows-v1.7.5.zip`** sur la [release v1.7.5](https://github.com/Kraran/gamelist-media-editor/releases/tag/v1.7.5)
 2. Dézippe → double-clic sur **`GamelistMediaEditor.exe`**
 3. Une fenêtre application s’ouvre (sans barre d’adresse si Edge / Chrome / Brave est dispo)
 4. **Gamelist…** pour ouvrir ton `gamelist.xml`
@@ -35,7 +35,7 @@ Source Python : voir [Installation](Installation).
 | [Installation](Installation) | Exe Windows, source Python, structure des médias, mise à jour |
 | [Utilisation](Utilisation) | Interface, médias, métadonnées, menus, réglages, raccourcis |
 | [Scrapers](Scrapers) | Bouton Scraper, comparaison, ScreenScraper, Arcade Database, Steam |
-| [Fonctionnalités](Fonctionnalités) | Liste détaillée (v1.7.0) |
+| [Fonctionnalités](Fonctionnalités) | Liste détaillée (v1.7.5) |
 | [ES-DE](ES-DE) | Gamelists et médias d’ES-DE (EmulationStation Desktop Edition) |
 | [FAQ](FAQ) | Questions fréquentes |
 | [Dépannage](Dépannage) | Erreurs courantes |
@@ -43,7 +43,7 @@ Source Python : voir [Installation](Installation).
 ## Liens
 
 - [Dépôt](https://github.com/Kraran/gamelist-media-editor)
-- [Release v1.7.0](https://github.com/Kraran/gamelist-media-editor/releases/tag/v1.7.0)
+- [Release v1.7.5](https://github.com/Kraran/gamelist-media-editor/releases/tag/v1.7.5)
 - Interface locale : [http://127.0.0.1:5050](http://127.0.0.1:5050)
 
-**Gamelist Media Editor** · v1.7.0
+**Gamelist Media Editor** · v1.7.5
