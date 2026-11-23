@@ -1,6 +1,6 @@
 # Fonctionnalités
 
-Version documentée : **1.7.0**
+Version documentée : **1.7.5**
 
 ## Médias
 
@@ -71,6 +71,6 @@ Version documentée : **1.7.0**
 - `127.0.0.1:5050` uniquement ; requêtes d’autres sites (CSRF) et en-têtes `Host` étrangers refusés
 - Chaque action vise le jeu par son `<path>` : si le XML a changé entre-temps, elle atteint le bon jeu ou est refusée
 - Limite 50 Mo, écritures du XML sérialisées et atomiques
-- Tests automatiques (Windows / Linux, navigateur) et exe construit par la CI ; exe sur la [release](https://github.com/Kraran/gamelist-media-editor/releases/tag/v1.7.0)
+- Tests automatiques (Windows / Linux, navigateur) et exe construit par la CI ; exe sur la [release](https://github.com/Kraran/gamelist-media-editor/releases/tag/v1.7.5)
 
-**Gamelist Media Editor** · v1.7.0
+**Gamelist Media Editor** · v1.7.5
