@@ -257,26 +257,64 @@ class FakeSS:
         self.delays = delays or {}
         self.delay = delay
         self.lock = threading.Lock()
+        self._progress = threading.Condition(self.lock)
         self.active = self.peak = 0
+        self._inflight_roms = {}
+        self._finished = {}              # rom → endpoints that have completed a request
         self.calls = []
         self.refuse_from = None          # rom name: from it on, every API call gets this status
         self.refusing = None
+        # Roms that must finish their lookup (API + media) before refuse_from answers.
+        self.ready_before_refuse = None
 
     def get(self, url, params=None, headers=None, timeout=None, stream=False):
         parsed = urlparse(url)
         params = dict(params or {})
         params.update({k: v[0] for k, v in parse_qs(parsed.query).items()})
+        endpoint = parsed.path.rsplit("/", 1)[-1]
         rom = params.get("romnom") or params.get("game") or ""
         with self.lock:
             self.active += 1
             self.peak = max(self.peak, self.active)
-            self.calls.append((time.monotonic(), parsed.path.rsplit("/", 1)[-1], rom))
+            self._inflight_roms[rom] = self._inflight_roms.get(rom, 0) + 1
+            self.calls.append((time.monotonic(), endpoint, rom))
         try:
             time.sleep(self.delays.get(rom, self.delay))
+            # A 430 must not race a lookup already in flight: wait until the
+            # earlier games have finished their media download, then refuse.
+            if self.ready_before_refuse and self.refuse_from and rom == self.refuse_from:
+                self.wait_until_ready(self.ready_before_refuse)
             return self.answer(parsed.path, params, rom)
         finally:
             with self.lock:
                 self.active -= 1
+                self._inflight_roms[rom] -= 1
+                if self._inflight_roms[rom] <= 0:
+                    del self._inflight_roms[rom]
+                self._finished.setdefault(rom, set()).add(endpoint)
+                self._progress.notify_all()
+
+    def wait_until_ready(self, roms, endpoint="mediaJeu.php", timeout=10):
+        """Block until each rom has completed ``endpoint`` and has no request in flight.
+
+        Used so a quota refusal is only issued after the games running in
+        parallel have finished their own lookups, without a sleep.
+        """
+        roms = list(roms)
+
+        def done():
+            return all(
+                endpoint in self._finished.get(rom, ()) and rom not in self._inflight_roms
+                for rom in roms
+            )
+
+        with self._progress:
+            if not self._progress.wait_for(done, timeout=timeout):
+                finished = {rom: sorted(self._finished.get(rom, ())) for rom in roms}
+                raise AssertionError(
+                    f"timed out waiting for {roms} to finish {endpoint}: "
+                    f"finished={finished} inflight={dict(self._inflight_roms)}"
+                )
 
     def answer(self, path, params, rom):
         if "mediaJeu" in path:
@@ -441,6 +479,9 @@ def test_stop_ends_every_worker_and_resume_finishes_the_rest(big_gamelist, clien
 def test_daily_quota_answer_halts_the_batch_and_nothing_more_is_sent(big_gamelist, client, fake_ss):
     server = fake_ss(maxthreads=2, delay=0.05)
     server.refuse_from = "game3.zip"
+    # With 2 threads, game2 is still in flight when game3 is requested. Wait
+    # until games 0–2 have finished so the 430 cannot also refuse game2.
+    server.ready_before_refuse = ROMS[:3]
     job = start(client)
     run_all(client, job)
     saved = client.get("/api/batch", headers=LOCAL).get_json()["job"]
@@ -501,6 +542,9 @@ def test_a_refused_media_download_halts_the_batch(big_gamelist, client, fake_ss,
 
     def answer(path, params, rom):
         if "mediaJeu" in path and rom == "game1.zip":
+            # game0 runs in the other slot; let it finish before the 430
+            # blocks the gate and would otherwise fail that lookup too.
+            server.wait_until_ready(["game0.zip"])
             return Resp(430, text="Votre quota de scrape est dépassé pour aujourd'hui !")
         return real(path, params, rom)
 
