@@ -2021,7 +2021,7 @@ document.addEventListener("keydown", e => {
     }
     return;
   }
-  for (const [id, close] of [["imgedit-modal", () => closeImageEditor()], ["bulk-modal", () => closeBulk()], ["stats-modal", () => closeStats()],
+  for (const [id, close] of [["imgedit-modal", () => closeImageEditor()], ["bulk-modal", () => closeBulk()], ["stats-modal", () => closeStats()], ["overview-modal", () => closeOverview()],
     ["dat-modal", () => closeDatTool()], ["newgl-modal", () => closeNewGamelist()]]) {
     const el = document.getElementById(id);
     if (el && el.classList.contains("open")) {
@@ -2173,7 +2173,7 @@ document.addEventListener("keydown", e => {
  * The page behind a dialog cannot be reached with the keyboard. The confirm
  * dialog can open above another one, so it is looked at first. */
 const DIALOG_IDS = ["confirm-modal", "media-lightbox", "ss-modal", "batch-modal", "check-modal", "backups-modal", "bulk-modal",
-  "imgedit-modal", "stats-modal", "dat-modal", "newgl-modal", "open-gamelist-modal",
+  "imgedit-modal", "stats-modal", "overview-modal", "dat-modal", "newgl-modal", "open-gamelist-modal",
   "settings-modal", "about-modal"];
 function topDialog() {
   for (const id of DIALOG_IDS) {
@@ -3548,6 +3548,8 @@ async function browseDirectory(path) {
       document.getElementById("open-gl-new-label").textContent = t(data.has_gamelist ? "newgl.add_missing" : "newgl.here");
     }
     if (upBtn) upBtn.disabled = !__browseParent;
+    const rootBtn = document.getElementById("open-gl-root");
+    if (rootBtn) rootBtn.hidden = !__browsePath;
 
     if (drivesEl) {
       const drives = data.drives || [];
@@ -3626,6 +3628,7 @@ function openGamelistModal() {
   if (cur) cur.textContent = window.__gmeXmlPath || "—";
   if (input) input.value = "";
   renderRecentGamelists();
+  renderRecentRoots();
   modal.classList.add("open");
   // Default browse: parent of current gamelist (server decides when path omitted)
   browseDirectory(null);
@@ -3697,6 +3700,7 @@ function gamelistOpened(data, path) {
   closeGamelistModal();
   setStatus(t("status.ready", { n: games.length }));
   refreshSavedBatch();
+  refreshSystemsSwitcher();
 }
 
 
@@ -3808,6 +3812,7 @@ async function boot() {
   initGenreSelects();
   await importBrowserRecents();
   await loadGames();
+  refreshSystemsSwitcher();
   // First launch / no gamelist: open the file browser automatically
   if (!window.__gmeLoaded && typeof openGamelistModal === "function") {
     setTimeout(() => openGamelistModal(), 350);
@@ -5586,7 +5591,9 @@ function renderDatState(d) {
   document.getElementById("dat-hash").disabled = running;
   const prog = document.getElementById("dat-progress");
   prog.hidden = !running;
-  document.getElementById("dat-report").toggleAttribute("aria-busy", running);
+  const report = document.getElementById("dat-report");
+  if (running) report.setAttribute("aria-busy", "true");
+  else report.removeAttribute("aria-busy");
   if (running) {
     const j = d.job;
     const pct = j.total ? Math.min(100, Math.round(j.done * 100 / j.total)) : 0;
@@ -5868,6 +5875,304 @@ document.getElementById("newgl-create").addEventListener("click", createNewGamel
 document.getElementById("newgl-exts").addEventListener("input", () => { if (newgl) newgl.extsTouched = true; invalidateNewGamelist(); });
 document.getElementById("newgl-exts").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); runNewGamelistPreview(); } });
 document.getElementById("newgl-tags").addEventListener("change", invalidateNewGamelist);
+
+
+/* ========== Multi-system overview ==========
+ * A "roms" root (RetroBat / Batocera / Recalbox) opened from the folder browser:
+ * every system folder with its counts (gme/overview.py), scanned in the
+ * background with a progress bar; a click opens the system in the editor and
+ * the ▾ switcher next to the system name goes to another one or back here.
+ * Read only: nothing is written by the scan.
+ */
+const OV_MEDIA = ["image", "thumbnail", "marquee", "wheel", "video"];
+const OV_META = [["desc", "overview.col_no_desc"], ["genre", "overview.col_no_genre"], ["releasedate", "overview.col_no_date"]];
+let overview = { root: null, data: null, sort: { key: "label", dir: 1 }, timer: null, seq: 0 };
+let rootSystems = { root: null, systems: [] };
+
+function ovMediaPct(s, f) {
+  const m = s.media && s.media[f];
+  return m && s.games ? Math.round(m.present * 100 / s.games) : null;
+}
+function ovSortValue(s, key) {
+  if (key === "label") return (s.label || s.folder || "").toLowerCase();
+  if (!s.xml || s.error) return -1;
+  if (key.startsWith("media:")) return ovMediaPct(s, key.slice(6));
+  if (key.startsWith("meta:")) return (s.meta_missing || {})[key.slice(5)] || 0;
+  return s[key] || 0;
+}
+function ovSorted(systems) {
+  const { key, dir } = overview.sort;
+  return [...systems].sort((a, b) => {
+    const x = ovSortValue(a, key), y = ovSortValue(b, key);
+    if (x < y) return -dir;
+    if (x > y) return dir;
+    return (a.folder || "").localeCompare(b.folder || "");
+  });
+}
+function ovTotalsHtml(systems) {
+  const withXml = systems.filter(s => s.xml && !s.error);
+  const sum = k => withXml.reduce((n, s) => n + (s[k] || 0), 0);
+  const games = sum("games");
+  const pct = n => t("stats.percent", { p: games ? Math.round(n * 100 / games) : 0 });
+  const media = f => withXml.reduce((n, s) => n + ((s.media || {})[f] ? s.media[f].present : 0), 0);
+  const card = (ico, label, value, sub, warn) => `<div class="stat-card${warn ? " is-warn" : ""}">${icon(ico)}<div><div class="stat-value">${escapeHtml(value)}</div>` +
+    `<div class="stat-label">${escapeHtml(label)}</div>${sub ? `<div class="stat-sub">${escapeHtml(sub)}</div>` : ""}</div></div>`;
+  const noXml = systems.filter(s => !s.xml).length;
+  return `<div class="stat-cards overview-totals" id="overview-totals">` +
+    card("device-gamepad-2", t("overview.totals_systems"), fmtCount(systems.length), noXml ? t("overview.totals_no_gamelist", { n: fmtCount(noXml) }) : "") +
+    card("list-details", t("overview.totals_games"), fmtCount(games), "") +
+    card("cloud-download", t("stats.scraped"), fmtCount(sum("scraped")), pct(sum("scraped"))) +
+    card("photo", t("fields.image", null, "image"), fmtCount(media("image")), pct(media("image"))) +
+    card("movie", t("fields.video", null, "video"), fmtCount(media("video")), pct(media("video"))) +
+    card("alert-triangle", t("overview.col_roms_missing"), fmtCount(sum("roms_missing")), "", sum("roms_missing") > 0) +
+    card("file", t("overview.col_roms_unlisted"), fmtCount(sum("roms_unlisted")), "", false) +
+    `</div>`;
+}
+function ovHeader(key, label, title) {
+  const active = overview.sort.key === key;
+  const aria = active ? (overview.sort.dir > 0 ? "ascending" : "descending") : "none";
+  return `<th aria-sort="${aria}"${title ? ` title="${escapeHtml(title)}"` : ""}><button type="button" class="ov-sort" data-ov-sort="${key}">` +
+    `<span>${escapeHtml(label)}</span>${active ? icon("arrow-up", overview.sort.dir > 0 ? "ov-sort-dir" : "ov-sort-dir is-desc") : ""}</button></th>`;
+}
+function ovRowHtml(s, fields, current) {
+  const isCurrent = s.xml && current && recentKey(s.xml) === current;
+  const name = `<span class="ov-name">${escapeHtml(s.label)}</span>` +
+    (s.label.toLowerCase() !== s.folder.toLowerCase() ? `<span class="ov-folder">${escapeHtml(s.folder)}</span>` : "");
+  let first;
+  if (s.xml) {
+    first = `<button type="button" class="ov-open" data-ov-open="${escapeHtml(s.xml)}" title="${escapeHtml(t("overview.open_title", { system: s.label }))}">${name}</button>` +
+      (isCurrent ? `<span class="ov-chip is-current">${escapeHtml(t("overview.current"))}</span>` : "");
+  } else {
+    first = `<span class="ov-open is-static">${name}</span>`;
+  }
+  if (!s.xml) {
+    return `<tr class="is-no-xml"><td class="ov-system">${first}</td>` +
+      `<td colspan="${3 + OV_MEDIA.length + OV_META.length}" class="ov-note"><span class="ov-chip">${escapeHtml(t("overview.no_gamelist"))}</span>` +
+      `<span>${escapeHtml(t("overview.roms_count", { n: fmtCount(s.roms_unlisted || 0) }))}</span>` +
+      (s.roms_unlisted ? `<button type="button" class="btn btn-sm" data-ov-create="${escapeHtml(s.path)}" title="${escapeHtml(t("overview.create_title"))}">${icon("folder-plus")}<span>${escapeHtml(t("overview.create"))}</span></button>` : "") +
+      `</td></tr>`;
+  }
+  if (s.error) {
+    return `<tr class="is-error"><td class="ov-system">${first}</td><td colspan="${3 + OV_MEDIA.length + OV_META.length}" class="ov-note">` +
+      `<span class="ov-chip is-error" title="${escapeHtml(s.error_detail || "")}">${icon("alert-circle")}${escapeHtml(t("overview." + s.error))}</span></td></tr>`;
+  }
+  const num = (n, warn) => `<td class="ov-num${warn && n ? " is-warn" : ""}">${n ? fmtCount(n) : `<span class="ov-zero">0</span>`}</td>`;
+  const media = fields.map(f => {
+    const m = s.media[f.key] || { present: 0, broken: 0, missing: 0 };
+    const p = s.games ? Math.round(m.present * 100 / s.games) : 0, b = s.games ? Math.round(m.broken * 100 / s.games) : 0;
+    const title = t("overview.media_title", { present: fmtCount(m.present), broken: fmtCount(m.broken), missing: fmtCount(m.missing) });
+    return `<td class="ov-media${p === 100 ? " is-full" : ""}" title="${escapeHtml(title)}"><span class="ov-pct">${s.games ? p + " %" : "–"}</span>` +
+      `<span class="stats-bar"><span class="ok" style="width:${p}%"></span><span class="bad" style="width:${b}%"></span></span></td>`;
+  }).join("");
+  const meta = OV_META.map(([k]) => `<td class="ov-num">${s.meta_missing[k] ? fmtCount(s.meta_missing[k]) : `<span class="ov-zero">0</span>`}</td>`).join("");
+  return `<tr${isCurrent ? ' class="is-current"' : ""}><td class="ov-system">${first}</td>${num(s.games)}${num(s.roms_missing, true)}${num(s.roms_unlisted)}${media}${meta}</tr>`;
+}
+function renderOverview() {
+  const d = overview.data;
+  const body = document.getElementById("overview-body");
+  document.getElementById("overview-root").textContent = (d && d.root) || overview.root || "—";
+  const prog = document.getElementById("overview-progress");
+  const running = !!(d && d.state === "running");
+  prog.hidden = !running;
+  if (running) body.setAttribute("aria-busy", "true");
+  else body.removeAttribute("aria-busy");
+  if (d && running) {
+    document.getElementById("overview-bar").style.width = (d.total ? Math.round(d.done * 100 / d.total) : 0) + "%";
+    document.getElementById("overview-progress-text").textContent = d.current
+      ? t("overview.progress_current", { done: fmtCount(d.done), total: fmtCount(d.total), system: d.current })
+      : t("overview.progress", { done: fmtCount(d.done), total: fmtCount(d.total) });
+  }
+  if (!d) { body.innerHTML = busyHtml(t("common.loading"), "bulk-empty"); return; }
+  const systems = d.systems || [];
+  if (!systems.length) {
+    body.innerHTML = running ? busyHtml(t("overview.progress", { done: 0, total: fmtCount(d.total) }), "bulk-empty")
+      : `<p class="bulk-empty">${escapeHtml(t("overview.empty"))}</p>`;
+    return;
+  }
+  const byKey = Object.fromEntries(getFields().map(f => [f.key, f]));
+  const fields = OV_MEDIA.map(k => byKey[k]).filter(Boolean);
+  const current = window.__gmeXmlPath ? recentKey(window.__gmeXmlPath) : null;
+  const scroll = body.querySelector(".overview-table-wrap");
+  const top = scroll ? scroll.scrollTop : 0;
+  let html = ovTotalsHtml(systems);
+  if (d.state === "stopped") html += `<p class="bulk-hint bulk-warn">${icon("alert-triangle")}<span>${escapeHtml(t("overview.stopped", { done: fmtCount(d.done), total: fmtCount(d.total) }))}</span></p>`;
+  html += `<div class="overview-table-wrap"><table class="overview-table" id="overview-table"><thead><tr>` +
+    ovHeader("label", t("overview.col_system")) + ovHeader("games", t("overview.col_games")) +
+    ovHeader("roms_missing", t("overview.col_roms_missing"), t("overview.col_roms_missing_title")) +
+    ovHeader("roms_unlisted", t("overview.col_roms_unlisted"), t("overview.col_roms_unlisted_title")) +
+    fields.map(f => ovHeader("media:" + f.key, f.label, t("overview.col_media_title", { media: f.label }))).join("") +
+    OV_META.map(([k, label]) => ovHeader("meta:" + k, t(label))).join("") +
+    `</tr></thead><tbody>${ovSorted(systems).map(s => ovRowHtml(s, fields, current)).join("")}</tbody></table></div>`;
+  body.innerHTML = html;
+  const wrap = body.querySelector(".overview-table-wrap");
+  if (wrap) wrap.scrollTop = top;
+}
+async function pollOverview(seq) {
+  clearTimeout(overview.timer);
+  try {
+    const d = await apiFetch("/api/overview");
+    if (seq !== overview.seq || !document.getElementById("overview-modal").classList.contains("open")) return;
+    overview.data = d;
+    overview.root = d.root;
+    renderOverview();
+    if (d.state === "running") overview.timer = setTimeout(() => pollOverview(seq), 400);
+  } catch (e) {
+    if (seq === overview.seq) handleError(e);
+  }
+}
+/** Open the overview of ``path`` (else the current root); ``refresh`` rescans everything. */
+async function openOverview({ path = null, refresh = false } = {}) {
+  const modal = document.getElementById("overview-modal");
+  const seq = ++overview.seq;
+  overview.data = null;
+  modal.classList.add("open");
+  renderOverview();
+  document.getElementById("overview-close").focus();
+  try {
+    const d = await apiFetch("/api/overview/scan", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path: path || overview.root || rootSystems.root || null, refresh }),
+    });
+    if (seq !== overview.seq) return;
+    overview.data = d;
+    overview.root = d.root;
+    renderOverview();
+    refreshSystemsSwitcher();
+    pollOverview(seq);
+  } catch (e) {
+    if (seq !== overview.seq) return;
+    document.getElementById("overview-body").innerHTML =
+      `<p class="bulk-empty bulk-error">${icon("alert-circle")}<span>${escapeHtml(e.message || String(e))}</span></p>`;
+    document.getElementById("overview-body").removeAttribute("aria-busy");
+  }
+}
+function closeOverview() {
+  const modal = document.getElementById("overview-modal");
+  if (!modal.classList.contains("open")) return;
+  modal.classList.remove("open");
+  overview.seq++;
+  clearTimeout(overview.timer);
+}
+/** Open a system's gamelist from the overview or the switcher. */
+async function openSystem(xml, trigger) {
+  if (!(await confirmLeaveEditor())) return;
+  setStatus(t("status.opening_gamelist"));
+  setBusy(trigger, true);
+  try {
+    const data = await apiFetch("/api/open-gamelist", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: xml }),
+    });
+    closeOverview();
+    gamelistOpened(data, xml);
+    const label = (data.system && (data.system.label || data.system.folder)) || xml;
+    toast(t("toast.gamelist_opened", { name: label, n: data.count != null ? data.count : games.length }));
+  } catch (e) {
+    handleError(e);
+  } finally {
+    setBusy(trigger, false);
+  }
+}
+async function refreshSystemsSwitcher() {
+  try {
+    const d = await apiFetch("/api/overview/systems");
+    rootSystems = { root: d.root, systems: d.systems || [] };
+    if (d.root) overview.root = d.root;
+  } catch (_) {
+    rootSystems = { root: null, systems: [] };
+  }
+  document.getElementById("systems-wrap").hidden = !rootSystems.root;
+}
+function renderSystemsMenu() {
+  const menu = document.getElementById("systems-menu");
+  const current = window.__gmeXmlPath ? recentKey(window.__gmeXmlPath) : null;
+  const root = rootSystems.root || "";
+  const items = rootSystems.systems.filter(s => s.xml).map(s => {
+    const on = current && recentKey(s.xml) === current;
+    return `<button type="button" class="menu-item" role="menuitemradio" aria-checked="${on ? "true" : "false"}" data-ov-open="${escapeHtml(s.xml)}">` +
+      `${icon("device-gamepad-2")}<span class="menu-item-text"><span class="menu-item-title">${escapeHtml(s.label)}</span>` +
+      `<span class="menu-item-sub">${escapeHtml(s.folder)}</span></span>${icon("check", "menu-check")}</button>`;
+  }).join("");
+  menu.innerHTML = `<button type="button" class="menu-item" role="menuitem" data-ov-overview="1">${icon("chart-bar")}<span class="menu-item-text">` +
+    `<span class="menu-item-title">${escapeHtml(t("overview.menu_overview"))}</span><span class="menu-item-sub">\u200e${escapeHtml(root)}\u200e</span></span></button>` +
+    `<div class="menu-sep" role="separator"></div><div class="menu-label">${escapeHtml(t("overview.menu_systems"))}</div>` +
+    `<div class="systems-menu-list">${items}</div>`;
+}
+setupMenu("systems-menu", "btn-systems", renderSystemsMenu);
+document.getElementById("systems-menu").addEventListener("click", e => {
+  const item = e.target.closest("[data-ov-open], [data-ov-overview]");
+  if (!item) return;
+  closeMenu("systems-menu", false);
+  if (item.dataset.ovOverview) openOverview();
+  else if (!(window.__gmeXmlPath && recentKey(window.__gmeXmlPath) === recentKey(item.dataset.ovOpen))) openSystem(item.dataset.ovOpen, document.getElementById("btn-systems"));
+});
+document.getElementById("overview-modal").addEventListener("click", e => {
+  if (e.target.id === "overview-modal") { closeOverview(); return; }
+  const sort = e.target.closest("[data-ov-sort]");
+  if (sort) {
+    const key = sort.dataset.ovSort;
+    overview.sort = overview.sort.key === key ? { key, dir: -overview.sort.dir } : { key, dir: key === "label" ? 1 : -1 };
+    renderOverview();
+    const again = document.querySelector(`[data-ov-sort="${key}"]`);
+    if (again) again.focus();
+    return;
+  }
+  const open = e.target.closest("[data-ov-open]");
+  if (open) { openSystem(open.dataset.ovOpen, open); return; }
+  const create = e.target.closest("[data-ov-create]");
+  if (create) {
+    closeOverview();
+    openNewGamelist(create.dataset.ovCreate);
+  }
+});
+document.getElementById("overview-close").addEventListener("click", closeOverview);
+document.getElementById("overview-cancel").addEventListener("click", closeOverview);
+document.getElementById("overview-refresh").addEventListener("click", () => openOverview({ refresh: true }));
+document.getElementById("overview-change").addEventListener("click", () => { closeOverview(); openGamelistModal(); });
+document.getElementById("overview-stop").addEventListener("click", async () => {
+  try { await apiFetch("/api/overview/stop", { method: "POST" }); } catch (e) { handleError(e); }
+});
+document.getElementById("open-gl-root").addEventListener("click", () => {
+  const typed = (document.getElementById("open-gl-path").value || "").trim().replace(/^["']|["']$/g, "");
+  const path = typed && !/\.xml$/i.test(typed) ? typed : __browsePath;
+  if (!path) return;
+  closeGamelistModal();
+  openOverview({ path });
+});
+async function renderRecentRoots(data) {
+  const box = document.getElementById("open-gl-roots");
+  const wrap = document.getElementById("open-gl-roots-wrap");
+  if (!data) {
+    try { data = await apiFetch("/api/overview/recent"); } catch (_) { data = { recent: [] }; }
+  }
+  const list = data.recent || [];
+  wrap.hidden = !list.length;
+  box.innerHTML = list.map(({ path: p, exists }) => {
+    const parts = p.split(/[\\/]/).filter(Boolean);
+    const name = parts.slice(-2).join("/") || p;
+    const title = exists ? p : `${p} (${t("open_gl.recent_missing")})`;
+    return `<div class="open-gl-recent-row${exists ? "" : " is-missing"}" role="listitem">` +
+      `<button type="button" class="open-gl-recent-item open-gl-root-item" data-path="${escapeHtml(p)}" title="${escapeHtml(title)}">` +
+      `${icon(exists ? "chart-bar" : "alert-triangle")}<span class="open-gl-recent-name">${escapeHtml(name)}</span>` +
+      `<span class="open-gl-recent-path">\u200e${escapeHtml(p)}\u200e</span></button>` +
+      `<button type="button" class="btn btn-icon btn-sm open-gl-root-forget" data-path="${escapeHtml(p)}"` +
+      ` title="${escapeHtml(t("open_gl.recent_forget"))}" aria-label="${escapeHtml(t("open_gl.recent_forget"))}">${icon("x")}</button></div>`;
+  }).join("");
+}
+document.getElementById("open-gl-roots").addEventListener("click", async e => {
+  const forget = e.target.closest(".open-gl-root-forget");
+  if (forget) {
+    try {
+      renderRecentRoots(await apiFetch("/api/overview/recent/forget", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: forget.dataset.path }),
+      }));
+    } catch (err) { handleError(err); }
+    return;
+  }
+  const item = e.target.closest(".open-gl-root-item");
+  if (!item) return;
+  closeGamelistModal();
+  openOverview({ path: item.dataset.path });
+});
 
 
 boot();
