@@ -63,6 +63,11 @@ SS_SYSTEM_MAP = {
     "wonderswancolor": 46, "wswan": 45, "wswanc": 46, "x1": 220, "x68000": 79, "xbox": 32,
     "xbox360": 33, "xboxone": 34, "xegs": 43, "zaccariapinball": 138, "zeldaclassic": 135,
     "zinc": 75, "zx81": 77, "zxspectrum": 76,
+    # ES-DE system names (es_systems.xml) that RetroBat names otherwise
+    "astrocde": 44, "atarijaguarcd": 171, "cdimono1": 133, "cdtv": 129, "megacdjp": 20,
+    "megadrivejp": 1, "moto": 141, "naomigd": 56, "neogeocdjp": 70, "saturnjp": 22,
+    "sega32xjp": 19, "sega32xna": 19, "sg-1000": 109, "snesna": 4, "stv": 69, "tg-cd": 114,
+    "to8": 141, "videopac": 104, "windows3x": 135, "windows9x": 135,
 }
 
 
@@ -72,7 +77,7 @@ SS_SYSTEM_MAP = {
 ARCADE_DB_FOLDERS = {
     "arcade", "mame", "mame2003", "mame2010", "hbmame", "fbneo", "fba", "neogeo",
     "cps1", "cps2", "cps3", "atomiswave", "naomi", "naomi2", "cave", "gaelco",
-    "segastv", "model2", "model3", "zinc",
+    "segastv", "model2", "model3", "zinc", "stv", "naomigd",
 }
 STEAM_FOLDERS = {"steam"}
 SCRAPERS = ("screenscraper", "arcadeitalia", "steam")
@@ -123,4 +128,5 @@ def get_system_info():
         "label": display,
         "id": sid,
         "scraper": default_scraper(folder),
+        "profile": xml_store.profile_info(),
     }

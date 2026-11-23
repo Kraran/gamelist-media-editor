@@ -7,16 +7,15 @@ from urllib.parse import urlparse
 import requests
 from flask import Blueprint, jsonify, request
 
-from gme import xml_store
 from gme.http import api_err
 from gme.i18n import st
-from gme.media import MAX_DOWNLOAD_BYTES, media_filename
+from gme.media import MAX_DOWNLOAD_BYTES, media_dest
 from gme.scrapers.apply import apply_route
 from gme.scrapers.common import throttle_api, clean_game_name, name_similarity
 from gme.scrapers.compare import scrape_payload
 from gme.systems import detect_system_id
 from gme.version import APP_UA
-from gme.xml_store import MEDIA_DIRS, get_game_elem, require_gamelist
+from gme.xml_store import get_game_elem, require_gamelist
 
 bp = Blueprint("steam", __name__)
 
@@ -446,11 +445,7 @@ def steam_download_video(game, field, info):
     for u in (info.get("url"), info.get("fallback_url")):
         if u and u not in urls:
             urls.append(u)
-    media_dir_name = MEDIA_DIRS[field]
-    media_dir = os.path.join(xml_store.BASE_DIR, media_dir_name)
-    os.makedirs(media_dir, exist_ok=True)
-    filename = media_filename(game, field, ".mp4", media_dir_name)
-    dest = os.path.join(media_dir, filename)
+    dest, rel_value = media_dest(game, field, ".mp4")
     last_err = None
     for url in urls:
         url = _steam_https(url)
@@ -471,7 +466,7 @@ def steam_download_video(game, field, info):
                         raise ValueError("too_large")
                     f.write(chunk)
             os.replace(tmp, dest)
-            return f"./{media_dir_name}/{filename}"
+            return rel_value
         except ValueError:
             last_err = st("server.file_too_large", n=MAX_DOWNLOAD_BYTES // (1024 * 1024))
         except Exception as e:

@@ -429,7 +429,8 @@
     "igdb_login": "IGDB: Twitch Client ID eller Client Secret afvist.",
     "igdb_rate": "IGDB: for mange forespørgsler, prøv igen om lidt.",
     "source_key_missing": "{source}: indtast først nøglen under Indstillinger › Reservekilder.",
-    "launchbox_recent": "LaunchBox-databasen er under en dag gammel: den udgives kun én gang om dagen."
+    "launchbox_recent": "LaunchBox-databasen er under en dag gammel: den udgives kun én gang om dagen.",
+    "esde_open_hint": "Dette er en ES-DE-installation: åbn en gamelist fra {path}/<system>/gamelist.xml eller ES-DE-oversigten."
   },
   "open_gl": {
     "title": "Åbn en gamelist.xml",
@@ -1123,5 +1124,13 @@
     "completed": "suppleret af {sources}",
     "from": "Fra {source}",
     "col_field": "Felt"
+  },
+  "esde": {
+    "badge_title": "ES-DE-gamelist · medier fundet efter navn i {media} · ROM’er: {roms}",
+    "chip_title": "ES-DE-gamelist: medier med ROM-navnet i downloaded_media",
+    "no_such_media": "ES-DE har ikke denne medietype",
+    "browse_hint": "ES-DE-installation fundet: gamelists ligger i ES-DE/gamelists/<system>, medier i downloaded_media.",
+    "open_overview": "ES-DE-oversigt",
+    "clear_field_body": "<p>ES-DE finder et medie ud fra filnavnet: filen <strong>flyttes til papirkurven</strong>.</p><p>Der skrives intet medietag i <code>gamelist.xml</code>.</p>"
   }
 }

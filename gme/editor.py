@@ -10,14 +10,14 @@ import requests
 from flask import Blueprint, Response, jsonify, render_template, request, send_from_directory
 from lxml import etree
 
-from gme import csv_export, recent, settings, xml_store
+from gme import csv_export, esde, recent, settings, xml_store
 from gme.arcade import find_mame_listxml, index_mame_listxml, pretty_arcade_system
 from gme.fields import FieldError, clean_meta, set_desc, set_meta, set_name
 from gme.fsutil import atomic_write
 from gme.http import api_err
 from gme.i18n import st
 from gme.log import log
-from gme.media import MAX_DOWNLOAD_BYTES, MEDIA_EXTS, default_ext_for_field, discard_old_media, download_remote_media, ext_from_magic, media_filename
+from gme.media import MAX_DOWNLOAD_BYTES, MEDIA_EXTS, default_ext_for_field, discard_old_media, download_remote_media, ext_from_magic, media_dest, remove_media
 from gme.paths import resource_path
 from gme.systems import get_system_info
 from gme.version import APP_RELEASE_DATE, APP_VERSION
@@ -183,14 +183,28 @@ def api_browse():
             if os.path.isdir(root):
                 drives.append({"name": f"{letter}:", "path": root})
 
+    home = esde.find_home(target)
     return jsonify({
         "path": target,
         "parent": parent if has_parent else None,
+        "esde": {"home": home, "gamelists": os.path.join(home, "gamelists")} if home else None,
         "dirs": dirs,
         "files": xmls,
         "has_gamelist": os.path.isfile(os.path.join(target, "gamelist.xml")),
         "drives": drives,
     })
+
+
+def _esde_open_hint(raw):
+    """ES-DE's settings file or folder is not a gamelist: say where its gamelists are."""
+    path = os.path.abspath(str(raw or "").strip().strip('"').strip("'")) if raw else ""
+    if not path or (os.path.isfile(path) and os.path.basename(path).lower() != "es_settings.xml"):
+        return None
+    home = esde.find_home(path)
+    if not home:
+        return None
+    return api_err(st("server.esde_open_hint", path=os.path.join(home, "gamelists")), 400,
+                   code="esde_home", esde_home=home)
 
 
 @bp.route("/api/open-gamelist", methods=["POST"])
@@ -202,6 +216,9 @@ def api_open_gamelist():
     """
     body = request.get_json(silent=True) or {}
     raw = body.get("path") or body.get("xml") or ""
+    hint = _esde_open_hint(raw)
+    if hint:
+        return hint
     try:
         info = set_gamelist_path(raw)
         recent.remember(info["xml_path"])
@@ -230,17 +247,19 @@ def upload(index, field):
     err = require_gamelist()
     if err:
         return err
-    if field not in MEDIA_DIRS:
+    if field not in xml_store.media_fields():
         return api_err(st("server.invalid_field"), 400, code="invalid_field")
     try:
         tree, game = get_game_elem(index)
     except IndexError:
         return api_err(st("server.invalid_index"), 404, code="invalid_index")
     try:
-        media_dir_name = MEDIA_DIRS[field]
-        media_dir = os.path.join(xml_store.BASE_DIR, media_dir_name)
-        os.makedirs(media_dir, exist_ok=True)
         base_name = get_base_name(game)
+        dest = {}
+
+        def dest_for(ext):
+            dest["full"], dest["value"] = media_dest(game, field, ext)
+            return dest["full"]
         file = request.files.get("file")
         url = (request.form.get("url") or "").strip()
         rel_path = new_filename = None
@@ -262,19 +281,15 @@ def upload(index, field):
                 head = file.stream.read(64)
                 file.stream.seek(0)
                 ext = ext_from_magic(head) or default_ext_for_field(field)
-            new_filename = media_filename(game, field, ext, media_dir_name)
             data = file.stream.read(MAX_DOWNLOAD_BYTES + 1)
             if len(data) > MAX_DOWNLOAD_BYTES:
                 return api_err(st("server.file_too_large", n=MAX_DOWNLOAD_BYTES // (1024*1024)), 400, code="file_too_large")
-            atomic_write(os.path.join(media_dir, new_filename), data)
-            rel_path = f"./{media_dir_name}/{new_filename}"
+            atomic_write(dest_for(ext), data)
+            new_filename, rel_path = os.path.basename(dest["full"]), dest["value"]
         elif url:
             try:
-                new_filename = download_remote_media(
-                    url, media_dir, base_name, field, timeout=20,
-                    filename_for=lambda ext: media_filename(game, field, ext, media_dir_name),
-                )
-                rel_path = f"./{media_dir_name}/{new_filename}"
+                download_remote_media(url, xml_store.BASE_DIR, base_name, field, timeout=20, filename_for=dest_for)
+                new_filename, rel_path = os.path.basename(dest["full"]), dest["value"]
             except ValueError as e:
                 if str(e) == "url_not_allowed":
                     return api_err(st("server.url_not_allowed"), 400, code="url_not_allowed")
@@ -311,7 +326,8 @@ def upload(index, field):
 def clear_field(index, field):
     """
     Remove the XML media tag only (file on disk is kept).
-    Use delete-game to remove files from disk.
+    Use delete-game to remove files from disk. ES-DE has no media tag: the
+    file itself goes to the Recycle Bin.
     """
     err = require_gamelist()
     if err:
@@ -323,11 +339,12 @@ def clear_field(index, field):
     except IndexError:
         return api_err(st("server.invalid_index"), 404, code="invalid_index")
     try:
+        trashed = remove_media(game, field)          # ES-DE: the media is its file
         elem = game.find(field)
         if elem is not None:
             game.remove(elem)
             save_xml(tree)
-        return jsonify({"success": True})
+        return jsonify({"success": True, "trashed": len(trashed)})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

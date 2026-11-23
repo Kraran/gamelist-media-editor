@@ -13,6 +13,7 @@ from urllib.request import url2pathname
 
 from lxml import etree
 
+from gme import esde
 from gme.fsutil import atomic_write
 from gme.http import api_err
 from gme.i18n import st
@@ -26,6 +27,10 @@ BASE_DIR = APP_DIR
 XML_PATH = None
 SESSION_ID = uuid.uuid4().hex
 
+# ES-DE layout of the open gamelist (gme.esde.Layout), None for RetroBat /
+# Batocera / Recalbox, whose media and ROMs sit next to the gamelist.
+PROFILE = None
+
 
 def set_gamelist_path(path):
     with _xml_io_lock:
@@ -38,7 +43,7 @@ def _set_gamelist_path(path):
     Updates XML_PATH + BASE_DIR, clears the parse cache.
     Raises FileNotFoundError / ValueError on bad input.
     """
-    global XML_PATH, BASE_DIR, SESSION_ID
+    global XML_PATH, BASE_DIR, SESSION_ID, PROFILE
     if not path or not str(path).strip():
         raise ValueError(st("server.open_empty_path"))
     path = os.path.abspath(str(path).strip().strip('"').strip("'"))
@@ -53,6 +58,7 @@ def _set_gamelist_path(path):
         raise ValueError(st("server.open_bad_xml", detail=e)) from e
     XML_PATH = path
     BASE_DIR = os.path.dirname(path)
+    PROFILE = esde.layout_for_gamelist(path)
     SESSION_ID = uuid.uuid4().hex
     _xml_cache["mtime"] = None
     _xml_cache["tree"] = None
@@ -61,12 +67,33 @@ def _set_gamelist_path(path):
 
 def close_gamelist():
     """Forget the current gamelist (media root back to the app folder)."""
-    global XML_PATH, BASE_DIR, SESSION_ID
+    global XML_PATH, BASE_DIR, SESSION_ID, PROFILE
     with _xml_io_lock:
         XML_PATH = None
         BASE_DIR = APP_DIR
+        PROFILE = None
         SESSION_ID = uuid.uuid4().hex
         invalidate_cache()
+
+
+def is_esde():
+    """True when the open gamelist belongs to an ES-DE installation."""
+    return PROFILE is not None
+
+
+def rom_dir():
+    """Folder the ``<path>`` tags are relative to (the gamelist's folder, or ES-DE's ROM folder)."""
+    return PROFILE.rom_dir if PROFILE is not None else BASE_DIR
+
+
+def media_fields():
+    """Media fields the open gamelist can hold (ES-DE has no wheel, map, bezel, music)."""
+    return esde.FIELDS if PROFILE is not None else tuple(MEDIA_DIRS)
+
+
+def profile_info():
+    """What the interface needs to know about the layout (None: classic layout)."""
+    return PROFILE.info() if PROFILE is not None else None
 
 
 def has_gamelist():
@@ -130,6 +157,8 @@ def _load_xml():
     if _xml_cache["tree"] is not None and _xml_cache["mtime"] == mtime:
         return _xml_cache["tree"]
     tree = etree.parse(XML_PATH, etree.XMLParser(remove_blank_text=True))
+    if PROFILE is not None:
+        esde.inject(tree, PROFILE, MEDIA_DIRS)
     _xml_cache["tree"] = tree
     _xml_cache["mtime"] = mtime
     return tree
@@ -145,7 +174,8 @@ def save_xml(tree):
         if not XML_PATH or not source or os.path.normcase(os.path.abspath(source)) != os.path.normcase(XML_PATH):
             raise ValueError(st("server.stale_gamelist"))
         try:
-            atomic_write(XML_PATH, etree.tostring(tree, pretty_print=True, xml_declaration=True, encoding="UTF-8"))
+            out = esde.strip_for_save(tree, MEDIA_DIRS) if PROFILE is not None else tree
+            atomic_write(XML_PATH, etree.tostring(out, pretty_print=True, xml_declaration=True, encoding="UTF-8"))
         except Exception:
             # Callers modified the cached tree before saving. A refused write
             # must not make those unsaved edits appear committed on the next read.
@@ -215,6 +245,8 @@ def resolve_under_base(rel_path):
     """
     if not rel_path:
         return None
+    if PROFILE is not None and str(rel_path).replace("\\", "/").startswith(esde.PREFIX):
+        return esde.resolve(PROFILE, rel_path)
     # Normalize separators; strip only leading "./" (not "../")
     clean = str(rel_path).replace("\\", "/")
     while clean.startswith("./"):
@@ -222,8 +254,9 @@ def resolve_under_base(rel_path):
     clean = clean.lstrip("/")
     if not clean or ".." in clean.split("/"):
         return None
-    full = os.path.normpath(os.path.join(BASE_DIR, clean))
-    base = os.path.normpath(BASE_DIR)
+    root = rom_dir()
+    full = os.path.normpath(os.path.join(root, clean))
+    base = os.path.normpath(root)
     try:
         if os.path.commonpath([base, full]) != base:
             return None
@@ -231,6 +264,16 @@ def resolve_under_base(rel_path):
         # Different drives on Windows
         return None
     return full
+
+
+def gamelist_value(full):
+    """How the gamelist writes the file ``full``: ``./sub/file`` under the folder,
+    ``@media/...`` for an ES-DE media."""
+    if PROFILE is not None:
+        value = esde.to_value(PROFILE, full)
+        if value:
+            return value
+    return "./" + os.path.relpath(full, rom_dir()).replace(os.sep, "/")
 
 
 def sanitize_filename(name):

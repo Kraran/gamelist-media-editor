@@ -10,6 +10,8 @@ Version documentée : **1.7.0**
 
 Tu peux changer de système à tout moment sans redémarrer.
 
+**ES-DE** : ouvre `ES-DE/gamelists/<système>/gamelist.xml`, ou le dossier `ES-DE` pour la vue d’ensemble. Les médias sont lus et écrits dans `downloaded_media` par nom de ROM : voir [ES-DE](ES-DE).
+
 ## Vue multi-systèmes
 
 Dans **Gamelist…**, va dans ton dossier `roms` (RetroBat `roms`, Batocera `/userdata/roms`, Recalbox `/recalbox/share/roms`, ou le dossier au-dessus) puis clique **Vue multi-systèmes…**. Les 6 derniers dossiers roms ouverts sont listés sous les récents.

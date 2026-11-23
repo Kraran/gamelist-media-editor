@@ -421,7 +421,7 @@ def api_dat_compare():
     body = request.get_json(silent=True) or {}
     mode = body.get("hash") if body.get("hash") in ("none", "crc", "sha1") else "none"
     tree = load_xml()
-    base = xml_store.BASE_DIR
+    base = xml_store.rom_dir()
     listed, used_exts, nested = set(), set(), False
     for game in tree.getroot().findall("game"):
         path = (game.findtext("path", "") or "").strip()

@@ -299,6 +299,9 @@ input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px;
 .ctx-system .icon { color: var(--accent-text); }
 .system-badge { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 22ch; }
 .system-badge[data-empty="1"] { color: var(--text-3); font-weight: 400; }
+/* ES-DE gamelist (media found by name in downloaded_media) */
+.profile-badge { margin-left: 6px; padding: 0 7px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-text); font-size: var(--fs-xs); font-weight: 600; letter-spacing: .02em; }
+.profile-badge[hidden] { display: none; }
 .ctx-count { font-size: var(--fs-sm); white-space: nowrap; }
 
 .app-actions { display: flex; align-items: center; gap: var(--s1); margin-left: auto; }
@@ -1975,6 +1978,12 @@ th[aria-sort="ascending"] .ov-sort, th[aria-sort="descending"] .ov-sort { color:
 .ov-chip .icon { width: 13px; height: 13px; }
 .ov-chip.is-current { margin: 0 0 0 4px; background: var(--accent-soft); color: var(--accent-text); }
 .ov-chip.is-error { background: var(--danger-soft); color: var(--danger); }
+.ov-chip.is-esde { margin: 0 0 0 4px; background: var(--accent-soft); color: var(--accent-text); font-weight: 600; }
+.ov-media.is-na .ov-pct { color: var(--text-3); }
+.open-gl-esde { display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; margin: 0 0 var(--s2); padding: var(--s2) var(--s3); border-radius: var(--r-control); background: var(--accent-soft); color: var(--accent-text); font-size: var(--fs-sm); }
+.open-gl-esde[hidden] { display: none; }
+.open-gl-esde .icon { flex: none; }
+.open-gl-esde span { flex: 1 1 220px; }
 .systems-btn { width: 28px; height: 28px; margin-left: -6px; }
 .systems-btn .icon { width: 16px; height: 16px; }
 .systems-menu { max-height: min(70vh, 620px); grid-template-rows: auto auto auto minmax(0, 1fr); }

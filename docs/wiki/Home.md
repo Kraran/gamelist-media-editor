@@ -36,6 +36,7 @@ Source Python : voir [Installation](Installation).
 | [Utilisation](Utilisation) | Interface, médias, métadonnées, menus, réglages, raccourcis |
 | [Scrapers](Scrapers) | Bouton Scraper, comparaison, ScreenScraper, Arcade Database, Steam |
 | [Fonctionnalités](Fonctionnalités) | Liste détaillée (v1.7.0) |
+| [ES-DE](ES-DE) | Gamelists et médias d’ES-DE (EmulationStation Desktop Edition) |
 | [FAQ](FAQ) | Questions fréquentes |
 | [Dépannage](Dépannage) | Erreurs courantes |
 

@@ -5,6 +5,7 @@
 - [Utilisation](Utilisation)
 - [Scrapers](Scrapers)
 - [Fonctionnalités](Fonctionnalités)
+- [ES-DE](ES-DE)
 - [FAQ](FAQ)
 - [Dépannage](Dépannage)
 

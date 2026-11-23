@@ -429,7 +429,8 @@
     "igdb_login": "IGDB: Twitch Client ID of Client Secret geweigerd.",
     "igdb_rate": "IGDB: te veel verzoeken, probeer het zo opnieuw.",
     "source_key_missing": "{source}: vul eerst de sleutel in bij Instellingen › Reservebronnen.",
-    "launchbox_recent": "De LaunchBox-database is minder dan een dag oud: hij verschijnt maar één keer per dag."
+    "launchbox_recent": "De LaunchBox-database is minder dan een dag oud: hij verschijnt maar één keer per dag.",
+    "esde_open_hint": "Dit is een ES-DE-installatie: open een gamelist uit {path}/<systeem>/gamelist.xml, of het ES-DE-overzicht."
   },
   "open_gl": {
     "title": "Open een gamelist.xml",
@@ -1123,5 +1124,13 @@
     "completed": "aangevuld door {sources}",
     "from": "Van {source}",
     "col_field": "Veld"
+  },
+  "esde": {
+    "badge_title": "ES-DE-gamelist · media op naam gevonden in {media} · ROM’s: {roms}",
+    "chip_title": "ES-DE-gamelist: media met de ROM-naam in downloaded_media",
+    "no_such_media": "ES-DE kent dit mediatype niet",
+    "browse_hint": "ES-DE-installatie gevonden: gamelists staan in ES-DE/gamelists/<systeem>, media in downloaded_media.",
+    "open_overview": "ES-DE-overzicht",
+    "clear_field_body": "<p>ES-DE vindt een medium aan de bestandsnaam: het bestand gaat <strong>naar de prullenbak</strong>.</p><p>Er wordt geen mediatag in <code>gamelist.xml</code> geschreven.</p>"
   }
 }

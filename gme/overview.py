@@ -25,7 +25,7 @@ from concurrent.futures import ThreadPoolExecutor
 from flask import Blueprint, jsonify, request
 from lxml import etree
 
-from gme import recent, xml_store
+from gme import esde, recent, xml_store
 from gme.http import api_err
 from gme.i18n import st
 from gme.log import log
@@ -118,11 +118,14 @@ def list_systems(root):
         entries = sorted(os.scandir(root), key=lambda e: e.name.lower())
     except OSError:
         return out
+    is_esde = esde.is_home(os.path.dirname(os.path.normpath(root)))
     for e in entries:
         try:
             if not e.is_dir():
                 continue
         except OSError:
+            continue
+        if is_esde and e.name in esde.NOT_SYSTEMS:
             continue
         if not _looks_like_system(e.path, e.name):
             continue
@@ -143,6 +146,10 @@ def resolve_root(path):
     if not raw:
         raise ValueError(st("server.open_empty_path"))
     full = os.path.abspath(raw)
+    # ES-DE: its folder, the portable install, es_settings.xml or a gamelist → ES-DE/gamelists
+    home = esde.find_home(full)
+    if home and list_systems(os.path.join(home, "gamelists")):
+        return os.path.join(home, "gamelists")
     if os.path.isfile(full):
         full = os.path.dirname(full)
     if not os.path.isdir(full):
@@ -209,6 +216,14 @@ def _signature(path):
             sig.append((rel, st_.st_mtime_ns, st_.st_size if rel else 0))
         except OSError:
             sig.append((rel, None, None))
+    layout = esde.layout_for_gamelist(os.path.join(path, "gamelist.xml"))
+    if layout is not None:                    # ES-DE: the ROM folder and the media folders
+        for full in [layout.rom_dir] + [os.path.join(layout.media_dir, f) for f in esde.FOLDERS.values()]:
+            try:
+                st_ = os.stat(full)
+                sig.append((full, st_.st_mtime_ns, 0))
+            except OSError:
+                sig.append((full, None, None))
     return tuple(sig)
 
 
@@ -222,6 +237,13 @@ def scan_system(system):
     listing = _Listing()
     listed, used_exts, nested = set(), set(), False
     xml = system.get("xml")
+    layout = esde.layout_for_gamelist(xml) if xml else None
+    index = None
+    if layout is not None:                    # ES-DE: ROMs elsewhere, media found by name
+        path = layout.rom_dir
+        out["media"] = {f: {"present": 0, "broken": 0, "missing": 0} for f in esde.FIELDS}
+        out["profile"] = "esde"
+        index = esde.MediaIndex(layout)
     if xml:
         try:
             tree = etree.parse(xml, etree.XMLParser(remove_blank_text=True, huge_tree=True))
@@ -244,7 +266,13 @@ def scan_system(system):
                 if not listing.exists(full):
                     out["roms_missing"] += 1
             has_media = False
+            stem = esde.rom_stem(layout, rom) if index is not None else None
             for field, counts in out["media"].items():
+                if index is not None:
+                    found = bool(stem) and index.lookup(field, stem) is not None
+                    counts["present" if found else "missing"] += 1
+                    has_media = has_media or found
+                    continue
                 value = text.get(field, "")
                 if not value:
                     counts["missing"] += 1

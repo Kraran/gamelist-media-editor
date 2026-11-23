@@ -429,7 +429,8 @@
     "igdb_login": "IGDB: Client ID o Client Secret de Twitch rechazado.",
     "igdb_rate": "IGDB: demasiadas solicitudes, vuelve a intentarlo en un momento.",
     "source_key_missing": "{source}: introduce primero la clave en Ajustes › Fuentes de respaldo.",
-    "launchbox_recent": "La base de LaunchBox tiene menos de un día: solo se publica una vez al día."
+    "launchbox_recent": "La base de LaunchBox tiene menos de un día: solo se publica una vez al día.",
+    "esde_open_hint": "Es una instalación de ES-DE: abre un gamelist de {path}/<sistema>/gamelist.xml, o la vista general de ES-DE."
   },
   "open_gl": {
     "title": "Abrir un gamelist.xml",
@@ -1123,5 +1124,13 @@
     "completed": "completado con {sources}",
     "from": "De {source}",
     "col_field": "Campo"
+  },
+  "esde": {
+    "badge_title": "Gamelist de ES-DE · medios encontrados por nombre en {media} · ROM: {roms}",
+    "chip_title": "Gamelist de ES-DE: medios con el nombre de la ROM en downloaded_media",
+    "no_such_media": "ES-DE no tiene este tipo de medio",
+    "browse_hint": "Instalación de ES-DE detectada: los gamelists están en ES-DE/gamelists/<sistema>, los medios en downloaded_media.",
+    "open_overview": "Vista general de ES-DE",
+    "clear_field_body": "<p>ES-DE encuentra un medio por el nombre de su archivo: el archivo se <strong>mueve a la papelera</strong>.</p><p>No se escribe ninguna etiqueta de medio en <code>gamelist.xml</code>.</p>"
   }
 }

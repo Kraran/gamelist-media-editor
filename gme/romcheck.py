@@ -77,13 +77,13 @@ def _ext(name):
 
 def _rel(full):
     """Gamelist form of a path under the folder: ./sub/file.ext with forward slashes."""
-    return "./" + os.path.relpath(full, xml_store.BASE_DIR).replace(os.sep, "/")
+    return "./" + os.path.relpath(full, xml_store.rom_dir()).replace(os.sep, "/")
 
 
 def _entry_full(path):
     if not path or _SCHEME.match(path):
         return None
-    return os.path.normpath(path if os.path.isabs(path) else os.path.join(xml_store.BASE_DIR, path))
+    return os.path.normpath(path if os.path.isabs(path) else os.path.join(xml_store.rom_dir(), path))
 
 
 def _tracks(full):
@@ -179,7 +179,7 @@ def find_roms(base, listed_keys=(), used_exts=(), folder_name="", nested=False, 
 def scan(tree=None):
     """Compare the open gamelist with its folder. Returns a report dict."""
     tree = tree if tree is not None else load_xml()
-    base = xml_store.BASE_DIR
+    base = xml_store.rom_dir()
     games = tree.getroot().findall("game")
 
     used_exts = set()

@@ -2,7 +2,7 @@
 
 [![Tests](https://github.com/Kraran/gamelist-media-editor/actions/workflows/tests.yml/badge.svg)](https://github.com/Kraran/gamelist-media-editor/actions/workflows/tests.yml)
 
-Local web app to edit the media and metadata of EmulationStation **RetroBat** (and Batocera / Recalbox) `gamelist.xml` files, with drag-and-drop and built-in scrapers.
+Local web app to edit the media and metadata of EmulationStation **RetroBat** (and Batocera / Recalbox / **ES-DE**) `gamelist.xml` files, with drag-and-drop and built-in scrapers.
 
 **Version 1.7.0** · [Documentation (Wiki)](https://github.com/Kraran/gamelist-media-editor/wiki) · [Releases](https://github.com/Kraran/gamelist-media-editor/releases) · [Changelog](CHANGELOG.md)
 
@@ -50,6 +50,7 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
 ![Batch scrape: the report of the updated, uncertain and failed games](docs/screenshots/batch-scrape.png)
 
 **Workflow**
+- **ES-DE support**: open `ES-DE/gamelists/<system>/gamelist.xml` (installer or Windows portable release), or the `ES-DE` folder for the multi-system overview. GME detects the layout from `es_settings.xml` (`ROMDirectory`, `MediaDirectory`, `~`, `%ESPATH%`, `custom_systems/es_systems.xml`) and works the ES-DE way: media are found by the ROM's name in `downloaded_media/<system>/<type>/` (covers, screenshots, titlescreens, marquees, 3dboxes, backcovers, physicalmedia, fanart, miximages, videos, manuals), and every add, replace, scrape (ScreenScraper, fallback sources, batch, several systems) or removal writes, replaces or bins that file. No media tag is ever written to an ES-DE gamelist and its own tags (`altemulator`, `<folder>`…) are kept. Media ES-DE has no folder for (wheel, map, bezel, music, Pad2Key) are not offered. See the [ES-DE wiki page](https://github.com/Kraran/gamelist-media-editor/wiki/ES-DE)
 - **Multi-system overview**: open a whole `roms` folder (RetroBat, Batocera `/userdata/roms`, Recalbox `/recalbox/share/roms`, or the folder above it) with *Gamelist… › Multi-system view…*. Every system folder (a `gamelist.xml` or ROM files; `bios/` and the like are skipped) gets a row with its friendly name: games, ROMs missing on disk, ROM files not in the gamelist, the share of games with an image, thumbnail, marquee, wheel and video on disk (hover for present / broken links / missing), games without description, genre or date, plus totals for the collection. Columns sort both ways; a click opens the system in the editor and the ▾ next to the system name switches to another one or back to the overview. Systems are scanned in the background on 4 threads with a progress bar and *Stop*, and kept in memory until their gamelist or media folders change (*Refresh* reads everything again). A folder without a gamelist offers *Create a gamelist…*; an unreadable `gamelist.xml` is flagged. Read only: the scan writes nothing. The last 6 roms folders are listed in the *Gamelist…* dialog (`recent_roms_roots.json`)
 - **Actions on several systems**: tick systems in the overview (or *tick all*), then *Actions on ticked systems…* runs, one system at a time, the ROM check (add the missing ROMs, remove the entries without a ROM), the media check (remove broken links), *Solid images*, *Clear fields* and a scrape with each system's source (games missing a ticked field, or all). ScreenScraper stays within your account's `maxthreads` and requests per minute, and the whole run stops on the daily quota or a ban, with the reason. A dated backup comes before every change; a progress bar shows the system and step, *Stop* ends after the step in progress, and the final report lists what each operation did per system. Files are only deleted (to the Recycle Bin) with their own box ticked and a red confirmation; like the single-system windows, nothing is removed when more than half the ROMs or media look gone. The gamelist open before is opened again at the end
 - Game list with **thumbnails** and a **required media count** per game (hover it to see what is missing); fast with very large gamelists (a 30,000-game MAME list opens in about a second)
@@ -137,7 +138,7 @@ Keep `state/batches/` next to the app to retain batch progress and reports. XML 
 
 ## Usage
 
-1. Open your system's `gamelist.xml` (for example `RetroBat\roms\snes\gamelist.xml`). Media go to `images/`, `videos/` and `manuals/` next to it. Or open the whole `roms` folder (*Multi-system view…*) to see every system at once and pick one.
+1. Open your system's `gamelist.xml` (for example `RetroBat\roms\snes\gamelist.xml`). Media go to `images/`, `videos/` and `manuals/` next to it. Or open the whole `roms` folder (*Multi-system view…*) to see every system at once and pick one. ES-DE: open `ES-DE\gamelists\snes\gamelist.xml` (media go to `ES-DE\downloaded_media\snes\…`, named after the ROM), or the `ES-DE` folder for the overview.
 2. Select a game, then drop files on the media, or click **Scrape**, check what changes and apply (Enter).
 3. Edit the metadata and save (`Ctrl+S`).
 4. Use **Actions** for the whole gamelist (backup, checks, edit in bulk…), **Reload** if you edited the XML outside the app.
