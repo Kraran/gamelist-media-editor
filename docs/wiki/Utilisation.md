@@ -10,6 +10,18 @@ Version documentée : **1.7.0**
 
 Tu peux changer de système à tout moment sans redémarrer.
 
+## Vue multi-systèmes
+
+Dans **Gamelist…**, va dans ton dossier `roms` (RetroBat `roms`, Batocera `/userdata/roms`, Recalbox `/recalbox/share/roms`, ou le dossier au-dessus) puis clique **Vue multi-systèmes…**. Les 6 derniers dossiers roms ouverts sont listés sous les récents.
+
+- Une ligne par dossier de système (un `gamelist.xml` ou des ROMs ; `bios/`, `saves/`… sont ignorés), avec son nom complet (*Super Nintendo* pour `snes`)
+- Colonnes : jeux, **ROM absentes** (entrées dont le fichier n’existe plus), **hors gamelist** (fichiers ROM non listés), part des jeux avec **image, miniature, marquee, wheel, vidéo** présents sur le disque (survole la case : présents / liens cassés / manquants), jeux **sans description, genre ou date**
+- Totaux de la collection en haut ; clic sur un en-tête pour trier (deux sens)
+- Clic sur un système : il s’ouvre dans l’éditeur (les modifications non enregistrées sont demandées avant). La flèche ▾ à côté du nom du système passe à un autre système ou revient à la vue d’ensemble
+- Un dossier sans gamelist propose **Créer un gamelist…** ; un `gamelist.xml` illisible est signalé
+- L’analyse tourne en arrière-plan (barre de progression, **Arrêter**) et reste en mémoire tant que le gamelist et les dossiers de médias ne changent pas ; **Actualiser** relit tout
+- Lecture seule : rien n’est écrit
+
 ## Interface
 
 | Zone | Rôle |

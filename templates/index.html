@@ -43,6 +43,10 @@
       <span class="ctx-system" data-i18n-title="header.system_title" title="Système (dossier du gamelist.xml)">
         {{ icon("device-gamepad-2") }}<span class="system-badge" id="system-name">—</span>
       </span>
+      <div class="menu-wrap systems-wrap" id="systems-wrap" hidden>
+        <button type="button" class="btn btn-ghost btn-icon systems-btn" id="btn-systems" aria-haspopup="menu" aria-expanded="false" aria-controls="systems-menu" data-i18n-title="overview.switch_title" title="Changer de système" data-i18n-aria="overview.switch_title" aria-label="Changer de système">{{ icon("chevron-down") }}</button>
+        <div class="menu systems-menu" id="systems-menu" role="menu" aria-labelledby="btn-systems" hidden></div>
+      </div>
       <span class="ctx-count" id="game-count" data-i18n="header.game_count" data-i18n-params='{"n":0}'>0 jeux</span>
     </div>
 
@@ -461,7 +465,12 @@
         <div class="open-gl-label" data-i18n="open_gl.recent">Récents</div>
         <div id="open-gl-recent" class="open-gl-recent" role="list"></div>
       </div>
+      <div class="open-gl-recent-wrap" id="open-gl-roots-wrap" hidden>
+        <div class="open-gl-label" data-i18n="overview.recent_roots">Dossiers roms récents (vue multi-systèmes)</div>
+        <div id="open-gl-roots" class="open-gl-recent" role="list"></div>
+      </div>
       <div class="tools-footer">
+        <button type="button" class="btn btn-ghost open-gl-root" id="open-gl-root" hidden data-i18n-title="overview.open_root_title" title="Ouvrir ce dossier comme dossier roms : tous ses systèmes dans une vue d'ensemble">{{ icon("chart-bar") }}<span data-i18n="overview.open_root">Vue multi-systèmes…</span></button>
         <button type="button" class="btn btn-ghost open-gl-new" id="open-gl-new" hidden>{{ icon("folder-plus") }}<span id="open-gl-new-label" data-i18n="newgl.here">Créer un gamelist ici…</span></button>
         <button type="button" class="btn" id="open-gl-cancel" data-i18n="confirm.cancel">Annuler</button>
         <button type="button" class="btn btn-accent" id="open-gl-apply" data-i18n="open_gl.apply">Ouvrir</button>
@@ -621,6 +630,31 @@
       <div class="check-body" id="stats-body"></div>
       <div class="tools-footer">
         <button type="button" class="btn" id="stats-cancel" data-i18n="tools.close">Fermer</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="overview-modal" role="dialog" aria-modal="true" aria-labelledby="overview-title">
+    <div class="modal check-modal overview-modal">
+      <div class="tools-header">
+        <h3 class="modal-title" id="overview-title">{{ icon("chart-bar") }}<span data-i18n="overview.title">Vue d'ensemble des systèmes</span></h3>
+        <button type="button" class="btn btn-icon" id="overview-close" data-i18n-title="tools.close" title="Fermer">{{ icon("x") }}</button>
+      </div>
+      <div class="overview-bar">
+        {{ icon("folder") }}<code class="overview-root" id="overview-root">—</code>
+        <button type="button" class="btn btn-sm" id="overview-change">{{ icon("folder-open") }}<span data-i18n="overview.change">Autre dossier…</span></button>
+        <button type="button" class="btn btn-sm" id="overview-refresh" data-i18n-title="overview.refresh_title" title="Tout relire depuis le disque">{{ icon("refresh") }}<span data-i18n="overview.refresh">Actualiser</span></button>
+      </div>
+      <div class="dat-progress overview-progress" id="overview-progress" hidden>
+        <span class="spinner spinner-sm" aria-hidden="true"></span>
+        <div class="dat-bar"><span id="overview-bar"></span></div>
+        <span class="dat-progress-text" id="overview-progress-text" role="status"></span>
+        <button type="button" class="btn btn-sm" id="overview-stop">{{ icon("player-stop") }}<span data-i18n="dat.stop">Arrêter</span></button>
+      </div>
+      <div class="check-body overview-body" id="overview-body"></div>
+      <div class="tools-footer">
+        <span class="bulk-note">{{ icon("shield-check") }}<span data-i18n="overview.read_only">Lecture seule : l'analyse ne modifie aucun fichier.</span></span>
+        <button type="button" class="btn" id="overview-cancel" data-i18n="tools.close">Fermer</button>
       </div>
     </div>
   </div>

@@ -1888,3 +1888,52 @@ input[type="color"]:disabled { opacity: .45; }
   opacity: 0; animation: spinner-in 0.12s ease-out var(--spinner-delay, 200ms) forwards;
 }
 .tile-busy .spinner-delay { animation: spin 0.8s linear infinite; opacity: 1; }
+
+/* Multi-system overview (gme/overview.py) */
+.overview-modal { width: min(1280px, 100%); }
+.overview-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); margin-bottom: var(--s3); color: var(--text-3); }
+.overview-bar > .icon { width: 16px; height: 16px; }
+.overview-bar .btn { display: inline-flex; align-items: center; gap: 6px; }
+.overview-bar .btn .icon { width: 15px; height: 15px; }
+.overview-root { flex: 1 1 240px; min-width: 0; padding: 4px var(--s2); border-radius: var(--r-control); background: var(--surface); color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: left; unicode-bidi: plaintext; }
+.overview-progress { margin-bottom: var(--s3); }
+.overview-body { display: flex; flex-direction: column; }
+.overview-totals { flex: 0 0 auto; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); margin-bottom: var(--s3); }
+.stat-card.is-warn > .icon, .stat-card.is-warn .stat-value { color: var(--warn); }
+.overview-table-wrap { flex: 1 1 auto; min-height: 160px; overflow: auto; border: 1px solid var(--line); border-radius: var(--r-control); }
+.overview-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
+.overview-table th { position: sticky; top: 0; z-index: 1; padding: 0; background: var(--raised); text-align: left; white-space: nowrap; }
+.ov-sort { display: inline-flex; align-items: center; gap: 4px; width: 100%; padding: 7px var(--s2); border: 0; background: transparent; color: var(--text-3); font: inherit; font-weight: 600; text-align: left; cursor: pointer; }
+.ov-sort:hover, .ov-sort:focus-visible { color: var(--text); }
+th[aria-sort="ascending"] .ov-sort, th[aria-sort="descending"] .ov-sort { color: var(--accent-text); }
+.ov-sort-dir { width: 13px; height: 13px; }
+.ov-sort-dir.is-desc { transform: rotate(180deg); }
+.overview-table td { height: 38px; padding: 3px var(--s2); border-top: 1px solid var(--line); vertical-align: middle; }
+.overview-table tbody tr:hover td { background: var(--surface); }
+.overview-table tr.is-current td { background: color-mix(in srgb, var(--accent) 7%, transparent); }
+.ov-system { min-width: 210px; }
+.ov-open { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 0; max-width: 100%; padding: 2px 4px; border: 0; border-radius: var(--r-control); background: transparent; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.ov-open:not(.is-static):hover .ov-name, .ov-open:focus-visible .ov-name { color: var(--accent-text); text-decoration: underline; }
+.ov-open.is-static { cursor: default; }
+.ov-name { font-weight: 600; }
+.ov-folder { color: var(--text-3); font-size: var(--fs-xs); }
+.ov-num { text-align: right; }
+.ov-num.is-warn { color: var(--warn); font-weight: 600; }
+.ov-zero { color: var(--text-3); opacity: .6; }
+.ov-media { min-width: 86px; }
+.ov-media .ov-pct { display: block; margin-bottom: 3px; color: var(--text-2); font-size: var(--fs-xs); }
+.ov-media.is-full .ov-pct { color: var(--ok); }
+.ov-media .stats-bar { min-width: 56px; height: 6px; }
+.ov-note { color: var(--text-3); }
+.ov-note > * { vertical-align: middle; }
+.ov-note .btn { display: inline-flex; align-items: center; gap: 6px; margin-left: var(--s2); }
+.ov-note .btn .icon { width: 14px; height: 14px; }
+.ov-chip { display: inline-flex; align-items: center; gap: 4px; margin-right: var(--s2); padding: 1px 8px; border-radius: 999px; background: var(--raised); color: var(--text-2); font-size: var(--fs-xs); white-space: nowrap; }
+.ov-chip .icon { width: 13px; height: 13px; }
+.ov-chip.is-current { margin: 0 0 0 4px; background: var(--accent-soft); color: var(--accent-text); }
+.ov-chip.is-error { background: var(--danger-soft); color: var(--danger); }
+.systems-btn { width: 28px; height: 28px; margin-left: -6px; }
+.systems-btn .icon { width: 16px; height: 16px; }
+.systems-menu { max-height: min(70vh, 620px); grid-template-rows: auto auto auto minmax(0, 1fr); }
+.systems-menu-list { display: grid; gap: 2px; min-height: 0; overflow-y: auto; }
+.systems-menu .menu-item-sub { direction: ltr; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

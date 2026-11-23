@@ -49,6 +49,7 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
 ![Batch scrape: the report of the updated, uncertain and failed games](docs/screenshots/batch-scrape.png)
 
 **Workflow**
+- **Multi-system overview**: open a whole `roms` folder (RetroBat, Batocera `/userdata/roms`, Recalbox `/recalbox/share/roms`, or the folder above it) with *Gamelist… › Multi-system view…*. Every system folder (a `gamelist.xml` or ROM files; `bios/` and the like are skipped) gets a row with its friendly name: games, ROMs missing on disk, ROM files not in the gamelist, the share of games with an image, thumbnail, marquee, wheel and video on disk (hover for present / broken links / missing), games without description, genre or date, plus totals for the collection. Columns sort both ways; a click opens the system in the editor and the ▾ next to the system name switches to another one or back to the overview. Systems are scanned in the background on 4 threads with a progress bar and *Stop*, and kept in memory until their gamelist or media folders change (*Refresh* reads everything again). A folder without a gamelist offers *Create a gamelist…*; an unreadable `gamelist.xml` is flagged. Read only: the scan writes nothing. The last 6 roms folders are listed in the *Gamelist…* dialog (`recent_roms_roots.json`)
 - Game list with **thumbnails** and a **required media count** per game (hover it to see what is missing); fast with very large gamelists (a 30,000-game MAME list opens in about a second)
 - **Resizable game list**: drag its right edge to read long names (arrow keys on the focused edge, double-click for the default width); the media tiles shrink as you drag to make room, and the width is kept in `ui_settings.json`
 - **Required media per system** (Settings): the media a game needs to be complete (by default image, video, marquee and box art; no box on arcade systems); the count, the *Required media missing* filter and *Next incomplete* follow them
@@ -126,7 +127,7 @@ Tip: drag a `gamelist.xml` onto the `.exe` to open it directly.
 
 Optional: `Creer-Raccourci.ps1` creates a desktop shortcut to `Lancer.bat` with the app icon.
 
-Your `screenscraper_config.json` (member login, media types, cache settings), `ui_settings.json` (language, scrape sources, required media) and `recent_gamelists.json` (recently opened gamelists) are stored next to `app.py` / the `.exe`. Keep them when you update.
+Your `screenscraper_config.json` (member login, media types, cache settings), `ui_settings.json` (language, scrape sources, required media) `recent_gamelists.json` (recently opened gamelists) and `recent_roms_roots.json` (roms folders of the multi-system overview) are stored next to `app.py` / the `.exe`. Keep them when you update.
 
 Keep `state/batches/` next to the app to retain batch progress and reports. XML snapshots travel with the gamelist in `.gme-backups/<XML filename>/`; each backup also updates the traditional `<XML filename>.bak`. After closing the browser, the game already in progress can finish and checkpoint, then the batch waits for an explicit resume. After an abrupt server shutdown, the last interrupted game may be checked again.
 
@@ -134,7 +135,7 @@ Keep `state/batches/` next to the app to retain batch progress and reports. XML 
 
 ## Usage
 
-1. Open your system's `gamelist.xml` (for example `RetroBat\roms\snes\gamelist.xml`). Media go to `images/`, `videos/` and `manuals/` next to it.
+1. Open your system's `gamelist.xml` (for example `RetroBat\roms\snes\gamelist.xml`). Media go to `images/`, `videos/` and `manuals/` next to it. Or open the whole `roms` folder (*Multi-system view…*) to see every system at once and pick one.
 2. Select a game, then drop files on the media, or click **Scrape**, check what changes and apply (Enter).
 3. Edit the metadata and save (`Ctrl+S`).
 4. Use **Actions** for the whole gamelist (backup, checks, edit in bulk…), **Reload** if you edited the XML outside the app.
@@ -186,6 +187,7 @@ Code layout (`app.py` is only the entry point; the overview is in `gme/__init__.
 | `gme/datfile.py`, `gme/dattool.py` | DAT reading (Logiqx XML, MAME listxml, ClrMamePro) and the DAT tool: background load and comparison, report (`/api/dat`) |
 | `gme/newgamelist.py` | new gamelist from a ROM folder, extensions per system (`/api/new-gamelist`) |
 | `gme/stats.py` | statistics of the open gamelist (`/api/stats`) |
+| `gme/overview.py` | multi-system overview of a `roms` folder: system folders, friendly names, background scan with cache (`/api/overview`) |
 | `gme/gamedelete.py` | deleting a game: dry run listing its files, then the Recycle Bin (`/api/delete-game`) |
 | `gme/remote_cache.py` | proposed images: previews (`/api/scrape/preview/<key>`), kept in `cache/remote/` and reused when applied |
 | `gme/xml_store.py` | the open `gamelist.xml`: path, cache, writes, game lookup |

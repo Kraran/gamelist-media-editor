@@ -46,6 +46,7 @@ Version documentée : **1.7.0**
 
 - Démarre **sans** gamelist
 - Ouvrir un autre XML (explorateur + récents), recharger depuis le disque
+- **Vue multi-systèmes** : tout un dossier `roms` (RetroBat, Batocera, Recalbox) en un tableau trié par système — jeux, ROM absentes ou hors gamelist, couverture image / miniature / marquee / wheel / vidéo, métadonnées manquantes, totaux ; un clic ouvre le système, le sélecteur ▾ passe d’un système à l’autre ; analyse en arrière-plan avec cache, lecture seule
 - **Actions** : `.bak` manuel, systèmes arcade depuis `mame.xml`, **Vérifier les ROMs** (ROMs absentes du gamelist, entrées sans ROM, doublons ; mise à jour et rapport), **Vérifier les médias** (médias inutilisés à la Corbeille, liens cassés retirés ; rapport)
 - Supprimer un jeu (menu ⋯ du jeu) : la fenêtre liste les fichiers qui partent (ROM, pistes et disques, médias) et ceux gardés car un autre jeu les utilise ; tout va à la Corbeille
 - Copier le chemin de la ROM
