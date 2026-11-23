@@ -148,8 +148,8 @@ def _paths():
 
 def _missing_any(game, fields):
     for f in fields:
-        if f == "name":
-            continue
+        if f == "name" or (f in xml_store.MEDIA_DIRS and f not in xml_store.media_fields()):
+            continue                            # ES-DE has no wheel, map, bezel…
         value = (game.findtext(f, "") or "").strip()
         if not value:
             return True

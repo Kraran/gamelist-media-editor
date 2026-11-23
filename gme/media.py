@@ -6,7 +6,7 @@ from urllib.parse import unquote, urlparse
 
 import requests
 
-from gme import fsutil, remote_cache, xml_store
+from gme import esde, fsutil, remote_cache, xml_store
 from gme.scrapers import ss_limits
 from gme.fsutil import atomic_write
 from gme.log import log
@@ -35,11 +35,13 @@ def file_path(value):
     value = (value or "").strip()
     if not value or "://" in value:
         return None
+    if xml_store.PROFILE is not None and value.replace("\\", "/").startswith(esde.PREFIX):
+        return esde.resolve(xml_store.PROFILE, value)
     if not os.path.isabs(value):
         clean = value.replace("\\", "/")
         while clean.startswith("./"):
             clean = clean[2:]
-        value = os.path.join(xml_store.BASE_DIR, clean)
+        value = os.path.join(xml_store.rom_dir(), clean)
     return os.path.normpath(value)
 
 
@@ -104,9 +106,65 @@ def media_filename(game, field, ext, media_dir_name):
         n += 1
 
 
+def media_dest(game, field, ext):
+    """``(absolute path, gamelist value)`` where a new ``field`` file with ``ext`` goes.
+
+    Classic layout: ``./images/<rom>-<field><ext>`` next to the gamelist.
+    ES-DE: ``downloaded_media/<system>/<type>/<rom><ext>`` (the name is what
+    links the media to the game). The folder is created.
+    """
+    if xml_store.PROFILE is not None:
+        full, value = esde.target(xml_store.PROFILE, game, field, ext)
+        if not full:
+            raise ValueError("bad_media_path")
+    else:
+        folder = xml_store.MEDIA_DIRS[field]
+        name = media_filename(game, field, ext, folder)
+        full, value = os.path.join(xml_store.BASE_DIR, folder, name), f"./{folder}/{name}"
+    os.makedirs(os.path.dirname(full), exist_ok=True)
+    return full, value
+
+
+def remove_media(game, field):
+    """ES-DE: a media is its file, so removing it from a game moves the file to
+    the Recycle Bin (with the same file under another extension). Classic layout:
+    nothing (the tag goes, the file stays). Returns the paths moved."""
+    if xml_store.PROFILE is None:
+        return []
+    value = (game.findtext(field, "") or "").strip()
+    full = esde.resolve(xml_store.PROFILE, value) if value else None
+    if not full:
+        return []
+    moved = []
+    for path in [full] + esde.siblings(full, field):
+        if os.path.isfile(path):
+            try:
+                fsutil.trash(path)
+                moved.append(path)
+            except Exception as e:  # no Recycle Bin on this drive, locked file: keep it
+                log.warning("Could not move the media %s to the Recycle Bin (%s)", path, e)
+    return moved
+
+
 def discard_old_media(game, field, old_rel, new_rel):
     """After ``field`` moved from ``old_rel`` to ``new_rel``: the old file goes to the
-    Recycle Bin, unless another tag still uses it. Returns True if it was moved."""
+    Recycle Bin, unless another tag still uses it. Returns True if it was moved.
+
+    ES-DE: the same media under another extension (``.jpg`` beside the new
+    ``.png``) goes too, or ES-DE could keep showing it."""
+    moved = _discard_old_file(game, field, old_rel, new_rel)
+    if xml_store.PROFILE is not None and field in esde.FOLDERS:
+        new_full = esde.resolve(xml_store.PROFILE, new_rel)
+        for other in esde.siblings(new_full, field) if new_full else ():
+            try:
+                fsutil.trash(other)
+                moved = True
+            except Exception as e:
+                log.warning("Could not move the replaced media %s to the Recycle Bin (%s)", other, e)
+    return moved
+
+
+def _discard_old_file(game, field, old_rel, new_rel):
     old_key = file_key(old_rel)
     if not old_key or old_key == file_key(new_rel) or file_in_use(game, old_rel, skip_tag=field):
         return False
@@ -474,6 +532,8 @@ def pad2key_dest(game):
     full = resolve_under_base(path_rel) if path_rel else None
     if full:
         return os.path.splitext(full)[0] + ".keys"
+    if xml_store.PROFILE is not None:
+        return os.path.join(xml_store.rom_dir(), get_base_name(game) + ".keys")
     return os.path.join(xml_store.BASE_DIR, get_base_name(game) + ".keys")
 
 

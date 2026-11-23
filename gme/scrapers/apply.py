@@ -12,8 +12,6 @@ has no value for is never erased, and nothing is applied behind the user's
 back (thumbnail, bezel and Pad2Key are rows of the dialog like the others).
 """
 
-import os
-
 from flask import jsonify, request
 from lxml import etree
 
@@ -21,7 +19,7 @@ from gme import xml_store
 from gme.fields import FieldError, clean_meta, set_desc, set_name
 from gme.http import api_err
 from gme.i18n import st
-from gme.media import MAX_DOWNLOAD_BYTES, MediaRejected, discard_old_media, download_pad2key, download_remote_media, media_filename, pad2key_dest
+from gme.media import MAX_DOWNLOAD_BYTES, MediaRejected, discard_old_media, download_pad2key, download_remote_media, media_dest, pad2key_dest
 from gme.scrapers.compare import compare_rows, current_from_game, fields_for_preset
 from gme.xml_store import MEDIA_DIRS, get_base_name, get_game_elem, require_gamelist, save_xml
 
@@ -90,25 +88,27 @@ def apply_proposed(game, fields, proposed, headers=None, media_handlers=None, no
     medias = proposed.get("medias") or {}
     base_name = get_base_name(game)
     handlers = media_handlers or {}
+    supported = xml_store.media_fields()
     for field in wanted:
-        if field not in MEDIA_DIRS:
+        if field not in MEDIA_DIRS or field not in supported:     # ES-DE: no wheel, map, bezel…
             continue
         info = medias.get(field) or {}
         url = str(info.get("url") or "").strip()
         if not url:
             errors.append(f"{field}: {st(no_url_key)}")
             continue
-        media_dir_name = MEDIA_DIRS[field]
         try:
             if field in handlers:
                 rel_path = handlers[field](game, field, info)
             else:
-                media_dir = os.path.join(xml_store.BASE_DIR, media_dir_name)
-                os.makedirs(media_dir, exist_ok=True)
-                filename = download_remote_media(
-                    url, media_dir, base_name, field, headers=headers, timeout=40, check=True,
-                    filename_for=lambda ext, f=field, d=media_dir_name: media_filename(game, f, ext, d))
-                rel_path = f"./{media_dir_name}/{filename}"
+                dest = {}
+
+                def dest_for(ext, f=field, dest=dest):
+                    full, dest["value"] = media_dest(game, f, ext)
+                    return full
+                download_remote_media(url, xml_store.BASE_DIR, base_name, field, headers=headers, timeout=40,
+                                      check=True, filename_for=dest_for)
+                rel_path = dest["value"]
         except ValueError as e:
             msg = _download_error(field, e)
             if msg:
@@ -120,7 +120,7 @@ def apply_proposed(game, fields, proposed, headers=None, media_handlers=None, no
         set_media_path(game, field, rel_path)
         applied.append(field)
 
-    if "pad2key" in wanted:
+    if "pad2key" in wanted and not xml_store.is_esde():
         url = str((medias.get("pad2key") or {}).get("url") or "").strip()
         if url:
             try:

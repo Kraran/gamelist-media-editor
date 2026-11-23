@@ -19,7 +19,7 @@ games without a dialog.
 import os
 import re
 
-from gme import remote_cache
+from gme import remote_cache, xml_store
 from gme.media import pad2key_dest
 from gme.xml_store import resolve_under_base
 
@@ -88,10 +88,13 @@ def compare_rows(proposed, current, headers=None, previews=True):
     """One row per field, in display order. Registers image previews (``previews``).
 
     Media the user turned off for this source (``proposed["disabled_media"]``)
-    get no row: they are neither proposed nor listed as unavailable."""
+    get no row: they are neither proposed nor listed as unavailable. Nor do the
+    media the open layout cannot hold (ES-DE has no wheel, map, bezel…)."""
     proposed = proposed or {}
     medias = proposed.get("medias") or {}
     disabled = set(proposed.get("disabled_media") or ())
+    if xml_store.is_esde():               # no wheel, map, bezel, Pad2Key in ES-DE
+        disabled |= {k for k in MEDIA_KEYS if k not in xml_store.media_fields()}
     rows = []
     for key in META_KEYS:
         new = str(proposed.get(key) or "").strip()

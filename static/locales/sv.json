@@ -429,7 +429,8 @@
     "igdb_login": "IGDB: Twitch Client ID eller Client Secret nekades.",
     "igdb_rate": "IGDB: för många förfrågningar, försök igen om en stund.",
     "source_key_missing": "{source}: ange först nyckeln under Inställningar › Reservkällor.",
-    "launchbox_recent": "LaunchBox-databasen är mindre än ett dygn gammal: den publiceras bara en gång om dagen."
+    "launchbox_recent": "LaunchBox-databasen är mindre än ett dygn gammal: den publiceras bara en gång om dagen.",
+    "esde_open_hint": "Det här är en ES-DE-installation: öppna en gamelist från {path}/<system>/gamelist.xml eller ES-DE-översikten."
   },
   "open_gl": {
     "title": "Öppna en gamelist.xml",
@@ -1123,5 +1124,13 @@
     "completed": "kompletterat av {sources}",
     "from": "Från {source}",
     "col_field": "Fält"
+  },
+  "esde": {
+    "badge_title": "ES-DE-gamelist · media hittade efter namn i {media} · ROM: {roms}",
+    "chip_title": "ES-DE-gamelist: media med ROM-namnet i downloaded_media",
+    "no_such_media": "ES-DE har inte den här medietypen",
+    "browse_hint": "ES-DE-installation hittad: gamelists finns i ES-DE/gamelists/<system>, media i downloaded_media.",
+    "open_overview": "ES-DE-översikt",
+    "clear_field_body": "<p>ES-DE hittar en media via filnamnet: filen <strong>flyttas till papperskorgen</strong>.</p><p>Ingen medietagg skrivs i <code>gamelist.xml</code>.</p>"
   }
 }

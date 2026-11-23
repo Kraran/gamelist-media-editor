@@ -17,11 +17,11 @@ import os
 
 from flask import Blueprint, jsonify, request
 
-from gme import fsutil, xml_store
+from gme import esde, fsutil, xml_store
 from gme.http import api_err
 from gme.i18n import st
 from gme.log import log
-from gme.media import MEDIA_EXTS
+from gme.media import MEDIA_EXTS, file_path
 from gme.xml_store import MEDIA_DIRS, backup_xml, load_xml, require_gamelist, save_xml
 
 bp = Blueprint("mediacheck", __name__)
@@ -43,6 +43,8 @@ def _full(value):
     value = (value or "").strip()
     if not value or "://" in value:
         return None
+    if xml_store.PROFILE is not None:
+        return file_path(value)
     if os.path.isabs(value):
         return os.path.normpath(value)
     clean = value.replace("\\", "/")
@@ -52,7 +54,31 @@ def _full(value):
 
 
 def _rel(full):
-    return "./" + os.path.relpath(full, xml_store.BASE_DIR).replace(os.sep, "/")
+    return xml_store.gamelist_value(full)
+
+
+def _folders():
+    """(name, absolute path) of the media folders to scan."""
+    if xml_store.PROFILE is not None:
+        media_dir = xml_store.PROFILE.media_dir
+        return [(f, os.path.join(media_dir, f)) for f in sorted(set(esde.FOLDERS.values()))]
+    return [(f, os.path.join(xml_store.BASE_DIR, f)) for f in MEDIA_FOLDERS]
+
+
+def _esde_rom_stems():
+    """ES-DE shows every ROM of the folder, listed in the gamelist or not: the
+    media of a ROM the gamelist does not list are not orphans."""
+    layout = xml_store.PROFILE
+    stems = set()
+    top = layout.rom_dir
+    for dirpath, dirnames, filenames in os.walk(top):
+        rel_dir = os.path.relpath(dirpath, top).replace(os.sep, "/")
+        rel_dir = "" if rel_dir == "." else rel_dir + "/"
+        for name in dirnames:
+            stems.add(os.path.normcase(rel_dir + name))
+        for name in filenames:
+            stems.add(os.path.normcase(rel_dir + os.path.splitext(name)[0]))
+    return stems
 
 
 def scan(tree=None):
@@ -77,8 +103,8 @@ def scan(tree=None):
                 })
 
     files, orphans, orphan_bytes = 0, [], 0
-    for folder in MEDIA_FOLDERS:
-        top = os.path.join(xml_store.BASE_DIR, folder)
+    rom_stems = _esde_rom_stems() if xml_store.PROFILE is not None else None
+    for folder, top in _folders():
         for dirpath, dirnames, filenames in os.walk(top):
             dirnames[:] = sorted(d for d in dirnames if not d.startswith("."))
             for name in sorted(filenames, key=str.lower):
@@ -88,6 +114,10 @@ def scan(tree=None):
                 full = os.path.join(dirpath, name)
                 if _key(full) in used:
                     continue
+                if rom_stems is not None:
+                    stem = os.path.splitext(os.path.relpath(full, top))[0].replace(os.sep, "/")
+                    if os.path.normcase(stem) in rom_stems:
+                        continue
                 try:
                     size = os.path.getsize(full)
                 except OSError:
@@ -97,7 +127,7 @@ def scan(tree=None):
     return {
         "base_dir": xml_store.BASE_DIR,
         "games": len(games),
-        "folders": [f for f in MEDIA_FOLDERS if os.path.isdir(os.path.join(xml_store.BASE_DIR, f))],
+        "folders": [f for f, top in _folders() if os.path.isdir(top)],
         "files": files,
         "orphans": orphans,
         "orphan_bytes": orphan_bytes,

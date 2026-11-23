@@ -429,7 +429,8 @@
     "igdb_login": "IGDB: Twitch Client ID veya Client Secret reddedildi.",
     "igdb_rate": "IGDB: çok fazla istek, birazdan yeniden dene.",
     "source_key_missing": "{source}: önce anahtarı Ayarlar › Yedek kaynaklar bölümüne gir.",
-    "launchbox_recent": "LaunchBox veritabanı bir günden yeni: günde yalnızca bir kez yayımlanıyor."
+    "launchbox_recent": "LaunchBox veritabanı bir günden yeni: günde yalnızca bir kez yayımlanıyor.",
+    "esde_open_hint": "Bu bir ES-DE kurulumu: {path}/<sistem>/gamelist.xml içinden bir gamelist açın ya da ES-DE genel bakışını açın."
   },
   "open_gl": {
     "title": "gamelist.xml aç",
@@ -1123,5 +1124,13 @@
     "completed": "{sources} ile tamamlandı",
     "from": "Kaynak: {source}",
     "col_field": "Alan"
+  },
+  "esde": {
+    "badge_title": "ES-DE gamelist · medyalar {media} içinde adla bulunur · ROM’lar: {roms}",
+    "chip_title": "ES-DE gamelist: medyalar downloaded_media içinde ROM adıyla",
+    "no_such_media": "ES-DE’de bu medya türü yok",
+    "browse_hint": "ES-DE kurulumu algılandı: gamelist dosyaları ES-DE/gamelists/<sistem> içinde, medyalar downloaded_media içinde.",
+    "open_overview": "ES-DE genel bakış",
+    "clear_field_body": "<p>ES-DE bir medyayı dosya adından bulur: dosya <strong>Geri Dönüşüm Kutusu’na taşınır</strong>.</p><p><code>gamelist.xml</code> dosyasına medya etiketi yazılmaz.</p>"
   }
 }

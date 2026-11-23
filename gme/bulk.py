@@ -48,7 +48,7 @@ from gme.fields import FieldError, clean_meta, set_desc, set_meta, set_name
 from gme.http import api_err
 from gme.i18n import st
 from gme.log import log
-from gme.media import NOT_FILE_TAGS, file_key
+from gme.media import NOT_FILE_TAGS, file_key, remove_media
 from gme.xml_store import BOOL_META_FIELDS, MEDIA_DIRS, load_xml, require_gamelist, resolve_under_base, save_xml
 
 bp = Blueprint("bulk", __name__)
@@ -229,7 +229,7 @@ def _dat_name_op(op):
         full = _entry_full(path)
         if full is None:
             return []
-        rel = "./" + os.path.relpath(full, xml_store.BASE_DIR).replace(os.sep, "/")
+        rel = "./" + os.path.relpath(full, xml_store.rom_dir()).replace(os.sep, "/")
         hit = matched.get(rel) or dat.find(os.path.basename(full.rstrip("\\/")))
         if hit is None:
             return []
@@ -253,6 +253,7 @@ def _clear_media_op(op):
         return [(f, game.findtext(f, "") or "", "") for f in fields if (game.findtext(f, "") or "").strip()]
 
     def write(game, field, _after):
+        remove_media(game, field)               # ES-DE: the media is its file (Recycle Bin)
         for elem in game.findall(field):
             game.remove(elem)
     return change, write

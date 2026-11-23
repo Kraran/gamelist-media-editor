@@ -11,6 +11,10 @@ Oui seulement depuis les sources (`pip install -r requirements.txt`, dont Pillow
 
 Non. **📂 Gamelist…**, ou glisse le XML sur l’exe.
 
+### Est-ce que ça marche avec ES-DE ?
+
+Oui. Ouvre `ES-DE/gamelists/<système>/gamelist.xml` (ou le dossier `ES-DE` pour la vue d’ensemble) : les médias sont lus et écrits dans `downloaded_media`, au nom de la ROM, sans balise dans le gamelist. Détails et correspondance des dossiers : [ES-DE](ES-DE).
+
 ### Est-ce que ça vérifie les ROM Batocera / RetroBat ?
 
 Non. L’outil édite le XML et les médias, il ne teste pas les cores.

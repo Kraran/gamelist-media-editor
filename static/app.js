@@ -28,8 +28,20 @@ const FIELD_DEFS = [
 { key: "bezel",     icon: "frame" },
 { key: "music",     icon: "music" },
 ];
-function getFields() {
-  return FIELD_DEFS.map(f => ({
+/* ES-DE (gme/esde.py) holds fewer media than RetroBat (no wheel, map, bezel,
+ * music): the open gamelist's profile lists the ones it can hold. */
+function profileFields() {
+  const p = typeof currentSystem !== "undefined" && currentSystem && currentSystem.profile;
+  return p && Array.isArray(p.fields) ? p.fields : null;
+}
+function isEsde() {
+  const p = typeof currentSystem !== "undefined" && currentSystem && currentSystem.profile;
+  return !!(p && p.kind === "esde");
+}
+/** Media fields of the open gamelist (``all``: every field GME knows). */
+function getFields(all = false) {
+  const only = all ? null : profileFields();
+  return FIELD_DEFS.filter(f => !only || only.includes(f.key)).map(f => ({
     ...f,
     label: t("fields." + f.key, null, f.key),
   }));
@@ -572,7 +584,9 @@ function customRequired(folder) {
   return Array.isArray(v) ? v : null;
 }
 function requiredKeys() {
-  return customRequired(currentSystem && currentSystem.folder) || defaultRequired();
+  const keys = customRequired(currentSystem && currentSystem.folder) || defaultRequired();
+  const only = profileFields();
+  return only ? keys.filter(k => only.includes(k)) : keys;
 }
 function missingRequired(g, keys) {
   return (keys || requiredKeys()).filter(k => !hasMedia(g, k));
@@ -811,6 +825,8 @@ function updateSystemBadge(system) {
   const el = document.getElementById("system-name");
   if (!el) return;
   if (!system || !system.label) {
+    const prof = document.getElementById("system-profile");
+    if (prof) prof.hidden = true;
     el.textContent = "—";
     el.title = t("header.system_unknown");
     el.dataset.empty = "1";
@@ -818,6 +834,12 @@ function updateSystemBadge(system) {
   }
   el.textContent = system.label;
   el.dataset.empty = "0";
+  const prof = document.getElementById("system-profile");
+  const esde = system.profile && system.profile.kind === "esde";
+  if (prof) {
+    prof.hidden = !esde;
+    prof.title = esde ? t("esde.badge_title", { media: system.profile.media_dir, roms: system.profile.rom_dir }) : "";
+  }
   const bits = [system.label];
   if (system.id != null) bits.push("ScreenScraper id " + system.id);
   if (system.folder && system.folder !== system.label.toLowerCase()) {
@@ -1539,7 +1561,7 @@ function fitTileToMedia(tile, width, height) {
 }
 
 function fieldLabel(key) {
-  const f = getFields().find(x => x.key === key);
+  const f = getFields(true).find(x => x.key === key);
   return f ? f.label : key;
 }
 
@@ -1746,10 +1768,11 @@ function setTileBusy(tile, on) {
 async function clearField(field) {
   const target = games.find(g => g.index === currentIndex);
   const session = window.__gmeSession;
-  // Detach media tag in XML only (file kept on disk)
+  // Detach media tag in XML only (file kept on disk). ES-DE has no media tag:
+  // the file itself goes to the Recycle Bin.
   const choice = await askConfirm({
     title: t("confirm.clear_field_title", { field: fieldLabel(field) }),
-    bodyHtml: t("confirm.clear_field_body"),
+    bodyHtml: t(isEsde() ? "esde.clear_field_body" : "confirm.clear_field_body"),
     showBackup: false,
     okLabel: t("zone.clear_title"),
   });
@@ -2786,6 +2809,11 @@ const BATCH_MEDIA = ["image", "titleshot", "thumbnail", "marquee", "wheel", "box
 const BATCH_INFO = ["desc", "genre", "rating", "releasedate", "developer", "publisher", "players", "lang", "region",
   "family", "arcadesystemname", "name"];
 const batchPrefs = { mode: "missing", off: new Set(["name", "pad2key"]) };   // kept for the session
+/** Media a batch scrape can fill in the open gamelist (ES-DE: no wheel, map, bezel, Pad2Key). */
+function batchMedia() {
+  const only = profileFields();
+  return only ? BATCH_MEDIA.filter(k => only.includes(k)) : BATCH_MEDIA;
+}
 let batch = null;   // { phase, source, targets, i, stop, halted, results }
 let savedBatch = null;
 
@@ -2881,7 +2909,7 @@ function renderBatch() {
       ["missing", "all"].map(m => `<button type="button" class="seg" data-batch-mode="${m}" aria-pressed="${batchPrefs.mode === m}">` +
         `<span>${escapeHtml(t(m === "missing" ? "scrape.preset_missing" : "scrape.preset_all"))}</span></button>`).join("") +
       `</div><span class="ss-count">${escapeHtml(t(batchPrefs.mode === "missing" ? "batch.mode_missing" : "batch.mode_all"))}</span></div>` +
-      batchFieldsHtml(t("scrape.section_media"), BATCH_MEDIA) +
+      batchFieldsHtml(t("scrape.section_media"), batchMedia()) +
       batchFieldsHtml(t("scrape.section_info"), BATCH_INFO);
     options.innerHTML = `<label class="check-option"><input type="checkbox" id="batch-backup" checked />` +
       `<span>${escapeHtml(t("romcheck.backup"))}</span></label>` +
@@ -3548,6 +3576,13 @@ async function browseDirectory(path) {
       newBtn.dataset.xml = (data.files || []).filter(f => f.is_gamelist).map(f => f.path)[0] || "";
       document.getElementById("open-gl-new-label").textContent = t(data.has_gamelist ? "newgl.add_missing" : "newgl.here");
     }
+    const esdeBox = document.getElementById("open-gl-esde");
+    if (esdeBox) {
+      esdeBox.hidden = !data.esde;
+      esdeBox.dataset.path = data.esde ? data.esde.home : "";
+    }
+    // ES-DE writes its gamelists itself, in ES-DE/gamelists: no "Create a gamelist here"
+    if (newBtn && data.esde) newBtn.hidden = true;
     if (upBtn) upBtn.disabled = !__browseParent;
     const rootBtn = document.getElementById("open-gl-root");
     if (rootBtn) rootBtn.hidden = !__browsePath;
@@ -6200,6 +6235,7 @@ function ovRowHtml(s, fields, current) {
   let first;
   if (s.xml) {
     first = `<button type="button" class="ov-open" data-ov-open="${escapeHtml(s.xml)}" title="${escapeHtml(t("overview.open_title", { system: s.label }))}">${name}</button>` +
+      (s.profile === "esde" ? `<span class="ov-chip is-esde" title="${escapeHtml(t("esde.chip_title"))}">ES-DE</span>` : "") +
       (isCurrent ? `<span class="ov-chip is-current">${escapeHtml(t("overview.current"))}</span>` : "");
   } else {
     first = `<span class="ov-open is-static">${name}</span>`;
@@ -6221,6 +6257,9 @@ function ovRowHtml(s, fields, current) {
   }
   const num = (n, warn) => `<td class="ov-num${warn && n ? " is-warn" : ""}">${n ? fmtCount(n) : `<span class="ov-zero">0</span>`}</td>`;
   const media = fields.map(f => {
+    if (s.profile === "esde" && !s.media[f.key]) {      // a media ES-DE has no folder for (wheel…)
+      return `<td class="ov-media is-na" title="${escapeHtml(t("esde.no_such_media"))}"><span class="ov-pct">–</span></td>`;
+    }
     const m = s.media[f.key] || { present: 0, broken: 0, missing: 0 };
     const p = s.games ? Math.round(m.present * 100 / s.games) : 0, b = s.games ? Math.round(m.broken * 100 / s.games) : 0;
     const title = t("overview.media_title", { present: fmtCount(m.present), broken: fmtCount(m.broken), missing: fmtCount(m.missing) });
@@ -6254,7 +6293,7 @@ function renderOverview() {
       : `<p class="bulk-empty">${escapeHtml(t("overview.empty"))}</p>`;
     return;
   }
-  const byKey = Object.fromEntries(getFields().map(f => [f.key, f]));
+  const byKey = Object.fromEntries(getFields(true).map(f => [f.key, f]));
   const fields = OV_MEDIA.map(k => byKey[k]).filter(Boolean);
   const current = window.__gmeXmlPath ? recentKey(window.__gmeXmlPath) : null;
   const scroll = body.querySelector(".overview-table-wrap");
@@ -6398,6 +6437,12 @@ document.getElementById("overview-change").addEventListener("click", () => { clo
 document.getElementById("overview-stop").addEventListener("click", async () => {
   try { await apiFetch("/api/overview/stop", { method: "POST" }); } catch (e) { handleError(e); }
 });
+document.getElementById("open-gl-esde-overview").addEventListener("click", () => {
+  const path = document.getElementById("open-gl-esde").dataset.path;
+  if (!path) return;
+  closeGamelistModal();
+  openOverview({ path });
+});
 document.getElementById("open-gl-root").addEventListener("click", () => {
   const typed = (document.getElementById("open-gl-path").value || "").trim().replace(/^["']|["']$/g, "");
   const path = typed && !/\.xml$/i.test(typed) ? typed : __browsePath;
@@ -6502,7 +6547,7 @@ function mbSectionHtml(op, inner, desc) {
 function mbSetupHtml() {
   const o = mbatch.options || {};
   const p = mbatch.prefs;
-  const byKey = Object.fromEntries(getFields().map(f => [f.key, f]));
+  const byKey = Object.fromEntries(getFields(true).map(f => [f.key, f]));
   const systems = `<div class="mbatch-systems"><span class="mbatch-systems-label">${escapeHtml(t("multibatch.systems", { n: fmtCount(mbatch.systems.length) }))}</span>` +
     mbatch.systems.map(s => `<span class="ov-chip" title="${escapeHtml(s.xml)}">${escapeHtml(s.label)}</span>`).join("") + `</div>`;
   const roms = mbSectionHtml("roms", `<div class="check-options">` +

@@ -83,7 +83,12 @@ def _body():
     fields = body.get("fields")
     if not isinstance(fields, list) or not fields or any(f not in IMAGE_FIELDS for f in fields):
         raise SolidError("bulk.bad_field")
-    return set(paths), list(dict.fromkeys(fields)), bool(body.get("files"))
+    # ES-DE has no media tag to remove: removing a solid image means removing its file
+    with_files = bool(body.get("files")) or xml_store.is_esde()
+    fields = [f for f in dict.fromkeys(fields) if f in xml_store.media_fields()]
+    if not fields:
+        raise SolidError("bulk.bad_field")
+    return set(paths), fields, with_files
 
 
 def scan(tree, paths, fields):

@@ -14,6 +14,7 @@ from collections import Counter
 
 from flask import Blueprint, jsonify, request
 
+from gme import xml_store
 from gme.xml_store import MEDIA_DIRS, load_xml, require_gamelist, resolve_under_base
 
 bp = Blueprint("stats", __name__)
@@ -33,7 +34,7 @@ def _int(value):
 
 def compute(tree, required=()):
     games = tree.getroot().findall("game")
-    media = {f: {"present": 0, "broken": 0, "missing": 0} for f in MEDIA_DIRS}
+    media = {f: {"present": 0, "broken": 0, "missing": 0} for f in xml_store.media_fields()}
     exists = {}                              # path → on disk (files shared by clones checked once)
     genres, out = Counter(), Counter()
     most = None

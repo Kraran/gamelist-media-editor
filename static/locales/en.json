@@ -429,7 +429,8 @@
     "igdb_login": "IGDB: Twitch Client ID or Client Secret refused.",
     "igdb_rate": "IGDB: too many requests, try again in a moment.",
     "source_key_missing": "{source}: enter the key first in Settings › Fallback sources.",
-    "launchbox_recent": "The LaunchBox database is less than a day old: it is only published once a day."
+    "launchbox_recent": "The LaunchBox database is less than a day old: it is only published once a day.",
+    "esde_open_hint": "This is an ES-DE installation: open a gamelist from {path}/<system>/gamelist.xml, or the ES-DE overview."
   },
   "open_gl": {
     "title": "Open a gamelist.xml",
@@ -1123,5 +1124,13 @@
     "completed": "completed by {sources}",
     "from": "From {source}",
     "col_field": "Field"
+  },
+  "esde": {
+    "badge_title": "ES-DE gamelist · media found by name in {media} · ROMs: {roms}",
+    "chip_title": "ES-DE gamelist: media named after the ROM in downloaded_media",
+    "no_such_media": "ES-DE has no such media type",
+    "browse_hint": "ES-DE installation detected: gamelists are in ES-DE/gamelists/<system>, media in downloaded_media.",
+    "open_overview": "ES-DE overview",
+    "clear_field_body": "<p>ES-DE finds a media by its file name: the file is <strong>moved to the Recycle Bin</strong>.</p><p>No media tag is written to <code>gamelist.xml</code>.</p>"
   }
 }

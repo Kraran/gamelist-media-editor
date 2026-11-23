@@ -16,7 +16,7 @@ import shutil
 
 from flask import Blueprint, jsonify, request
 
-from gme import fsutil, xml_store
+from gme import esde, fsutil, xml_store
 from gme.http import api_err
 from gme.i18n import st
 from gme.log import log
@@ -32,9 +32,14 @@ def _key(full):
 
 
 def _rel(full):
-    """Gamelist form (./images/x.png) for files under the folder, else the full path."""
+    """Gamelist form (./images/x.png, ES-DE: @media/covers/x.png) for files under
+    the folder, else the full path."""
+    if xml_store.PROFILE is not None:
+        value = esde.to_value(xml_store.PROFILE, full)
+        if value:
+            return value
     try:
-        rel = os.path.relpath(full, xml_store.BASE_DIR)
+        rel = os.path.relpath(full, xml_store.rom_dir())
     except ValueError:          # another drive (Windows)
         return full
     if rel == ".." or rel.startswith(".." + os.sep):
@@ -64,7 +69,9 @@ def plan(game):
     Each entry: {"path", "full", "dir", "size"}. ``files`` starts with the ROM.
     """
     used = files_used_by_others(game)
-    base = _key(xml_store.BASE_DIR)
+    bases = {_key(xml_store.rom_dir()), _key(xml_store.BASE_DIR)}
+    if xml_store.PROFILE is not None:
+        bases.add(_key(xml_store.PROFILE.media_dir))
     out = {"files": [], "media": [], "kept": []}
     seen = set()
 
@@ -72,7 +79,7 @@ def plan(game):
         if not full or not os.path.exists(full):
             return
         key = _key(full)
-        if key in seen or key == base or base.startswith(key + os.sep):
+        if key in seen or any(key == base or base.startswith(key + os.sep) for base in bases):
             return                          # never the system folder or above
         seen.add(key)
         is_dir = os.path.isdir(full)

@@ -429,7 +429,8 @@
     "igdb_login": "IGDB: Client ID или Client Secret Twitch отклонён.",
     "igdb_rate": "IGDB: слишком много запросов, повтори чуть позже.",
     "source_key_missing": "{source}: сначала укажи ключ в Настройки › Резервные источники.",
-    "launchbox_recent": "Базе LaunchBox меньше суток: она публикуется только раз в день."
+    "launchbox_recent": "Базе LaunchBox меньше суток: она публикуется только раз в день.",
+    "esde_open_hint": "Это установка ES-DE: откройте gamelist из {path}/<система>/gamelist.xml или обзор ES-DE."
   },
   "open_gl": {
     "title": "Открыть gamelist.xml",
@@ -1123,5 +1124,13 @@
     "completed": "дополнено из {sources}",
     "from": "Из {source}",
     "col_field": "Поле"
+  },
+  "esde": {
+    "badge_title": "Gamelist ES-DE · медиа найдены по имени в {media} · ROM: {roms}",
+    "chip_title": "Gamelist ES-DE: медиа по имени ROM в downloaded_media",
+    "no_such_media": "В ES-DE нет такого типа медиа",
+    "browse_hint": "Обнаружена установка ES-DE: gamelist-файлы в ES-DE/gamelists/<система>, медиа в downloaded_media.",
+    "open_overview": "Обзор ES-DE",
+    "clear_field_body": "<p>ES-DE находит медиа по имени файла: файл будет <strong>перемещён в корзину</strong>.</p><p>Теги медиа в <code>gamelist.xml</code> не записываются.</p>"
   }
 }

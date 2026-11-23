@@ -42,6 +42,7 @@
     <div class="app-context">
       <span class="ctx-system" data-i18n-title="header.system_title" title="Système (dossier du gamelist.xml)">
         {{ icon("device-gamepad-2") }}<span class="system-badge" id="system-name">—</span>
+        <span class="profile-badge" id="system-profile" hidden>ES-DE</span>
       </span>
       <div class="menu-wrap systems-wrap" id="systems-wrap" hidden>
         <button type="button" class="btn btn-ghost btn-icon systems-btn" id="btn-systems" aria-haspopup="menu" aria-expanded="false" aria-controls="systems-menu" data-i18n-title="overview.switch_title" title="Changer de système" data-i18n-aria="overview.switch_title" aria-label="Changer de système">{{ icon("chevron-down") }}</button>
@@ -452,6 +453,8 @@
           <button type="button" class="btn btn-icon open-gl-nav" id="open-gl-refresh" data-i18n-title="open_gl.refresh_title" title="Actualiser">{{ icon("refresh") }}</button>
         </div>
         <div id="open-gl-drives" class="open-gl-drives" hidden></div>
+        <div id="open-gl-esde" class="open-gl-esde" hidden>{{ icon("info-circle") }}<span id="open-gl-esde-text" data-i18n="esde.browse_hint">Installation ES-DE détectée : les gamelists sont dans ES-DE/gamelists/&lt;système&gt;, les médias dans downloaded_media.</span>
+          <button type="button" class="btn btn-sm" id="open-gl-esde-overview">{{ icon("chart-bar") }}<span data-i18n="esde.open_overview">Vue d'ensemble ES-DE</span></button></div>
         <div id="open-gl-listing" class="open-gl-listing" role="list"></div>
       </div>
 

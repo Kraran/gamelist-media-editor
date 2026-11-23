@@ -352,8 +352,7 @@ def _read(full):
 
 
 def _rel(full):
-    rel = os.path.relpath(full, xml_store.BASE_DIR).replace("\\", "/")
-    return "./" + rel
+    return xml_store.gamelist_value(full)
 
 
 def _free_name(folder, stem, ext, taken=()):
@@ -430,7 +429,11 @@ def save_edit(game, field, ops, mode, edit, img=None, source_fmt=None):
     stem, old_ext = os.path.splitext(name)
     same_ext = _EXT_FORMAT.get(old_ext.lower()) == fmt
     shared = file_in_use(game, rel, skip_tag=field)
-    if mode == "new":
+    if xml_store.is_esde():
+        # ES-DE finds a media by its name: the edit always takes the media's place
+        mode, shared = "overwrite", False
+        dest = full if same_ext else os.path.join(folder, stem + ext)
+    elif mode == "new":
         dest = _free_name(folder, stem + "-edit", ext)
     elif same_ext and not shared:
         dest = full
