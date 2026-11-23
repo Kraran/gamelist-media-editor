@@ -331,7 +331,7 @@
   </div>
 
   <footer class="status-bar">
-    <span class="status-text" id="status" data-i18n="status.ready_short">Prêt</span>
+    <span class="status-main"><span class="spinner spinner-sm" id="status-spinner" role="status" data-i18n-aria="common.loading" aria-label="Chargement…" hidden></span><span class="status-text" id="status" data-i18n="status.ready_short">Prêt</span></span>
     <span class="kbd-hints">
       <span><kbd>J</kbd><kbd>K</kbd> <span data-i18n="status.kbd_navigate">naviguer</span></span>
       <span><kbd>N</kbd> <span data-i18n="status.kbd_next_incomplete">incomplet suivant</span></span>
@@ -525,7 +525,7 @@
             <figcaption><span data-i18n="imgedit.result">Résultat</span><span class="imgedit-info" id="imgedit-out-info"></span></figcaption>
             <div class="imgedit-stage checker" id="imgedit-out-stage">
               <img id="imgedit-out" alt="">
-              <span class="imgedit-busy" id="imgedit-busy" hidden data-i18n="imgedit.loading">Calcul de l'aperçu…</span>
+              <span class="imgedit-busy" id="imgedit-busy" hidden role="status"><span class="spinner spinner-sm" aria-hidden="true"></span><span data-i18n="imgedit.loading">Calcul de l'aperçu…</span></span>
             </div>
             <p class="imgedit-warn" id="imgedit-warn" hidden></p>
           </figure>
@@ -646,6 +646,7 @@
           <span class="bulk-hint dat-hash-hint" id="dat-hash-hint"></span>
         </div>
         <div class="dat-progress" id="dat-progress" hidden>
+          <span class="spinner spinner-sm" aria-hidden="true"></span>
           <div class="dat-bar"><span id="dat-bar"></span></div>
           <span class="dat-progress-text" id="dat-progress-text"></span>
           <button type="button" class="btn btn-sm" id="dat-stop">{{ icon("player-stop") }}<span data-i18n="dat.stop">Arrêter</span></button>
@@ -895,9 +896,9 @@
     </div>
   </div>
 
-  <div id="ss-loading" class="ss-loading" hidden aria-live="polite" aria-busy="true">
+  <div id="ss-loading" class="ss-loading" hidden role="status" aria-live="polite" aria-busy="true">
     <div class="ss-loading-box">
-      <div class="ss-spinner" aria-hidden="true"></div>
+      <div class="spinner" aria-hidden="true"></div>
       <div class="ss-loading-text" id="ss-loading-text">ScreenScraper…</div>
       <div class="ss-loading-sub" data-i18n="scrape.loading_sub">Cela peut prendre plusieurs secondes</div>
     </div>

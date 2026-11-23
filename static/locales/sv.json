@@ -4,7 +4,8 @@
     "name": "Svenska"
   },
   "common": {
-    "label_value": "{label}: {value}"
+    "label_value": "{label}: {value}",
+    "loading": "Läser in…"
   },
   "header": {
     "game_count": "{n} spel",

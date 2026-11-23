@@ -181,6 +181,12 @@ kbd {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation-duration: 0.01ms !important; }
 }
+@media (prefers-reduced-motion: reduce) {
+  /* the loading ring still turns, slowly: it is the only sign that something runs */
+  .spinner { animation: spin 1.6s linear infinite !important; }
+  .spinner-delay { animation: spin 1.6s linear infinite, spinner-in 0.01ms linear var(--spinner-delay, 200ms) forwards !important; }
+  .is-busy > .spinner.on-icon + .icon { animation: spinner-out 0.01ms linear var(--spinner-delay, 200ms) forwards !important; }
+}
 
 /* 3. Controls ------------------------------------------------------------ */
 .icon {
@@ -989,15 +995,32 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); cur
   background: var(--raised);
   box-shadow: var(--shadow-overlay);
 }
-.ss-spinner {
+/* The loading ring: one style everywhere (scrape overlay, buttons, panels,
+ * status bar). spinner-delay shows it only after --spinner-delay, so a fast
+ * action never flickers. Helpers: spinnerHtml(), busyHtml(), setBusy() in app.js. */
+.spinner {
+  display: inline-block;
+  flex: 0 0 auto;
+  box-sizing: border-box;
   width: 30px;
   height: 30px;
   border: 3px solid var(--line-soft);
   border-top-color: var(--accent-text);
   border-radius: 50%;
+  vertical-align: middle;
   animation: spin 0.8s linear infinite;
 }
+.spinner-sm { width: 14px; height: 14px; border-width: 2px; }
+.spinner-delay { opacity: 0; animation: spin 0.8s linear infinite, spinner-in 0.12s ease-out var(--spinner-delay, 200ms) forwards; }
 @keyframes spin { to { transform: rotate(360deg); } }
+@keyframes spinner-in { to { opacity: 1; } }
+@keyframes spinner-out { to { opacity: 0; } }
+.spinner[hidden] { display: none; }
+.busy-line { display: flex; align-items: center; gap: var(--s2); color: var(--text-3); }
+.is-busy { position: relative; cursor: progress; }
+.is-busy > .spinner.on-icon { position: absolute; }
+.is-busy > .spinner.on-icon + .icon { animation: spinner-out 0s linear var(--spinner-delay, 200ms) forwards; }
+.status-main { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .ss-loading-text { font-weight: 600; }
 .ss-loading-sub { color: var(--text-3); font-size: var(--fs-sm); }
 
@@ -1829,8 +1852,9 @@ ul.batch-warning { margin: 0; padding-left: var(--s4); }
 .imgedit-handle[data-h="ne"] { right: -7px; top: -7px; cursor: nesw-resize; }
 .imgedit-handle[data-h="sw"] { left: -7px; bottom: -7px; cursor: nesw-resize; }
 .imgedit-handle[data-h="se"] { right: -7px; bottom: -7px; cursor: nwse-resize; }
-.imgedit-busy { position: absolute; right: 8px; bottom: 8px; padding: 2px 8px; border-radius: 999px; background: var(--raised); color: var(--text-2); font-size: var(--fs-xs); line-height: 1.6; }
+.imgedit-busy { position: absolute; right: 8px; bottom: 8px; display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 999px; background: var(--raised); color: var(--text-2); font-size: var(--fs-xs); line-height: 1.6; }
 .imgedit-busy[hidden], .imgedit-warn[hidden] { display: none; }
+.imgedit-busy:not([hidden]) { opacity: 0; animation: spinner-in 0.12s ease-out var(--spinner-delay, 200ms) forwards; }
 .imgedit-warn { margin: 0; color: var(--warn); font-size: var(--fs-sm); }
 .imgedit-tools { min-height: 0; overflow-y: auto; display: grid; align-content: start; gap: var(--s3); padding-right: 4px; }
 .imgedit-group { display: grid; gap: 6px; padding: var(--s2) var(--s3); border: 1px solid var(--line); border-radius: var(--r-control); background: var(--surface); }
@@ -1853,3 +1877,14 @@ input[type="color"]:disabled { opacity: .45; }
   .imgedit-panes { grid-template-rows: 260px 260px; }
 }
 .imgedit-row .imgedit-check { display: flex; color: var(--text); font-size: var(--fs-sm); }
+
+/* Media tile while an upload/import is running */
+.media-tile[aria-busy="true"] { position: relative; }
+.tile-busy {
+  position: absolute; inset: 0; z-index: 2;
+  display: flex; align-items: center; justify-content: center; gap: var(--s2);
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
+  color: var(--text-2); font-size: var(--fs-sm);
+  opacity: 0; animation: spinner-in 0.12s ease-out var(--spinner-delay, 200ms) forwards;
+}
+.tile-busy .spinner-delay { animation: spin 0.8s linear infinite; opacity: 1; }
