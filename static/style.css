@@ -1187,6 +1187,49 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); cur
 .ssm-row.is-off select { opacity: .45; }
 .ssm-music { display: flex; align-items: flex-start; gap: var(--s2); margin-top: var(--s3); }
 .ssm-music .icon { flex: none; width: 16px; height: 16px; margin-top: 2px; }
+/* Settings › Fallback sources */
+.fb-h { margin: var(--s4) 0 var(--s2); font-size: var(--fs-md); font-weight: 600; }
+.fb-order { display: grid; gap: var(--s1); margin: 0; padding: 0; list-style: none; max-width: 560px; }
+.fb-row {
+  display: grid;
+  grid-template-columns: 18px 22px minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: var(--s2);
+  padding: var(--s1) var(--s2) var(--s1) var(--s3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  background: var(--surface);
+}
+.fb-row[data-state="on"], .fb-row[data-state="main"] { border-color: var(--accent-text); }
+.fb-rank { color: var(--text-3); font-size: var(--fs-xs); font-variant-numeric: tabular-nums; text-align: center; }
+.fb-name { font-weight: 600; }
+.fb-note { color: var(--text-3); font-size: var(--fs-xs); }
+.fb-row[data-state="on"] .fb-note { color: var(--ok); }
+.fb-row[data-state="setup"] .fb-note { color: var(--warn); }
+.fb-move { padding: 4px; }
+.fb-continue { margin-top: var(--s3); }
+.fb-source { display: grid; gap: var(--s2); margin-top: var(--s3); padding: var(--s3); border: 1px solid var(--line); border-radius: var(--r-control); max-width: 560px; }
+.fb-source .fb-h { margin: 0; }
+.fb-progress { height: 6px; border-radius: 3px; background: var(--raised); overflow: hidden; }
+.fb-progress[hidden] { display: none; }
+.fb-progress-bar { width: 0; height: 100%; background: var(--accent); transition: width .3s ease; }
+.fb-table { border-collapse: collapse; font-size: var(--fs-sm); margin-bottom: var(--s2); }
+.fb-table th, .fb-table td { padding: 4px var(--s3); border-bottom: 1px solid var(--line); text-align: center; }
+.fb-table th[scope="row"], .fb-table thead th:first-child { text-align: left; font-weight: 500; color: var(--text-2); }
+.fb-table thead th { color: var(--text-3); font-size: var(--fs-xs); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.fb-na { color: var(--text-3); }
+/* Scrape dialog: where a field comes from (fallback sources) */
+.ss-src {
+  flex: none;
+  padding: 1px 6px;
+  border: 1px solid var(--accent-text);
+  border-radius: 999px;
+  color: var(--accent-text);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+}
 /* Settings › Required media */
 .required-head { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s2); color: var(--text); font-size: var(--fs-sm); }
 .required-state { color: var(--text-3); }
