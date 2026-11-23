@@ -41,7 +41,7 @@ from gme.bulk import CLEAR_FIELDS
 from gme.http import api_err
 from gme.i18n import get_request_locale, locale_scope, st
 from gme.log import log
-from gme.scrapers import ss_limits
+from gme.scrapers import sources, ss_limits
 from gme.scrapers.compare import MEDIA_KEYS, META_KEYS
 from gme.solidimages import IMAGE_FIELDS
 from gme.systems import default_scraper
@@ -228,6 +228,8 @@ def _op_clear(c, opt):
 
 def _blocked_halt(source):
     if source != "screenscraper":
+        return None
+    if sources.continue_on_ss_block():      # the fallback sources carry on alone
         return None
     reason = ss_limits.GATE.blocked()
     return st(reason[0]) if reason else None
