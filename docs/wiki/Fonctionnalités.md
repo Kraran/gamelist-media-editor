@@ -29,6 +29,7 @@ Version documentée : **1.7.0**
 - **Cache des réponses ScreenScraper** (30 jours, réglable) : rescraper ne consomme pas de quota
 - **Type ScreenScraper, région et activation par média** (Réglages › Médias ScreenScraper) ; images téléchargées vérifiées (illisibles, minuscules ou unies refusées)
 - ScreenScraper (hash + nom, tous les systèmes RetroBat)
+- **Sources de secours** : LaunchBox Games Database (sans clé, base téléchargée une fois par jour), TheGamesDB (ta clé API), IGDB (ton application Twitch) complètent ScreenScraper champ par champ (jeu absent, champ ou média manquant, quota atteint) dans l’ordre choisi ; pastille de source dans la comparaison ; scrape d’un jeu, par lot et sur plusieurs systèmes
 - Arcade Database (PCB / Cabinet / Flyer / Decal, système arcade)
 - Steam (trailer FR, 720p / 480p, limite 50 Mo)
 
