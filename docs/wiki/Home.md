@@ -8,7 +8,7 @@ Application web **locale** (sur ton PC uniquement) qui te permet de :
 
 - glisser-déposer **image, vidéo, marquee, manuel, boxback, support, boxart, fanart, mix, maps, miniature, bezel, wheel, titleshot, musique**, et retoucher une image (**éditeur d’images** : recadrage, fond transparent, rognage, taille, format) ;
 - **scraper** un jeu avec un seul bouton (**ScreenScraper**, **Arcade Database** ou **Steam** selon le système) et **comparer** l’actuel et le proposé avant d’appliquer, ou **scraper par lot** les jeux cochés ou affichés, en parallèle dans les limites de ton compte ScreenScraper, avec un cache qui ménage ton quota ;
-- **modifier en masse** (champ, suppression de champs, rechercher / remplacer, noms d’après le fichier ou un DAT) avec aperçu et **Annuler**, comparer tes ROMs à un **DAT**, créer un gamelist à partir d’un dossier de ROMs ;
+- **modifier en masse** (champ, suppression de champs, images unies, rechercher / remplacer, noms d’après le fichier ou un DAT) avec aperçu et **Annuler**, comparer tes ROMs à un **DAT**, créer un gamelist à partir d’un dossier de ROMs ;
 - voir d’un coup d’œil ce qui manque (**miniatures** et **compteur de médias requis** dans la liste, filtre par média manquant, **Suivant incomplet**) ;
 - éditer nom, description, genre, note (étoiles), date, langue, région, système arcade, favori / caché / jeu enfant, avec **une seule barre d’enregistrement** ;
 - **vérifier** le gamelist face aux ROMs du dossier (ROMs absentes, entrées sans ROM, doublons) et aux médias (médias inutilisés, liens cassés), avec un rapport ;

@@ -63,7 +63,7 @@
             {{ icon("cloud-download") }}<span class="menu-item-text"><span class="menu-item-title" data-i18n="batch.title">Scraper par lot</span><span class="menu-item-sub" data-i18n="batch.action_sub">Les jeux cochés, sinon ceux affichés dans la liste</span></span>
           </button>
           <button type="button" class="menu-item" role="menuitem" id="btn-bulk">
-            {{ icon("pencil") }}<span class="menu-item-text"><span class="menu-item-title" data-i18n="bulk.title">Modifier en masse</span><span class="menu-item-sub" data-i18n="bulk.action_sub">Champ, suppression de champs, rechercher / remplacer, noms, médias, retrait de jeux</span></span>
+            {{ icon("pencil") }}<span class="menu-item-text"><span class="menu-item-title" data-i18n="bulk.title">Modifier en masse</span><span class="menu-item-sub" data-i18n="bulk.action_sub">Champ, suppression de champs, rechercher / remplacer, noms, images unies, médias, retrait de jeux</span></span>
           </button>
           <button type="button" class="menu-item" role="menuitem" id="btn-stats">
             {{ icon("chart-bar") }}<span class="menu-item-text"><span class="menu-item-title" data-i18n="stats.title">Statistiques</span><span class="menu-item-sub" data-i18n="stats.action_sub">Jeux, médias présents ou manquants, genres, parties</span></span>
@@ -485,6 +485,7 @@
           <button type="button" class="seg" role="tab" data-bulk-tab="replace" aria-selected="false">{{ icon("replace") }}<span data-i18n="bulk.tab_replace">Rechercher / remplacer</span></button>
           <button type="button" class="seg" role="tab" data-bulk-tab="reset_name" aria-selected="false">{{ icon("heading") }}<span data-i18n="bulk.tab_names">Noms</span></button>
           <button type="button" class="seg" role="tab" data-bulk-tab="images" aria-selected="false">{{ icon("photo-edit") }}<span data-i18n="imgedit.tab_images">Images</span></button>
+          <button type="button" class="seg" role="tab" data-bulk-tab="solid" aria-selected="false">{{ icon("photo-square-rounded") }}<span data-i18n="bulk.tab_solid">Images unies</span></button>
           <button type="button" class="seg" role="tab" data-bulk-tab="clear_media" aria-selected="false">{{ icon("photo") }}<span data-i18n="bulk.tab_media">Médias</span></button>
           <button type="button" class="seg" role="tab" data-bulk-tab="delete" aria-selected="false">{{ icon("trash") }}<span data-i18n="bulk.tab_delete">Retirer</span></button>
         </div>

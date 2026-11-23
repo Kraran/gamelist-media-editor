@@ -406,14 +406,28 @@ def check_image(data):
         raise
     except Exception as e:                        # not an image, corrupt, truncated, bomb
         raise MediaRejected("image_unreadable") from e
-    # On a small copy (averaging removes JPEG noise): fully transparent, or one colour
-    rgba.thumbnail((64, 64), Image.Resampling.BOX)
-    (amin, amax) = rgba.getextrema()[3]
+    if uniform_colour(rgba) is not None:
+        raise MediaRejected("image_uniform")
+
+
+def uniform_colour(rgba):
+    """``"transparent"``, ``"#rrggbb"`` when an RGBA picture is a single colour, else None.
+
+    Measured on a small copy (averaging removes JPEG noise): fully transparent,
+    or every channel (alpha included) within ``UNIFORM_MAX_RANGE``.
+    """
+    from PIL import Image
+    small = rgba.copy()
+    small.thumbnail((64, 64), Image.Resampling.BOX)
+    (amin, amax) = small.getextrema()[3]
     if amax == 0:
-        raise MediaRejected("image_uniform")
-    rgb_ranges = [hi - lo for lo, hi in rgba.convert("RGB").getextrema()]
+        return "transparent"
+    rgb = small.convert("RGB")
+    rgb_ranges = [hi - lo for lo, hi in rgb.getextrema()]
     if amax - amin <= UNIFORM_MAX_RANGE and max(rgb_ranges) <= UNIFORM_MAX_RANGE:
-        raise MediaRejected("image_uniform")
+        r, g, b = (round(sum(lo_hi) / 2) for lo_hi in rgb.getextrema())
+        return "#%02x%02x%02x" % (r, g, b)
+    return None
 
 
 def must_check_image(field, data):
