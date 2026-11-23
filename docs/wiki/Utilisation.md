@@ -20,7 +20,24 @@ Dans **Gamelist…**, va dans ton dossier `roms` (RetroBat `roms`, Batocera `/us
 - Clic sur un système : il s’ouvre dans l’éditeur (les modifications non enregistrées sont demandées avant). La flèche ▾ à côté du nom du système passe à un autre système ou revient à la vue d’ensemble
 - Un dossier sans gamelist propose **Créer un gamelist…** ; un `gamelist.xml` illisible est signalé
 - L’analyse tourne en arrière-plan (barre de progression, **Arrêter**) et reste en mémoire tant que le gamelist et les dossiers de médias ne changent pas ; **Actualiser** relit tout
-- Lecture seule : rien n’est écrit
+- Lecture seule : l’analyse n’écrit rien
+
+### Actions sur plusieurs systèmes
+
+Coche des systèmes dans la vue d’ensemble (la case de l’en-tête coche tout), puis **Actions sur les systèmes cochés…**. Coche les actions voulues ; elles s’enchaînent **un système à la fois**, dans cet ordre :
+
+1. **Vérifier les ROMs** : ajouter les ROMs absentes du gamelist ; retirer les entrées sans ROM (décoché par défaut, jamais si plus de la moitié manque) et, en option, leurs médias inutilisés
+2. **Vérifier les médias** : retirer les liens vers des fichiers absents ; en option, supprimer les médias inutilisés (jamais si plus de la moitié semble inutilisée : dossier partagé ?)
+3. **Images unies** : les champs à vérifier, et en option la suppression des fichiers
+4. **Supprimer des champs** : les mêmes balises que *Modifier en masse › Supprimer des champs*
+5. **Scraper** avec la source du système (ScreenScraper, ou Arcade Database / Steam) : *Compléter* (seulement les jeux auxquels il manque un champ coché, pour économiser le quota) ou *Remplacer* (tous les jeux)
+
+- Chaque action passe par l’outil d’un seul système : mêmes contrôles et **sauvegarde datée** avant chaque modification (*Sauvegardes › Historique*)
+- ScreenScraper : jamais plus de requêtes à la fois que le `maxthreads` de ton compte, ses requêtes par minute sont respectées et le quota du jour est vérifié avant chaque système. Quota atteint, bannissement ou source bloquée : **toute la série s’arrête** et dit pourquoi ; les systèmes restants sont *non traités* (le lot du système arrêté se reprend depuis l’éditeur)
+- Un système dont un lot de scraping n’est pas fini est ignoré plutôt que remplacé
+- Barre de progression (système, action, jeux), **Arrêter** termine l’étape en cours, puis un **rapport** par système et par action ; **Retour à la vue d’ensemble** relit les compteurs
+- Supprimer des fichiers (toujours vers la Corbeille) demande sa propre case **et** une confirmation en rouge qui les liste. Les ROMs ne sont jamais supprimées
+- Un système en erreur (gamelist illisible…) n’arrête pas les autres ; à la fin, le gamelist ouvert avant est rouvert
 
 ## Interface
 

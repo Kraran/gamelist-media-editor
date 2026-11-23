@@ -2021,7 +2021,7 @@ document.addEventListener("keydown", e => {
     }
     return;
   }
-  for (const [id, close] of [["imgedit-modal", () => closeImageEditor()], ["bulk-modal", () => closeBulk()], ["stats-modal", () => closeStats()], ["overview-modal", () => closeOverview()],
+  for (const [id, close] of [["imgedit-modal", () => closeImageEditor()], ["bulk-modal", () => closeBulk()], ["stats-modal", () => closeStats()], ["mbatch-modal", () => closeMultiBatch()], ["overview-modal", () => closeOverview()],
     ["dat-modal", () => closeDatTool()], ["newgl-modal", () => closeNewGamelist()]]) {
     const el = document.getElementById(id);
     if (el && el.classList.contains("open")) {
@@ -2173,7 +2173,7 @@ document.addEventListener("keydown", e => {
  * The page behind a dialog cannot be reached with the keyboard. The confirm
  * dialog can open above another one, so it is looked at first. */
 const DIALOG_IDS = ["confirm-modal", "media-lightbox", "ss-modal", "batch-modal", "check-modal", "backups-modal", "bulk-modal",
-  "imgedit-modal", "stats-modal", "overview-modal", "dat-modal", "newgl-modal", "open-gamelist-modal",
+  "imgedit-modal", "stats-modal", "mbatch-modal", "overview-modal", "dat-modal", "newgl-modal", "open-gamelist-modal",
   "settings-modal", "about-modal"];
 function topDialog() {
   for (const id of DIALOG_IDS) {
@@ -3813,6 +3813,7 @@ async function boot() {
   await importBrowserRecents();
   await loadGames();
   refreshSystemsSwitcher();
+  reattachMultiBatch();
   // First launch / no gamelist: open the file browser automatically
   if (!window.__gmeLoaded && typeof openGamelistModal === "function") {
     setTimeout(() => openGamelistModal(), 350);
@@ -5886,7 +5887,7 @@ document.getElementById("newgl-tags").addEventListener("change", invalidateNewGa
  */
 const OV_MEDIA = ["image", "thumbnail", "marquee", "wheel", "video"];
 const OV_META = [["desc", "overview.col_no_desc"], ["genre", "overview.col_no_genre"], ["releasedate", "overview.col_no_date"]];
-let overview = { root: null, data: null, sort: { key: "label", dir: 1 }, timer: null, seq: 0 };
+let overview = { root: null, data: null, sort: { key: "label", dir: 1 }, timer: null, seq: 0, picked: new Set() };
 let rootSystems = { root: null, systems: [] };
 
 function ovMediaPct(s, f) {
@@ -5945,15 +5946,19 @@ function ovRowHtml(s, fields, current) {
   } else {
     first = `<span class="ov-open is-static">${name}</span>`;
   }
+  const pickable = s.xml && !s.error;
+  const picked = pickable && [...overview.picked].some(x => recentKey(x) === recentKey(s.xml));
+  const pick = `<td class="ov-pick">${pickable ? `<input type="checkbox" data-ov-pick="${escapeHtml(s.xml)}"${picked ? " checked" : ""}` +
+    ` aria-label="${escapeHtml(t("multibatch.pick", { system: s.label }))}" />` : ""}</td>`;
   if (!s.xml) {
-    return `<tr class="is-no-xml"><td class="ov-system">${first}</td>` +
+    return `<tr class="is-no-xml">${pick}<td class="ov-system">${first}</td>` +
       `<td colspan="${3 + OV_MEDIA.length + OV_META.length}" class="ov-note"><span class="ov-chip">${escapeHtml(t("overview.no_gamelist"))}</span>` +
       `<span>${escapeHtml(t("overview.roms_count", { n: fmtCount(s.roms_unlisted || 0) }))}</span>` +
       (s.roms_unlisted ? `<button type="button" class="btn btn-sm" data-ov-create="${escapeHtml(s.path)}" title="${escapeHtml(t("overview.create_title"))}">${icon("folder-plus")}<span>${escapeHtml(t("overview.create"))}</span></button>` : "") +
       `</td></tr>`;
   }
   if (s.error) {
-    return `<tr class="is-error"><td class="ov-system">${first}</td><td colspan="${3 + OV_MEDIA.length + OV_META.length}" class="ov-note">` +
+    return `<tr class="is-error">${pick}<td class="ov-system">${first}</td><td colspan="${3 + OV_MEDIA.length + OV_META.length}" class="ov-note">` +
       `<span class="ov-chip is-error" title="${escapeHtml(s.error_detail || "")}">${icon("alert-circle")}${escapeHtml(t("overview." + s.error))}</span></td></tr>`;
   }
   const num = (n, warn) => `<td class="ov-num${warn && n ? " is-warn" : ""}">${n ? fmtCount(n) : `<span class="ov-zero">0</span>`}</td>`;
@@ -5965,7 +5970,8 @@ function ovRowHtml(s, fields, current) {
       `<span class="stats-bar"><span class="ok" style="width:${p}%"></span><span class="bad" style="width:${b}%"></span></span></td>`;
   }).join("");
   const meta = OV_META.map(([k]) => `<td class="ov-num">${s.meta_missing[k] ? fmtCount(s.meta_missing[k]) : `<span class="ov-zero">0</span>`}</td>`).join("");
-  return `<tr${isCurrent ? ' class="is-current"' : ""}><td class="ov-system">${first}</td>${num(s.games)}${num(s.roms_missing, true)}${num(s.roms_unlisted)}${media}${meta}</tr>`;
+  const cls = [isCurrent ? "is-current" : "", picked ? "is-picked" : ""].filter(Boolean).join(" ");
+  return `<tr${cls ? ` class="${cls}"` : ""}>${pick}<td class="ov-system">${first}</td>${num(s.games)}${num(s.roms_missing, true)}${num(s.roms_unlisted)}${media}${meta}</tr>`;
 }
 function renderOverview() {
   const d = overview.data;
@@ -5982,6 +5988,7 @@ function renderOverview() {
       ? t("overview.progress_current", { done: fmtCount(d.done), total: fmtCount(d.total), system: d.current })
       : t("overview.progress", { done: fmtCount(d.done), total: fmtCount(d.total) });
   }
+  if (!d || !(d.systems || []).length) updateOverviewActions();
   if (!d) { body.innerHTML = busyHtml(t("common.loading"), "bulk-empty"); return; }
   const systems = d.systems || [];
   if (!systems.length) {
@@ -5997,6 +6004,7 @@ function renderOverview() {
   let html = ovTotalsHtml(systems);
   if (d.state === "stopped") html += `<p class="bulk-hint bulk-warn">${icon("alert-triangle")}<span>${escapeHtml(t("overview.stopped", { done: fmtCount(d.done), total: fmtCount(d.total) }))}</span></p>`;
   html += `<div class="overview-table-wrap"><table class="overview-table" id="overview-table"><thead><tr>` +
+    `<th class="ov-pick"><input type="checkbox" id="ov-pick-all" aria-label="${escapeHtml(t("multibatch.pick_all"))}" title="${escapeHtml(t("multibatch.pick_all"))}" /></th>` +
     ovHeader("label", t("overview.col_system")) + ovHeader("games", t("overview.col_games")) +
     ovHeader("roms_missing", t("overview.col_roms_missing"), t("overview.col_roms_missing_title")) +
     ovHeader("roms_unlisted", t("overview.col_roms_unlisted"), t("overview.col_roms_unlisted_title")) +
@@ -6006,6 +6014,7 @@ function renderOverview() {
   body.innerHTML = html;
   const wrap = body.querySelector(".overview-table-wrap");
   if (wrap) wrap.scrollTop = top;
+  updateOverviewActions();
 }
 async function pollOverview(seq) {
   clearTimeout(overview.timer);
@@ -6174,5 +6183,422 @@ document.getElementById("open-gl-roots").addEventListener("click", async e => {
   openOverview({ path: item.dataset.path });
 });
 
+
+/* ========== Actions on several systems (gme/multibatch.py) ==========
+ * Systems ticked in the overview, then the chosen operations run one system at
+ * a time on the server, through the single-system routes (same checks, dated
+ * backup before every change, Recycle Bin). Deleting files needs its own box
+ * and a danger confirmation, as in the single-system windows. */
+const MB_OPS = ["roms", "media", "solid", "clear", "scrape"];
+const MB_OP_ICONS = { roms: "list-check", media: "photo-cog", solid: "photo-square-rounded", clear: "eraser", scrape: "cloud-download" };
+let mbatch = {
+  phase: "setup", systems: [], data: null, timer: null, seq: 0, options: null, stopping: false,
+  prefs: {
+    roms: { on: false, add: true, remove: false, delete_media: false },
+    media: { on: false, unlink: true, delete: false },
+    solid: { on: false, off: new Set(), files: false },
+    clear: { on: false, fields: new Set() },
+    scrape: { on: false, mode: "missing", off: new Set(["name", "pad2key"]) },
+  },
+};
+
+function ovPickable() {
+  return ((overview.data && overview.data.systems) || []).filter(s => s.xml && !s.error);
+}
+function ovPicked() {
+  const keys = new Set([...overview.picked].map(recentKey));
+  return ovPickable().filter(s => keys.has(recentKey(s.xml)));
+}
+function updateOverviewActions() {
+  const n = ovPicked().length;
+  const running = !!(overview.data && overview.data.state === "running");
+  const btn = document.getElementById("overview-actions");
+  btn.disabled = !n || running;
+  document.getElementById("overview-actions-label").textContent = n ? t("multibatch.open_n", { n: fmtCount(n) }) : t("multibatch.open");
+  const all = document.getElementById("ov-pick-all");
+  if (all) {
+    const total = ovPickable().length;
+    all.checked = !!total && n === total;
+    all.indeterminate = n > 0 && n < total;
+  }
+}
+
+function mbOpLabel(op) { return t("multibatch.op_" + op); }
+function mbCheck(attr, label, on, { danger = false, disabled = false, hint = "" } = {}) {
+  return `<label class="check-option${danger ? " is-danger" : ""}"${hint ? ` title="${escapeHtml(hint)}"` : ""}>` +
+    `<input type="checkbox" ${attr}${on ? " checked" : ""}${disabled ? " disabled" : ""} />` +
+    `${danger ? icon("trash") : ""}<span>${escapeHtml(label)}</span></label>`;
+}
+function mbFieldGrid(op, keys, isOn, labelOf, iconOf) {
+  return `<div class="required-grid mbatch-fields">` + keys.map(k =>
+    `<label class="required-item"><input type="checkbox" data-mb-field="${op}" value="${escapeHtml(k)}"${isOn(k) ? " checked" : ""} />` +
+    `${icon(iconOf(k))}<span>${escapeHtml(labelOf(k))}</span></label>`).join("") + `</div>`;
+}
+function mbSectionHtml(op, inner, desc) {
+  const p = mbatch.prefs[op];
+  return `<section class="mbatch-section${p.on ? " is-on" : ""}" data-mb-section="${op}">` +
+    `<label class="mbatch-section-head"><input type="checkbox" data-mb-on="${op}"${p.on ? " checked" : ""} />` +
+    `${icon(MB_OP_ICONS[op])}<span class="mbatch-section-title">${escapeHtml(mbOpLabel(op))}</span></label>` +
+    `<p class="bulk-hint">${escapeHtml(desc)}</p><div class="mbatch-section-body">${inner}</div></section>`;
+}
+function mbSetupHtml() {
+  const o = mbatch.options || {};
+  const p = mbatch.prefs;
+  const byKey = Object.fromEntries(getFields().map(f => [f.key, f]));
+  const systems = `<div class="mbatch-systems"><span class="mbatch-systems-label">${escapeHtml(t("multibatch.systems", { n: fmtCount(mbatch.systems.length) }))}</span>` +
+    mbatch.systems.map(s => `<span class="ov-chip" title="${escapeHtml(s.xml)}">${escapeHtml(s.label)}</span>`).join("") + `</div>`;
+  const roms = mbSectionHtml("roms", `<div class="check-options">` +
+    mbCheck('data-mb-opt="roms.add"', t("multibatch.roms_add"), p.roms.add) +
+    mbCheck('data-mb-opt="roms.remove"', t("multibatch.roms_remove"), p.roms.remove) +
+    mbCheck('data-mb-opt="roms.delete_media"', t("romcheck.delete_media"), p.roms.delete_media, { danger: true, disabled: !p.roms.remove }) +
+    `</div>`, t("multibatch.roms_desc"));
+  const media = mbSectionHtml("media", `<div class="check-options">` +
+    mbCheck('data-mb-opt="media.unlink"', t("multibatch.media_unlink"), p.media.unlink) +
+    mbCheck('data-mb-opt="media.delete"', t("multibatch.media_delete"), p.media.delete, { danger: true }) +
+    `</div>`, t("multibatch.media_desc"));
+  const solid = mbSectionHtml("solid",
+    mbFieldGrid("solid", o.image_fields || [], k => !p.solid.off.has(k), k => (byKey[k] ? byKey[k].label : k), k => (byKey[k] ? byKey[k].icon : "photo")) +
+    `<div class="check-options">${mbCheck('data-mb-opt="solid.files"', t("bulk.solid_files"), p.solid.files, { danger: true, hint: t("bulk.solid_files_hint") })}</div>`,
+    t("bulk.solid_hint"));
+  const clear = mbSectionHtml("clear",
+    mbFieldGrid("clear", o.clear_fields || [], k => p.clear.fields.has(k), bulkFieldLabel, () => "eraser"),
+    t("multibatch.clear_desc"));
+  const known = new Set(o.scrape_fields || []);
+  const scrapeKeys = list => list.filter(k => known.has(k));
+  const scrape = mbSectionHtml("scrape",
+    `<div class="ss-toolbar"><div class="segmented" role="group" aria-label="${escapeHtml(t("scrape.selection"))}">` +
+    ["missing", "all"].map(m => `<button type="button" class="seg" data-mb-mode="${m}" aria-pressed="${p.scrape.mode === m}">` +
+      `<span>${escapeHtml(t(m === "missing" ? "scrape.preset_missing" : "scrape.preset_all"))}</span></button>`).join("") +
+    `</div><span class="ss-count">${escapeHtml(t(p.scrape.mode === "missing" ? "multibatch.scrape_missing" : "batch.mode_all"))}</span></div>` +
+    `<h4 class="ss-section-title">${escapeHtml(t("scrape.section_media"))}</h4>` +
+    mbFieldGrid("scrape", scrapeKeys(BATCH_MEDIA), k => !p.scrape.off.has(k), scrapeFieldLabel, k => SCRAPE_MEDIA_ICONS[k] || "list-details") +
+    `<h4 class="ss-section-title">${escapeHtml(t("scrape.section_info"))}</h4>` +
+    mbFieldGrid("scrape", scrapeKeys(BATCH_INFO), k => !p.scrape.off.has(k), scrapeFieldLabel, () => "list-details") +
+    `<p class="bulk-hint">${icon("shield-check")}<span>${escapeHtml(t("multibatch.scrape_limits"))}</span></p>`,
+    t("multibatch.scrape_desc"));
+  return systems + roms + media + solid + clear + scrape;
+}
+/** The operations as /api/multibatch expects them (only the ticked sections). */
+function mbOps() {
+  const p = mbatch.prefs, o = mbatch.options || {};
+  const ops = {};
+  if (p.roms.on && (p.roms.add || p.roms.remove)) ops.roms = { add: p.roms.add, remove: p.roms.remove, delete_media: p.roms.remove && p.roms.delete_media };
+  if (p.media.on && (p.media.unlink || p.media.delete)) ops.media = { unlink: p.media.unlink, delete: p.media.delete };
+  if (p.solid.on) {
+    const fields = (o.image_fields || []).filter(k => !p.solid.off.has(k));
+    if (fields.length) ops.solid = { fields, files: p.solid.files };
+  }
+  if (p.clear.on && p.clear.fields.size) ops.clear = { fields: (o.clear_fields || []).filter(k => p.clear.fields.has(k)) };
+  if (p.scrape.on) {
+    const known = new Set(o.scrape_fields || []);
+    const fields = [...BATCH_MEDIA, ...BATCH_INFO].filter(k => known.has(k) && !p.scrape.off.has(k));
+    if (fields.length) ops.scrape = { mode: p.scrape.mode, fields };
+  }
+  return ops;
+}
+function mbDeletions(ops) {
+  const out = [];
+  if (ops.roms && ops.roms.delete_media) out.push(t("romcheck.delete_media"));
+  if (ops.media && ops.media.delete) out.push(t("multibatch.media_delete"));
+  if (ops.solid && ops.solid.files) out.push(t("bulk.solid_files"));
+  return out;
+}
+function mbUpdateSetup() {
+  const p = mbatch.prefs;
+  for (const op of MB_OPS) {
+    const sec = document.querySelector(`[data-mb-section="${op}"]`);
+    if (!sec) continue;
+    sec.classList.toggle("is-on", p[op].on);
+    sec.querySelectorAll(".mbatch-section-body input, .mbatch-section-body button").forEach(el => {
+      el.disabled = !p[op].on || (el.dataset.mbOpt === "roms.delete_media" && !p.roms.remove);
+    });
+  }
+  const n = Object.keys(mbOps()).length;
+  document.getElementById("mbatch-start").disabled = !n;
+  document.getElementById("mbatch-start-label").textContent = t("multibatch.start_n", { n: fmtCount(mbatch.systems.length) });
+}
+
+function mbResultText(op, step) {
+  if (step.state === "error") return step.error || t("errors.internal");
+  const r = step.result;
+  if (!r) return "";
+  const parts = [];
+  if (r.skipped === "saved_batch") parts.push(t("multibatch.r_saved_batch"));
+  else if (r.nothing) parts.push(t("multibatch.r_nothing"));
+  else if (op === "roms") {
+    parts.push(t("multibatch.r_roms", { added: fmtCount(r.added), removed: fmtCount(r.removed) }));
+    if (r.media_deleted) parts.push(t("multibatch.r_files_deleted", { n: fmtCount(r.media_deleted) }));
+  } else if (op === "media") {
+    parts.push(t("multibatch.r_media", { unlinked: fmtCount(r.unlinked), deleted: fmtCount(r.deleted) }));
+    if (r.failed) parts.push(t("multibatch.r_failed", { n: fmtCount(r.failed) }));
+  } else if (op === "solid") {
+    parts.push(t("multibatch.r_solid", { removed: fmtCount(r.removed), games: fmtCount(r.games) }));
+    if (r.deleted) parts.push(t("multibatch.r_files_deleted", { n: fmtCount(r.deleted) }));
+    if (r.failed) parts.push(t("multibatch.r_failed", { n: fmtCount(r.failed) }));
+  } else if (op === "clear") {
+    parts.push(t("multibatch.r_clear", { changed: fmtCount(r.changed), games: fmtCount(r.games) }));
+  } else if (op === "scrape") {
+    parts.push(t("multibatch.r_scrape", { updated: fmtCount(r.updated), done: fmtCount(r.done), total: fmtCount(r.total) }));
+    if (r.uncertain || r.errors) parts.push(t("multibatch.r_scrape_more", { uncertain: fmtCount(r.uncertain), errors: fmtCount(r.errors) }));
+    if (r.stopped) parts.push(t("multibatch.r_stopped"));
+  }
+  if (r.suspicious) parts.push(t(op === "roms" ? "multibatch.r_suspicious_roms" : "multibatch.r_suspicious_media", { n: fmtCount(r.suspicious) }));
+  if (op === "scrape" && r.source && SCRAPERS[r.source]) parts.push(SCRAPERS[r.source].label);
+  return parts.join(" · ");
+}
+function mbStateChip(state) {
+  const ico = { done: "circle-check", error: "alert-circle", running: null, stopped: "player-stop", skipped: "player-skip-forward" }[state];
+  return `<span class="ov-chip mb-state is-${state}">${state === "running" ? spinnerHtml("spinner-sm") : (ico ? icon(ico) : "")}` +
+    `${escapeHtml(t("multibatch.state_" + state))}</span>`;
+}
+function mbRunHtml(d) {
+  let html = "";
+  if (d.state === "halted") html += `<p class="bulk-hint bulk-error mbatch-banner">${icon("alert-circle")}<span>${escapeHtml(t("multibatch.halted", { reason: d.halted }))}</span></p>`;
+  else if (d.state === "stopped") html += `<p class="bulk-hint bulk-warn mbatch-banner">${icon("alert-triangle")}<span>${escapeHtml(t("multibatch.stopped"))}</span></p>`;
+  else if (d.state === "done") {
+    const errors = d.systems.filter(s => s.state === "error").length;
+    html += `<p class="bulk-hint mbatch-banner ${errors ? "bulk-warn" : "is-ok"}">${icon(errors ? "alert-triangle" : "circle-check")}` +
+      `<span>${escapeHtml(t(errors ? "multibatch.done_errors" : "multibatch.done", { n: fmtCount(d.systems.length), errors: fmtCount(errors) }))}</span></p>`;
+  }
+  const ops = MB_OPS.filter(op => d.ops && d.ops[op]);
+  html += `<div class="overview-table-wrap"><table class="overview-table mbatch-table" id="mbatch-table"><thead><tr>` +
+    `<th><span class="ov-th">${escapeHtml(t("overview.col_system"))}</span></th>` +
+    ops.map(op => `<th><span class="ov-th">${icon(MB_OP_ICONS[op])}${escapeHtml(mbOpLabel(op))}</span></th>`).join("") +
+    `</tr></thead><tbody>` + d.systems.map(s => {
+      const steps = Object.fromEntries(s.steps.map(x => [x.op, x]));
+      return `<tr class="mb-row is-${s.state}" data-mb-system="${escapeHtml(s.folder)}"><td class="ov-system"><span class="ov-name">${escapeHtml(s.label)}</span>` +
+        `<div>${mbStateChip(s.state)}${s.error ? `<span class="mb-error">${escapeHtml(s.error)}</span>` : ""}</div></td>` +
+        ops.map(op => {
+          const step = steps[op] || { state: "skipped" };
+          const text = mbResultText(op, step);
+          const bak = step.result && step.result.backup ? `<span class="ov-chip mb-backup" title="${escapeHtml(t("multibatch.r_backup_title"))}">${icon("device-floppy")}${escapeHtml(t("multibatch.r_backup"))}</span>` : "";
+          return `<td class="mb-step is-${step.state}" data-mb-step="${op}">${step.state === "done" ? "" : mbStateChip(step.state)}` +
+            `${text ? `<span class="mb-text">${escapeHtml(text)}</span>` : ""}${bak}</td>`;
+        }).join("") + `</tr>`;
+    }).join("") + `</tbody></table></div>`;
+  if (d.state !== "running") {
+    html += `<p class="bulk-hint">${icon("arrow-back-up")}<span>${escapeHtml(t(d.reopened ? "multibatch.reopened" : "multibatch.closed_after"))}</span></p>`;
+  }
+  return html;
+}
+function renderMultiBatch() {
+  const body = document.getElementById("mbatch-body");
+  const start = document.getElementById("mbatch-start");
+  const cancel = document.getElementById("mbatch-cancel");
+  const back = document.getElementById("mbatch-back");
+  const prog = document.getElementById("mbatch-progress");
+  const closeBtn = document.getElementById("mbatch-close");
+  if (mbatch.phase === "setup") {
+    prog.hidden = true;
+    back.hidden = true;
+    start.hidden = false;
+    closeBtn.hidden = false;
+    cancel.disabled = false;
+    cancel.textContent = t("confirm.cancel");
+    body.innerHTML = mbSetupHtml();
+    mbUpdateSetup();
+    return;
+  }
+  const d = mbatch.data;
+  const running = !!d && d.state === "running";
+  start.hidden = true;
+  closeBtn.hidden = running;
+  back.hidden = running;
+  cancel.textContent = t(running ? (mbatch.stopping ? "multibatch.stopping" : "batch.stop") : "tools.close");
+  cancel.disabled = running && mbatch.stopping;
+  prog.hidden = !running;
+  if (!d) { body.innerHTML = busyHtml(t("common.loading"), "bulk-empty"); return; }
+  if (running) {
+    body.setAttribute("aria-busy", "true");
+    const n = d.systems.length || 1;
+    const c = d.current;
+    let frac = d.systems.filter(s => !["pending", "running"].includes(s.state)).length;
+    let text = t("multibatch.progress_wait");
+    if (c) {
+      const ops = MB_OPS.filter(op => d.ops[op]);
+      const at = c.op ? ops.indexOf(c.op) : 0;
+      frac = c.index + (Math.max(0, at) + (c.total ? c.done / c.total : 0)) / (ops.length || 1);
+      text = t("multibatch.progress", { i: fmtCount(c.index + 1), n: fmtCount(d.systems.length), system: c.label }) +
+        (c.op ? " · " + mbOpLabel(c.op) + (c.total ? ` ${fmtCount(c.done)}/${fmtCount(c.total)}` : "") : "");
+    }
+    document.getElementById("mbatch-bar").style.width = Math.min(100, Math.round(frac * 100 / n)) + "%";
+    document.getElementById("mbatch-progress-text").textContent = text;
+  } else {
+    body.removeAttribute("aria-busy");
+  }
+  const wrap = body.querySelector(".overview-table-wrap");
+  const top = wrap ? wrap.scrollTop : 0;
+  body.innerHTML = mbRunHtml(d);
+  const again = body.querySelector(".overview-table-wrap");
+  if (again) again.scrollTop = top;
+}
+async function pollMultiBatch(seq) {
+  clearTimeout(mbatch.timer);
+  try {
+    const d = await apiFetch("/api/multibatch");
+    if (seq !== mbatch.seq) return;
+    const wasRunning = mbatch.data && mbatch.data.state === "running";
+    mbatch.data = d;
+    renderMultiBatch();
+    if (d.state === "running") mbatch.timer = setTimeout(() => pollMultiBatch(seq), 500);
+    else if (wasRunning || mbatch.reload) {
+      mbatch.reload = false;
+      mbatch.stopping = false;
+      renderMultiBatch();
+      await loadGames();                     // the gamelist open before is open again (or none)
+      refreshSystemsSwitcher();
+    }
+  } catch (e) {
+    if (seq === mbatch.seq) {
+      handleError(e);
+      mbatch.timer = setTimeout(() => pollMultiBatch(seq), 1500);
+    }
+  }
+}
+async function openMultiBatch() {
+  const systems = ovPicked();
+  if (!systems.length) return;
+  try {
+    const d = await apiFetch("/api/multibatch");
+    mbatch.options = d.options;
+    if (d.state === "running") { showMultiBatchRun(d); return; }
+  } catch (e) { handleError(e); return; }
+  mbatch.phase = "setup";
+  mbatch.systems = systems.map(s => ({ xml: s.xml, label: s.label, folder: s.folder }));
+  document.getElementById("mbatch-modal").classList.add("open");
+  renderMultiBatch();
+  document.getElementById("mbatch-close").focus();
+}
+function showMultiBatchRun(d) {
+  mbatch.phase = "run";
+  mbatch.data = d;
+  mbatch.stopping = false;
+  mbatch.reload = true;
+  document.getElementById("mbatch-modal").classList.add("open");
+  renderMultiBatch();
+  pollMultiBatch(++mbatch.seq);
+}
+function closeMultiBatch() {
+  const modal = document.getElementById("mbatch-modal");
+  if (!modal.classList.contains("open")) return;
+  if (mbatch.phase === "run" && mbatch.data && mbatch.data.state === "running") return;   // Stop first
+  modal.classList.remove("open");
+  mbatch.seq++;
+  clearTimeout(mbatch.timer);
+  if (mbatch.phase === "run") {
+    mbatch.phase = "setup";
+    if (document.getElementById("overview-modal").classList.contains("open")) openOverview();
+  }
+}
+async function startMultiBatch() {
+  const ops = mbOps();
+  if (!Object.keys(ops).length) return;
+  if (!(await confirmLeaveEditor())) return;
+  const deletions = mbDeletions(ops);
+  let body = `<p>${escapeHtml(t("multibatch.confirm", { n: fmtCount(mbatch.systems.length) }))}</p>` +
+    `<ul class="bulk-list">${MB_OPS.filter(op => ops[op]).map(op => `<li>${escapeHtml(mbOpLabel(op))}</li>`).join("")}</ul>` +
+    `<p class="bulk-hint">${escapeHtml(t("multibatch.confirm_backup"))}</p>`;
+  if (ops.scrape) body += `<p class="bulk-hint">${escapeHtml(t("multibatch.confirm_scrape"))}</p>`;
+  if (deletions.length) {
+    body += `<p class="bulk-warn"><strong>${escapeHtml(t("multibatch.confirm_delete"))}</strong></p>` +
+      `<ul class="bulk-list bulk-warn">${deletions.map(x => `<li>${escapeHtml(x)}</li>`).join("")}</ul>`;
+  }
+  const choice = await askConfirm({
+    title: t("multibatch.title"), bodyHtml: body, showBackup: false,
+    okLabel: t(deletions.length ? "multibatch.ok_delete" : "multibatch.ok", { n: fmtCount(mbatch.systems.length) }),
+    okClass: deletions.length ? "btn-danger" : "btn-accent",
+  });
+  if (!choice.confirmed) return;
+  const startBtn = document.getElementById("mbatch-start");
+  setBusy(startBtn, true);
+  try {
+    const d = await apiFetch("/api/multibatch", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ systems: mbatch.systems.map(s => s.xml), ops, confirm_delete: deletions.length ? true : undefined }),
+    });
+    mbatch.reload = false;
+    mbatch.phase = "run";
+    mbatch.data = d;
+    mbatch.stopping = false;
+    renderMultiBatch();
+    pollMultiBatch(++mbatch.seq);
+  } catch (e) {
+    handleError(e);
+  } finally {
+    setBusy(startBtn, false);
+  }
+}
+document.getElementById("overview-actions").addEventListener("click", openMultiBatch);
+document.getElementById("overview-modal").addEventListener("change", e => {
+  const pick = e.target.closest("[data-ov-pick]");
+  if (pick) {
+    if (pick.checked) overview.picked.add(pick.dataset.ovPick);
+    else for (const x of [...overview.picked]) if (recentKey(x) === recentKey(pick.dataset.ovPick)) overview.picked.delete(x);
+    pick.closest("tr").classList.toggle("is-picked", pick.checked);
+    updateOverviewActions();
+    return;
+  }
+  if (e.target.id === "ov-pick-all") {
+    overview.picked = new Set(e.target.checked ? ovPickable().map(s => s.xml) : []);
+    document.querySelectorAll("[data-ov-pick]").forEach(cb => {
+      cb.checked = e.target.checked;
+      cb.closest("tr").classList.toggle("is-picked", cb.checked);
+    });
+    updateOverviewActions();
+  }
+});
+document.getElementById("mbatch-modal").addEventListener("change", e => {
+  const p = mbatch.prefs;
+  const el = e.target;
+  if (el.dataset.mbOn) p[el.dataset.mbOn].on = el.checked;
+  else if (el.dataset.mbOpt) {
+    const [op, key] = el.dataset.mbOpt.split(".");
+    p[op][key] = el.checked;
+    if (el.dataset.mbOpt === "roms.remove" && !el.checked) {
+      p.roms.delete_media = false;
+      const dm = document.querySelector('[data-mb-opt="roms.delete_media"]');
+      if (dm) dm.checked = false;
+    }
+  } else if (el.dataset.mbField) {
+    const op = el.dataset.mbField;
+    if (op === "clear") { if (el.checked) p.clear.fields.add(el.value); else p.clear.fields.delete(el.value); }
+    else if (el.checked) p[op].off.delete(el.value);
+    else p[op].off.add(el.value);
+  } else return;
+  mbUpdateSetup();
+});
+document.getElementById("mbatch-modal").addEventListener("click", e => {
+  if (e.target.id === "mbatch-modal") { closeMultiBatch(); return; }
+  const mode = e.target.closest("[data-mb-mode]");
+  if (mode && !mode.disabled) {
+    mbatch.prefs.scrape.mode = mode.dataset.mbMode;
+    renderMultiBatch();
+    const again = document.querySelector(`[data-mb-mode="${mode.dataset.mbMode}"]`);
+    if (again) again.focus();
+  }
+});
+document.getElementById("mbatch-start").addEventListener("click", startMultiBatch);
+document.getElementById("mbatch-close").addEventListener("click", closeMultiBatch);
+document.getElementById("mbatch-back").addEventListener("click", () => {
+  closeMultiBatch();
+  if (!document.getElementById("overview-modal").classList.contains("open")) openOverview();
+});
+document.getElementById("mbatch-cancel").addEventListener("click", async () => {
+  if (mbatch.phase === "run" && mbatch.data && mbatch.data.state === "running") {
+    mbatch.stopping = true;
+    renderMultiBatch();
+    try { await apiFetch("/api/multibatch/stop", { method: "POST" }); } catch (err) { handleError(err); }
+    return;
+  }
+  closeMultiBatch();
+});
+/** A run started before a reload: show it again. */
+async function reattachMultiBatch() {
+  try {
+    const d = await apiFetch("/api/multibatch");
+    mbatch.options = d.options;
+    if (d.state === "running") showMultiBatchRun(d);
+  } catch (_) { /* older server */ }
+}
 
 boot();

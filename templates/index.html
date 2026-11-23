@@ -654,7 +654,29 @@
       <div class="check-body overview-body" id="overview-body"></div>
       <div class="tools-footer">
         <span class="bulk-note">{{ icon("shield-check") }}<span data-i18n="overview.read_only">Lecture seule : l'analyse ne modifie aucun fichier.</span></span>
+        <button type="button" class="btn btn-accent" id="overview-actions" disabled>{{ icon("stack-2") }}<span id="overview-actions-label" data-i18n="multibatch.open">Actions sur les systèmes cochés…</span></button>
         <button type="button" class="btn" id="overview-cancel" data-i18n="tools.close">Fermer</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="mbatch-modal" role="dialog" aria-modal="true" aria-labelledby="mbatch-title">
+    <div class="modal check-modal mbatch-modal">
+      <div class="tools-header">
+        <h3 class="modal-title" id="mbatch-title">{{ icon("stack-2") }}<span data-i18n="multibatch.title">Actions sur plusieurs systèmes</span></h3>
+        <button type="button" class="btn btn-icon" id="mbatch-close" data-i18n-title="tools.close" title="Fermer">{{ icon("x") }}</button>
+      </div>
+      <div class="dat-progress mbatch-progress" id="mbatch-progress" hidden>
+        <span class="spinner spinner-sm" aria-hidden="true"></span>
+        <div class="dat-bar"><span id="mbatch-bar"></span></div>
+        <span class="dat-progress-text" id="mbatch-progress-text" role="status"></span>
+      </div>
+      <div class="check-body mbatch-body" id="mbatch-body"></div>
+      <div class="tools-footer">
+        <span class="bulk-note" id="mbatch-note">{{ icon("shield-check") }}<span data-i18n="multibatch.note">Un système à la fois, avec une sauvegarde datée avant chaque modification.</span></span>
+        <button type="button" class="btn" id="mbatch-back" hidden data-i18n="multibatch.back">Retour à la vue d'ensemble</button>
+        <button type="button" class="btn" id="mbatch-cancel" data-i18n="confirm.cancel">Annuler</button>
+        <button type="button" class="btn btn-accent" id="mbatch-start" disabled>{{ icon("player-play") }}<span id="mbatch-start-label" data-i18n="multibatch.start">Lancer</span></button>
       </div>
     </div>
   </div>

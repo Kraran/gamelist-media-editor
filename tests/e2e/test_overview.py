@@ -54,7 +54,7 @@ def rows(page):
 
 def cell(page, name, col):
     """Text of column ``col`` (1-based) of the row of ``name``."""
-    return page.locator(f"#overview-table tbody tr:has(.ov-name:text-is('{name}')) td:nth-child({col})").inner_text().strip()
+    return page.locator(f"#overview-table tbody tr:has(.ov-name:text-is('{name}')) td:nth-child({col + 1})").inner_text().strip()
 
 
 def test_overview_lists_every_system_with_its_counts(page, roms):
@@ -65,7 +65,7 @@ def test_overview_lists_every_system_with_its_counts(page, roms):
     assert cell(page, "Nintendo (NES)", 3) == "1"                    # mario.nes missing
     assert cell(page, "Nintendo (NES)", 5) == "25 %"                 # one image on disk out of 4 games
     assert "1 liens cassés" in page.get_attribute(
-        "#overview-table tbody tr:has(.ov-name:text-is('Nintendo (NES)')) td:nth-child(5)", "title")
+        "#overview-table tbody tr:has(.ov-name:text-is('Nintendo (NES)')) td:nth-child(6)", "title")
     assert cell(page, "Super Nintendo", 2) == "3"
     assert page.locator("#overview-table tr.is-current .ov-name").inner_text() == "Super Nintendo"
     gba = page.locator("#overview-table tr.is-no-xml")

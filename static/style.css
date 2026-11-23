@@ -1937,3 +1937,43 @@ th[aria-sort="ascending"] .ov-sort, th[aria-sort="descending"] .ov-sort { color:
 .systems-menu { max-height: min(70vh, 620px); grid-template-rows: auto auto auto minmax(0, 1fr); }
 .systems-menu-list { display: grid; gap: 2px; min-height: 0; overflow-y: auto; }
 .systems-menu .menu-item-sub { direction: ltr; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Actions on several systems (gme/multibatch.py) */
+.overview-table .ov-pick { width: 34px; padding: 0 0 0 var(--s2); text-align: center; }
+.overview-table th.ov-pick { padding: 0 0 0 var(--s2); vertical-align: middle; }
+.overview-table tr.is-picked td { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+#overview-actions { display: inline-flex; align-items: center; gap: 6px; }
+#overview-actions .icon { width: 16px; height: 16px; }
+.mbatch-modal { width: min(1100px, 100%); }
+.mbatch-progress { margin-bottom: var(--s3); }
+.mbatch-body { display: flex; flex-direction: column; gap: var(--s3); }
+.mbatch-systems { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2) 0; }
+.mbatch-systems-label { margin-right: var(--s3); color: var(--text-2); font-size: var(--fs-sm); font-weight: 600; }
+.mbatch-section { padding: var(--s3); border: 1px solid var(--line); border-radius: var(--r-control); }
+.mbatch-section.is-on { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.mbatch-section:not(.is-on) .mbatch-section-body { opacity: .5; }
+.mbatch-section-head { display: flex; align-items: center; gap: var(--s2); cursor: pointer; }
+.mbatch-section-head .icon { width: 18px; height: 18px; color: var(--accent-text); }
+.mbatch-section-title { font-weight: 600; }
+.mbatch-section .bulk-hint { margin: var(--s1) 0 var(--s2); }
+.mbatch-section .ss-section-title { margin-top: var(--s3); }
+.mbatch-fields { margin-top: var(--s2); margin-bottom: var(--s2); grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.check-option.is-danger { color: var(--danger); }
+.check-option.is-danger .icon { width: 15px; height: 15px; }
+.mbatch-banner { display: flex; align-items: center; gap: var(--s2); padding: var(--s2) var(--s3); border-radius: var(--r-control); background: var(--surface); }
+.mbatch-banner.is-ok { color: var(--ok); }
+.mbatch-table td { vertical-align: top; padding-top: var(--s2); padding-bottom: var(--s2); }
+.mbatch-table .ov-th { display: inline-flex; align-items: center; gap: 6px; padding: 7px var(--s2); color: var(--text-3); font-weight: 600; }
+.mbatch-table .ov-th .icon { width: 15px; height: 15px; }
+.mb-step { min-width: 150px; color: var(--text-2); font-size: var(--fs-xs); }
+.mb-step .mb-text { display: block; margin-top: 2px; }
+.mb-step.is-error .mb-text, .mb-error { color: var(--danger); }
+.mb-error { display: block; margin-top: 2px; font-size: var(--fs-xs); }
+.mb-state { margin-top: 4px; }
+.mb-state.is-done { background: color-mix(in srgb, var(--ok) 14%, transparent); color: var(--ok); }
+.mb-state.is-error { background: var(--danger-soft); color: var(--danger); }
+.mb-state.is-running { background: var(--accent-soft); color: var(--accent-text); }
+.mb-state.is-stopped { color: var(--warn); }
+.mb-state .spinner { width: 12px; height: 12px; }
+.mb-backup { margin-top: 4px; }
+.mb-row.is-running td { background: color-mix(in srgb, var(--accent) 6%, transparent); }
