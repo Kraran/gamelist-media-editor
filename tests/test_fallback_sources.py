@@ -165,7 +165,7 @@ def test_throttle_spaces_requests():
     for _ in range(3):
         with th:
             pass
-    assert time.monotonic() - t0 >= 0.1
+    assert time.monotonic() - t0 >= 0.1 - 0.02            # Windows clock steps of ~16 ms
 
 
 # --- LaunchBox ----------------------------------------------------------------------------

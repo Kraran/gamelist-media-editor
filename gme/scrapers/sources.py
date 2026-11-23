@@ -221,10 +221,11 @@ class Throttle:
 
     def __enter__(self):
         self._lock.acquire()
-        wait = self.interval - (time.monotonic() - self._last)
-        if wait > 0:
+        while True:                       # a sleep may end early (Windows clock steps)
+            wait = self.interval - (time.monotonic() - self._last)
+            if wait <= 0:
+                return self
             time.sleep(wait)
-        return self
 
     def __exit__(self, *exc):
         self._last = time.monotonic()
