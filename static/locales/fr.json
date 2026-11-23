@@ -4,7 +4,8 @@
     "name": "Français"
   },
   "common": {
-    "label_value": "{label} : {value}"
+    "label_value": "{label} : {value}",
+    "loading": "Chargement…"
   },
   "header": {
     "game_count": "{n} jeux",

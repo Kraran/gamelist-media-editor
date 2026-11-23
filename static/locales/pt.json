@@ -4,7 +4,8 @@
     "name": "Português"
   },
   "common": {
-    "label_value": "{label}: {value}"
+    "label_value": "{label}: {value}",
+    "loading": "A carregar…"
   },
   "header": {
     "game_count": "{n} jogos",

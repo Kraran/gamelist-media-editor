@@ -4,7 +4,8 @@
     "name": "Deutsch"
   },
   "common": {
-    "label_value": "{label}: {value}"
+    "label_value": "{label}: {value}",
+    "loading": "Wird geladen…"
   },
   "header": {
     "game_count": "{n} Spiele",

@@ -4,7 +4,8 @@
     "name": "Nederlands"
   },
   "common": {
-    "label_value": "{label}: {value}"
+    "label_value": "{label}: {value}",
+    "loading": "Laden…"
   },
   "header": {
     "game_count": "{n} spellen",

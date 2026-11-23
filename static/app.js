@@ -308,8 +308,84 @@ function queueGameListReload() {
   }, 0);
 }
 
+/* --- Loading ring ------------------------------------------------------------
+ * One style (.spinner in style.css). It appears only after SPINNER_DELAY_MS, so
+ * a fast answer never flickers:
+ * - the status bar ring turns while any API request has been running that long;
+ * - setBusy(button) disables a button (no double submit) and turns a ring in it,
+ *   over its icon when it has one; withBusy(button, fn) always clears it, error or not;
+ * - busyHtml(text) is a "working" line for a panel (role=status).
+ */
+const SPINNER_DELAY_MS = 200;
+let apiInFlight = 0;
+let apiBusyTimer = null;
+function apiBusy(delta) {
+  apiInFlight = Math.max(0, apiInFlight + delta);
+  const ring = document.getElementById("status-spinner");
+  if (!ring) return;
+  if (apiInFlight && !apiBusyTimer && ring.hidden) {
+    apiBusyTimer = setTimeout(() => {
+      apiBusyTimer = null;
+      if (apiInFlight) { ring.hidden = false; document.querySelector(".status-bar").setAttribute("aria-busy", "true"); }
+    }, SPINNER_DELAY_MS);
+  } else if (!apiInFlight) {
+    clearTimeout(apiBusyTimer);
+    apiBusyTimer = null;
+    ring.hidden = true;
+    document.querySelector(".status-bar").removeAttribute("aria-busy");
+  }
+}
+function spinnerHtml(extra = "") {
+  return `<span class="spinner spinner-sm spinner-delay${extra ? " " + extra : ""}" aria-hidden="true"></span>`;
+}
+function busyHtml(text, cls = "", tag = "div") {
+  return `<${tag} class="busy-line${cls ? " " + cls : ""}" role="status" aria-live="polite">${spinnerHtml()}` +
+    `<span>${escapeHtml(text || t("common.loading"))}</span></${tag}>`;
+}
+function setBusy(el, on, { restore = true } = {}) {
+  if (!el) return;
+  if (on) {
+    if (el.dataset.busy) return;
+    el.dataset.busy = "1";
+    el._busyWasDisabled = !!el.disabled;
+    if ("disabled" in el) el.disabled = true;
+    el.setAttribute("aria-busy", "true");
+    el.classList.add("is-busy");
+    const icon = el.querySelector(":scope > .icon");
+    if (icon) {
+      icon.insertAdjacentHTML("beforebegin", spinnerHtml("on-icon"));
+      const ring = icon.previousElementSibling;
+      // SVG icons have no offsetLeft: place the ring from the bounding boxes.
+      const box = el.getBoundingClientRect(), ib = icon.getBoundingClientRect();
+      ring.style.left = (ib.left - box.left - el.clientLeft + (ib.width - 14) / 2) + "px";
+      ring.style.top = (ib.top - box.top - el.clientTop + (ib.height - 14) / 2) + "px";
+    } else {
+      el.insertAdjacentHTML("afterbegin", spinnerHtml());
+    }
+  } else {
+    if (!el.dataset.busy) return;
+    delete el.dataset.busy;
+    el.removeAttribute("aria-busy");
+    el.classList.remove("is-busy");
+    el.querySelectorAll(":scope > .spinner").forEach(r => r.remove());
+    if (restore && "disabled" in el) el.disabled = el._busyWasDisabled;
+  }
+}
+async function withBusy(el, fn, opts) {
+  setBusy(el, true);
+  try { return await fn(); } finally { setBusy(el, false, opts); }
+}
+
 /** Fetch JSON API; attaches X-Locale so server messages match the UI language. */
 async function apiFetch(url, options = {}) {
+  apiBusy(1);
+  try {
+    return await apiFetchInner(url, options);
+  } finally {
+    apiBusy(-1);
+  }
+}
+async function apiFetchInner(url, options = {}) {
   options = { ...options };
   const raw = !!options.raw;             // return the body as a Blob (file downloads)
   delete options.raw;
@@ -1310,7 +1386,7 @@ async function saveAllChanges() {
   const payload = {};
   keys.forEach(k => { payload[k] = k === "name" ? now.name.trim() : now[k]; });
   _saving = true;
-  document.getElementById("btn-save").disabled = true;
+  setBusy(document.getElementById("btn-save"), true);
   setStatus(t("editor.saving"));
   try {
     const data = await apiFetch(gameUrl(`/api/game/${currentIndex}`), {
@@ -1339,6 +1415,7 @@ async function saveAllChanges() {
     return false;
   } finally {
     _saving = false;
+    setBusy(document.getElementById("btn-save"), false, { restore: false });
     document.getElementById("btn-save").disabled = false;
   }
 }
@@ -1631,6 +1708,8 @@ async function uploadMedia(field, { file, url }) {
     return;
   }
   setStatus(file ? t("status.sending_file") : t("status.downloading"));
+  const tile = document.querySelector(`.media-tile[data-field="${field}"]`);
+  setTileBusy(tile, true);
   const form = new FormData();
   if (file) form.append("file", file);
   if (url) form.append("url", url);
@@ -1648,6 +1727,19 @@ async function uploadMedia(field, { file, url }) {
     setStatus(t("status.saved"));
   } catch (e) {
     handleError(e);
+  } finally {
+    setTileBusy(tile, false);
+  }
+}
+/** A ring over a media tile while its file is sent or downloaded (the tile may be re-rendered meanwhile). */
+function setTileBusy(tile, on) {
+  if (!tile) return;
+  if (on) {
+    tile.setAttribute("aria-busy", "true");
+    tile.insertAdjacentHTML("beforeend", `<div class="tile-busy" role="status">${spinnerHtml()}<span>${escapeHtml(t("common.loading"))}</span></div>`);
+  } else {
+    tile.removeAttribute("aria-busy");
+    tile.querySelectorAll(".tile-busy").forEach(el => el.remove());
   }
 }
 
@@ -2506,7 +2598,7 @@ async function openCheck(id) {
   check = { def, report: null, sections: [], selected: {} };
   document.getElementById("check-title").innerHTML =
     icon(id === "roms" ? "list-details" : "photo") + `<span>${escapeHtml(t(def.title))}</span>`;
-  document.getElementById("check-intro").textContent = t("romcheck.scanning");
+  document.getElementById("check-intro").innerHTML = busyHtml(t("romcheck.scanning"), "", "span");
   document.getElementById("check-stats").innerHTML = "";
   document.getElementById("check-body").innerHTML = "";
   document.getElementById("check-options").innerHTML = def.options.map(o =>
@@ -2621,7 +2713,8 @@ document.getElementById("check-body").addEventListener("change", e => {
 async function applyCheck() {
   if (!check) return;
   const def = check.def;
-  document.getElementById("check-apply").disabled = true;
+  const applyBtn = document.getElementById("check-apply");
+  setBusy(applyBtn, true);
   setStatus(t("romcheck.applying"));
   try {
     const data = await apiFetch(def.applyUrl, {
@@ -2635,6 +2728,8 @@ async function applyCheck() {
     setStatus(t("status.done"));
   } catch (e) {
     handleError(e);
+  } finally {
+    setBusy(applyBtn, false, { restore: false });
     if (check) updateCheckSelection();
   }
 }
@@ -3081,6 +3176,8 @@ async function exportCsv() {
   const shown = getVisibleListIndices().map(i => games[i].path);
   if (!shown.length) { toast(t("toast.csv_empty"), "info"); return; }
   setStatus(t("status.csv_export"));
+  const actions = document.getElementById("btn-actions");
+  setBusy(actions, true);
   try {
     const blob = await apiFetch("/api/export-csv", {
       method: "POST", headers: { "Content-Type": "application/json" }, raw: true,
@@ -3098,6 +3195,8 @@ async function exportCsv() {
     setStatus(t("status.csv_exported", { n: fmtCount(shown.length) }));
   } catch (e) {
     handleError(e);
+  } finally {
+    setBusy(actions, false);
   }
 }
 document.getElementById("btn-export-csv").addEventListener("click", exportCsv);
@@ -3124,7 +3223,7 @@ document.getElementById("btn-next-incomplete").addEventListener("click", nextInc
 
 document.getElementById("btn-reload").addEventListener("click", async () => {
   if (!(await confirmLeaveEditor())) return;
-  await loadGames();
+  await withBusy(document.getElementById("btn-reload"), loadGames);
   toast(t("toast.list_reloaded"));
 });
 
@@ -3164,7 +3263,7 @@ document.getElementById("btn-quit").addEventListener("click", async () => {
 document.getElementById("btn-manual-backup").addEventListener("click", async () => {
   setStatus(t("status.backup_xml"));
   try {
-    const data = await apiFetch("/api/backup", { method: "POST" });
+    const data = await withBusy(document.getElementById("btn-actions"), () => apiFetch("/api/backup", { method: "POST" }));
     toast(t("toast.backup_ok", { filename: data.filename || "gamelist.xml.bak" }));
     setStatus(t("status.backup_ok_status"));
   } catch (e) {
@@ -3181,7 +3280,7 @@ async function openBackups() {
   closeMenu(null, false);
   if (!(await confirmLeaveEditor())) return;
   try {
-    const data = await apiFetch("/api/backups");
+    const data = await withBusy(document.getElementById("btn-actions"), () => apiFetch("/api/backups"));
     backupSession = data.session_id;
     backupEntries = data.backups;
     renderBackups();
@@ -3214,14 +3313,14 @@ document.getElementById("backups-modal").addEventListener("click", e => {
 });
 document.getElementById("backups-create").addEventListener("click", async () => {
   const button = document.getElementById("backups-create");
-  button.disabled = true;
+  setBusy(button, true);
   try {
     await apiFetch("/api/backup", { method: "POST", headers: { "X-Gamelist-Session": backupSession } });
     const data = await apiFetch("/api/backups", { headers: { "X-Gamelist-Session": backupSession } });
     backupEntries = data.backups;
     renderBackups();
   } catch (e) { handleError(e); }
-  finally { button.disabled = false; }
+  finally { setBusy(button, false); }
 });
 document.getElementById("backups-body").addEventListener("click", async e => {
   const button = e.target.closest("[data-restore-backup]");
@@ -3236,6 +3335,7 @@ document.getElementById("backups-body").addEventListener("click", async e => {
       showBackup: false, okLabel: t("backups.restore"),
     });
     if (!choice.confirmed) return;
+    setBusy(button, true);
     const data = await apiFetch("/api/backups/restore", {
       method: "POST", headers: { "Content-Type": "application/json", "X-Gamelist-Session": backupSession },
       body: JSON.stringify({ id: entry.id }),
@@ -3252,6 +3352,7 @@ document.getElementById("backups-body").addEventListener("click", async e => {
   } catch (error) { handleError(error); }
   finally {
     restoringBackup = false;
+    setBusy(button, false);
     if (button.isConnected) button.focus();
   }
 });
@@ -3266,11 +3367,11 @@ document.getElementById("btn-fill-arcade").addEventListener("click", async () =>
   if (!choice.confirmed) return;
   setStatus(t("status.filling_arcade"));
   try {
-    const data = await apiFetch("/api/fill-arcadesystem", {
+    const data = await withBusy(document.getElementById("btn-actions"), () => apiFetch("/api/fill-arcadesystem", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ backup: choice.backup }),
-    });
+    }));
     toast(t("toast.arcade_sys_ok", {
       n: data.filled || 0,
       skip: data.skipped || 0,
@@ -3307,8 +3408,9 @@ document.getElementById("btn-delete-game").addEventListener("click", async () =>
   const g = games.find(x => x.index === currentIndex);
   const name = g ? g.name : t("confirm.this_game");
   let plan;
+  const gameMenu = document.getElementById("btn-game-menu");
   try {
-    plan = await apiFetch(gameUrl(`/api/delete-game/${currentIndex}/preview`), { method: "POST" });
+    plan = await withBusy(gameMenu, () => apiFetch(gameUrl(`/api/delete-game/${currentIndex}/preview`), { method: "POST" }));
   } catch (e) {
     handleError(e);
     return;
@@ -3323,11 +3425,11 @@ document.getElementById("btn-delete-game").addEventListener("click", async () =>
 
   setStatus(t("status.deleting_game"));
   try {
-    const data = await apiFetch(gameUrl(`/api/delete-game/${currentIndex}`), {
+    const data = await withBusy(gameMenu, () => apiFetch(gameUrl(`/api/delete-game/${currentIndex}`), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ backup: choice.backup, trash }),
-    });
+    }));
     const n = (data.deleted_files || []).length;
     let msg = t(data.trash ? "toast.delete_ok_trash" : "toast.delete_ok", { name: data.name, n });
     if ((data.kept_files || []).length) msg += t("toast.delete_kept", { n: data.kept_files.length });
@@ -3428,7 +3530,10 @@ async function browseDirectory(path) {
   const pathEl = document.getElementById("open-gl-browse-path");
   const upBtn = document.getElementById("open-gl-up");
   const drivesEl = document.getElementById("open-gl-drives");
-  if (listing) listing.innerHTML = `<div class="open-gl-listing-empty">${escapeHtml(t("open_gl.loading"))}</div>`;
+  if (listing) {
+    listing.innerHTML = busyHtml(t("open_gl.loading"), "open-gl-listing-empty");
+    listing.setAttribute("aria-busy", "true");
+  }
   try {
     const q = path ? `?path=${encodeURIComponent(path)}` : "";
     const data = await apiFetch(`/api/browse${q}`);
@@ -3508,6 +3613,8 @@ async function browseDirectory(path) {
     if (listing) {
       listing.innerHTML = `<div class="open-gl-listing-empty">${escapeHtml((e && e.message) || t("open_gl.browse_error"))}</div>`;
     }
+  } finally {
+    if (listing) listing.removeAttribute("aria-busy");
   }
 }
 
@@ -3549,6 +3656,9 @@ async function applyOpenGamelist() {
     return;
   }
   setStatus(t("status.opening_gamelist"));
+  const openBtn = document.getElementById("open-gl-apply");
+  if (openBtn.dataset.busy) return;
+  setBusy(openBtn, true);
   try {
     const data = await apiFetch("/api/open-gamelist", {
       method: "POST",
@@ -3562,6 +3672,8 @@ async function applyOpenGamelist() {
     // A recent file that was moved or deleted: the server dropped it from the list
     if (e && e.code === "open_not_found") renderRecentGamelists();
     handleError(e);
+  } finally {
+    setBusy(openBtn, false);
   }
 }
 
@@ -4478,7 +4590,7 @@ function renderBulkForm() {
     const radio = (v, key) => `<label class="bulk-check"><input type="radio" name="bulk-name-src" value="${v}"${src === v ? " checked" : ""}> <span>${escapeHtml(t(key))}</span></label>`;
     html = `<div class="bulk-checks bulk-name-src">${radio("file", "bulk.names_from_file")}${radio("dat", "bulk.names_from_dat")}</div>
       <p class="bulk-hint">${escapeHtml(t(src === "dat" ? "bulk.names_dat_hint" : "bulk.names_hint"))}</p>
-      ${src === "dat" ? `<div class="bulk-dat" id="bulk-dat"><span class="bulk-dat-info" id="bulk-dat-info">${escapeHtml(t("stats.loading"))}</span><div class="dat-load" id="bulk-dat-load"></div></div>` : ""}
+      ${src === "dat" ? `<div class="bulk-dat" id="bulk-dat"><span class="bulk-dat-info" id="bulk-dat-info">${busyHtml(t("stats.loading"), "", "span")}</span><div class="dat-load" id="bulk-dat-load"></div></div>` : ""}
       <div class="bulk-checks">${check("bulk-name-tags", "bulk.strip_tags", src !== "dat")}</div>`;
   } else if (bulk.tab === "images") {
     const fields = getFields().filter(f => isImageField(f.key));
@@ -4493,7 +4605,7 @@ function renderBulkForm() {
       <div class="bulk-checks">${check("bulk-img-trim", "imgedit.trim_hint", false)}${check("bulk-img-upscale", "imgedit.upscale", false)}</div>`;
   } else if (bulk.tab === "clear_fields") {
     html = `<p class="bulk-hint">${escapeHtml(t("bulk.clear_hint"))}</p>
-      <div class="bulk-checks bulk-clear-list" id="bulk-clear-list"><span class="bulk-empty">${escapeHtml(t("stats.loading"))}</span></div>`;
+      <div class="bulk-checks bulk-clear-list" id="bulk-clear-list" aria-busy="true">${busyHtml(t("stats.loading"), "bulk-empty", "span")}</div>`;
   } else if (bulk.tab === "solid") {
     /* Solid images: pictures of one colour or fully transparent (gme/solidimages.py). */
     html = `<p class="bulk-hint">${escapeHtml(t("bulk.solid_hint"))}</p>
@@ -4531,6 +4643,7 @@ async function refreshBulkClear() {
   if (!bulk || bulk.tab !== "clear_fields" || !box) return;
   bulk.counts = counts;
   const keys = BULK_CLEAR_MAIN.concat(BULK_CLEAR_EXTRA.filter(k => counts[k]));
+  box.removeAttribute("aria-busy");
   box.innerHTML = keys.map(k => {
     const n = counts[k] || 0;
     return `<label class="bulk-check${n ? "" : " is-empty"}"><input type="checkbox" data-bulk-clear="${k}"${bulk.clear.has(k) ? " checked" : ""}>` +
@@ -4552,13 +4665,13 @@ async function refreshBulkDat(d) {
   const load = document.getElementById("bulk-dat-load");
   load.innerHTML = datLoadControlsHtml("bulk-dat", d.mame_xml);
   bindDatLoadControls("bulk-dat", async source => {
-    info.innerHTML = `${icon("database")}<span>${escapeHtml(t("dat.loading", { pct: 0 }))}</span>`;
+    info.innerHTML = `${icon("database")}${busyHtml(t("dat.loading", { pct: 0 }), "", "span")}`;
     load.querySelectorAll("button, input").forEach(el => { el.disabled = true; });
     try {
       const done = await datLoad(source, s => {
         const j = s.job;
         if (j && j.state === "running") {
-          info.innerHTML = `${icon("database")}<span>${escapeHtml(t("dat.loading", { pct: j.total ? Math.round(j.done * 100 / j.total) : 0 }))}</span>`;
+          info.innerHTML = `${icon("database")}${busyHtml(t("dat.loading", { pct: j.total ? Math.round(j.done * 100 / j.total) : 0 }), "", "span")}`;
         }
       });
       refreshBulkDat(done);
@@ -4643,6 +4756,10 @@ async function runBulkPreview() {
   }
   bulk.busy = true;
   const tab = bulk.tab;
+  const previewBtn = document.getElementById("bulk-preview-btn");
+  setBusy(previewBtn, true);
+  box.setAttribute("aria-busy", "true");
+  box.innerHTML = busyHtml(t(tab === "solid" ? "bulk.solid_scanning" : "imgedit.loading"));
   try {
     let data;
     if (tab === "delete") {
@@ -4655,7 +4772,6 @@ async function runBulkPreview() {
       box.innerHTML = bulkDeletePreviewHtml(data, media);
     } else if (tab === "solid") {
       const op = bulkOp();
-      box.innerHTML = `<p class="bulk-empty">${escapeHtml(t("bulk.solid_scanning"))}</p>`;
       data = await apiFetch("/api/solid-images/preview", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ paths, fields: op.fields, files: op.files }),
@@ -4695,6 +4811,8 @@ async function runBulkPreview() {
     }
   } finally {
     if (bulk) bulk.busy = false;
+    setBusy(previewBtn, false);
+    box.removeAttribute("aria-busy");
   }
 }
 function bulkDiffHtml(text) {
@@ -4818,7 +4936,8 @@ async function applyBulk() {
     if (!choice.confirmed || !bulk) return;
   }
   bulk.busy = true;
-  document.getElementById("bulk-apply").disabled = true;
+  const applyBtn = document.getElementById("bulk-apply");
+  setBusy(applyBtn, true);
   try {
     let res, msg;
     if (tab === "delete") {
@@ -4874,6 +4993,7 @@ async function applyBulk() {
     if (bulk) { bulk.busy = false; invalidateBulkPreview(); }
   } finally {
     if (bulk) bulk.busy = false;
+    setBusy(applyBtn, false, { restore: false });
   }
 }
 async function undoBulk(snapshot, filesInTrash) {
@@ -5173,7 +5293,8 @@ async function saveImageEdit() {
   const state = imgEdit;
   const session = window.__gmeSession;
   const mode = document.querySelector('input[name="imgedit-mode"]:checked').value;
-  imgEditEl("save").disabled = true;
+  const saveBtn = imgEditEl("save");
+  setBusy(saveBtn, true);
   try {
     const d = await apiFetch(imgEditUrl(""), {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -5194,7 +5315,8 @@ async function saveImageEdit() {
     setStatus(t("status.saved"));
   } catch (e) {
     handleError(e);
-    if (imgEdit === state) imgEditEl("save").disabled = false;
+  } finally {
+    setBusy(saveBtn, false);
   }
 }
 /** Puts the originals back; when the gamelist changed (new file, new format)
@@ -5278,7 +5400,7 @@ async function openStats() {
   const modal = document.getElementById("stats-modal");
   const body = document.getElementById("stats-body");
   document.getElementById("stats-system").textContent = currentSystem && currentSystem.label ? " · " + currentSystem.label : "";
-  body.innerHTML = `<p class="bulk-empty">${escapeHtml(t("stats.loading"))}</p>`;
+  body.innerHTML = busyHtml(t("stats.loading"), "bulk-empty");
   modal.classList.add("open");
   document.getElementById("stats-close").focus();
   try {
@@ -5428,14 +5550,16 @@ async function openDatTool() {
   if (!window.__gmeLoaded) return;
   datView = { open: true, state: null, status: "", hideClones: false, hideBios: false, polling: false };
   document.getElementById("dat-modal").classList.add("open");
-  document.getElementById("dat-report").innerHTML = "";
+  const report = document.getElementById("dat-report");
+  report.innerHTML = busyHtml(t("common.loading"), "bulk-empty");
   updateDatHashHint();
   try {
     const d = await apiFetch("/api/dat");
     renderDatState(d);
-    if (d.job && d.job.state === "running") followDatJob();
+    if (d.job && d.job.state === "running") { report.innerHTML = ""; followDatJob(); }
     else if (d.report) loadDatReport();
-  } catch (e) { handleError(e); }
+    else report.innerHTML = "";
+  } catch (e) { report.innerHTML = ""; handleError(e); }
   document.getElementById("dat-hash").focus();
 }
 function closeDatTool() {
@@ -5462,6 +5586,7 @@ function renderDatState(d) {
   document.getElementById("dat-hash").disabled = running;
   const prog = document.getElementById("dat-progress");
   prog.hidden = !running;
+  document.getElementById("dat-report").toggleAttribute("aria-busy", running);
   if (running) {
     const j = d.job;
     const pct = j.total ? Math.min(100, Math.round(j.done * 100 / j.total)) : 0;
@@ -5513,11 +5638,15 @@ function updateDatHashHint() {
 }
 async function runDatCompare() {
   const hash = document.getElementById("dat-hash").value;
+  const btn = document.getElementById("dat-compare");
+  if (btn.dataset.busy) return;
+  setBusy(btn, true);
   try {
     await apiFetch("/api/dat/compare", {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ hash }),
     });
-  } catch (e) { handleError(e); return; }
+  } catch (e) { setBusy(btn, false); handleError(e); return; }
+  setBusy(btn, false, { restore: false });
   document.getElementById("dat-report").innerHTML = "";
   followDatJob();
 }
@@ -5531,11 +5660,15 @@ function datQuery(extra) {
 }
 async function loadDatReport() {
   const box = document.getElementById("dat-report");
+  box.setAttribute("aria-busy", "true");
+  if (!box.querySelector(".dat-chips")) box.innerHTML = busyHtml(t("common.loading"), "bulk-empty");
   try {
     const rep = await apiFetch("/api/dat/report?" + datQuery());
     if (datView.open) box.innerHTML = datReportHtml(rep);
   } catch (e) {
     box.innerHTML = `<p class="bulk-empty bulk-error">${icon("alert-circle")}<span>${escapeHtml(e.message || String(e))}</span></p>`;
+  } finally {
+    box.removeAttribute("aria-busy");
   }
 }
 function datDetail(r) {
@@ -5569,6 +5702,9 @@ function datReportHtml(rep) {
   return html;
 }
 async function exportDatReport() {
+  const btn = document.getElementById("dat-export");
+  if (btn.dataset.busy) return;
+  setBusy(btn, true);
   try {
     const blob = await apiFetch("/api/dat/report?" + datQuery({ format: "csv" }), { raw: true });
     const a = document.createElement("a");
@@ -5580,6 +5716,7 @@ async function exportDatReport() {
     a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   } catch (e) { handleError(e); }
+  finally { setBusy(btn, false); }
 }
 document.getElementById("btn-dat-tool").addEventListener("click", openDatTool);
 document.getElementById("dat-close").addEventListener("click", closeDatTool);
@@ -5647,6 +5784,10 @@ async function runNewGamelistPreview() {
   if (!newgl || newgl.busy) return;
   newgl.busy = true;
   const box = document.getElementById("newgl-preview");
+  const previewBtn = document.getElementById("newgl-preview-btn");
+  setBusy(previewBtn, true);
+  box.setAttribute("aria-busy", "true");
+  box.innerHTML = busyHtml(t("imgedit.loading"));
   try {
     const body = newglBody();
     const d = await apiFetch("/api/new-gamelist/preview", {
@@ -5680,6 +5821,8 @@ async function runNewGamelistPreview() {
     }
   } finally {
     if (newgl) newgl.busy = false;
+    setBusy(previewBtn, false);
+    box.removeAttribute("aria-busy");
   }
 }
 async function createNewGamelist() {
@@ -5689,7 +5832,8 @@ async function createNewGamelist() {
     return;
   }
   newgl.busy = true;
-  document.getElementById("newgl-create").disabled = true;
+  const createBtn = document.getElementById("newgl-create");
+  setBusy(createBtn, true);
   try {
     const data = await apiFetch("/api/new-gamelist", {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newgl.preview.body),
@@ -5700,6 +5844,8 @@ async function createNewGamelist() {
   } catch (e) {
     handleError(e);
     if (newgl) { newgl.busy = false; invalidateNewGamelist(); }
+  } finally {
+    setBusy(createBtn, false, { restore: false });
   }
 }
 document.getElementById("open-gl-new").addEventListener("click", async () => {
