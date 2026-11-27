@@ -46,7 +46,7 @@ from datetime import datetime, timezone
 
 from flask import Blueprint, jsonify, request
 
-from gme import fsutil, xml_store
+from gme import fsutil, history, xml_store
 from gme.backups import backup_dir, restore_snapshot
 from gme.http import api_err
 from gme.i18n import st
@@ -541,11 +541,13 @@ def api_save(index, field):
         except OSError as e:
             log.warning("Image edit failed: %s", e)
             raise EditError("imgedit.write_failed", 500, detail=str(e))
+        history.label("image_edit", game=history.game_name(game), field=field)
         if res["path_changed"]:
             _bak, edit.xml_snapshot = xml_store.backup_xml_snapshot()
             _set_tag(game, field, res["path"])
             save_xml(tree)
         edit.save()
+        history.note_image_edit(edit.id)
         res.update({"success": True, "field": field, "undo": edit.id})
         return jsonify(res)
     except EditError as e:
@@ -646,6 +648,8 @@ def api_batch_apply():
         except (EditError, OSError) as e:
             log.warning("Batch image edit: %s skipped (%s)", game.findtext("path", ""), e)
             failed.append(game.findtext("path", "") or "")
+    if changed:
+        history.label("image_batch", n=len(changed), field=field)
     try:
         if renamed:
             _bak, edit.xml_snapshot = xml_store.backup_xml_snapshot()
@@ -654,10 +658,54 @@ def api_batch_apply():
             save_xml(tree)
         if changed:
             edit.save()
+            history.note_image_edit(edit.id)
     except OSError as e:
         return api_err(str(e), 500, code="write_failed")
     return jsonify({"success": True, "changed": len(changed), "unchanged": unchanged, "failed": failed,
                     "renamed": len(renamed), "paths": changed, "undo": edit.id if changed else None})
+
+
+class UndoMissing(EditError):
+    def __init__(self):
+        super().__init__("imgedit.undo_missing", 404)
+
+
+def _manifest(edit_id):
+    if not isinstance(edit_id, str) or not _EDIT_ID.fullmatch(edit_id):
+        raise UndoMissing()
+    folder = os.path.join(_edits_root(), edit_id)
+    try:
+        with open(os.path.join(folder, "manifest.json"), "rb") as f:
+            return folder, json.loads(f.read().decode("utf-8"))
+    except (OSError, ValueError):
+        raise UndoMissing()
+
+
+def restore_files(edit_id, forget=True):
+    """Put the originals of edit ``edit_id`` back and remove the files it
+    created; the gamelist is left alone. Returns ``(restored, paths)``.
+    Raises ``EditError`` when the edit is unknown (pruned)."""
+    folder, manifest = _manifest(edit_id)
+    restored, paths = 0, []
+    put_back = set()
+    for item in manifest.get("restore", []):
+        full = resolve_under_base(item.get("path"))
+        name = os.path.basename(str(item.get("backup", "")))
+        src = os.path.join(folder, name)
+        if not full or not name or not os.path.isfile(src):
+            continue
+        os.makedirs(os.path.dirname(full), exist_ok=True)
+        fsutil.atomic_write(full, _read(src))
+        put_back.add(os.path.normcase(full))
+        restored += 1
+        paths.append(item["path"])
+    for rel in manifest.get("created_files", []):
+        full = resolve_under_base(rel)
+        if full and os.path.isfile(full) and os.path.normcase(full) not in put_back:
+            os.remove(full)
+    if forget:
+        shutil.rmtree(folder, ignore_errors=True)
+    return restored, paths
 
 
 @bp.route("/api/image-edit/undo", methods=["POST"])
@@ -666,32 +714,12 @@ def api_undo():
     if err:
         return err
     edit_id = _body().get("id")
-    if not isinstance(edit_id, str) or not _EDIT_ID.fullmatch(edit_id):
-        return _error(EditError("imgedit.undo_missing", 404))
-    folder = os.path.join(_edits_root(), edit_id)
     try:
-        with open(os.path.join(folder, "manifest.json"), "rb") as f:
-            manifest = json.loads(f.read().decode("utf-8"))
-    except (OSError, ValueError):
-        return _error(EditError("imgedit.undo_missing", 404))
-    restored, paths = 0, []
+        folder, manifest = _manifest(edit_id)
+    except EditError as e:
+        return _error(e)
     try:
-        put_back = set()
-        for item in manifest.get("restore", []):
-            full = resolve_under_base(item.get("path"))
-            name = os.path.basename(str(item.get("backup", "")))
-            src = os.path.join(folder, name)
-            if not full or not name or not os.path.isfile(src):
-                continue
-            os.makedirs(os.path.dirname(full), exist_ok=True)
-            fsutil.atomic_write(full, _read(src))
-            put_back.add(os.path.normcase(full))
-            restored += 1
-            paths.append(item["path"])
-        for rel in manifest.get("created_files", []):
-            full = resolve_under_base(rel)
-            if full and os.path.isfile(full) and os.path.normcase(full) not in put_back:
-                os.remove(full)
+        restored, paths = restore_files(edit_id, forget=False)
         session = None
         snapshot = manifest.get("xml_snapshot")
         if snapshot:
@@ -699,6 +727,9 @@ def api_undo():
                 return _error(EditError("imgedit.undo_missing", 404))
             session = xml_store.SESSION_ID
         shutil.rmtree(folder, ignore_errors=True)
+    except EditError as e:
+        return _error(e)
     except (OSError, ValueError) as e:
         return api_err(str(e), 500, code="undo_failed")
+    history.label("image_undo")
     return jsonify({"success": True, "restored": restored, "paths": paths, "session_id": session})

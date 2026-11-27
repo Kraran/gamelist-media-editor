@@ -77,7 +77,7 @@ def test_tags_only_by_default_then_undo(page, gamelist, trashed):
     assert tags(gamelist) == [["marquee"], ["image"], [], []]
     assert trashed == [] and (gamelist.parent / "images" / "red.png").exists()
     page.click("#toast .toast-action")
-    page.wait_for_function("document.getElementById('toast').textContent.includes('restaur')")
+    page.wait_for_function("document.getElementById('toast').textContent.includes('Annulé')")
     assert tags(gamelist) == [["image", "marquee"], ["image", "wheel"], ["image", "thumbnail"], ["image"]]
 
 

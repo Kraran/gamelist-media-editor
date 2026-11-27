@@ -43,7 +43,7 @@ import re
 
 from flask import Blueprint, jsonify, request
 
-from gme import fsutil, xml_store
+from gme import fsutil, history, xml_store
 from gme.fields import FieldError, clean_meta, set_desc, set_meta, set_name
 from gme.http import api_err
 from gme.i18n import st
@@ -355,6 +355,9 @@ def api_bulk_apply():
         _bak, snapshot = xml_store.backup_xml_snapshot()
     except Exception as e:
         return api_err(str(e), 500, code="backup_failed")
+    fields = {p[1] for p in plan}
+    history.label("bulk", n=len(plan), games=len({id(p[0]) for p in plan}),
+                  field=next(iter(fields)) if len(fields) == 1 else "")
     for game, field, _before, after in plan:
         write(game, field, after)
     save_xml(tree)
@@ -447,11 +450,13 @@ def api_bulk_delete():
                 fsutil.trash(entry["full"])
             else:
                 os.remove(entry["full"])
+                history.note_deleted()
             deleted.append(entry["path"])
         except Exception as e:  # no Recycle Bin on this drive, locked file: the file stays
             log.warning("Bulk delete: could not delete %s (%s)", entry["full"], e)
             failed.append(entry["path"])
     root = tree.getroot()
+    history.label("bulk_delete", n=len(games))
     for game in games:
         root.remove(game)
     save_xml(tree)

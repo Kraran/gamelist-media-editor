@@ -58,3 +58,8 @@ def trash(path):
     """
     from send2trash import send2trash
     send2trash(path)
+    try:                                      # the undo step says it is in the Recycle Bin
+        from gme import history
+        history.note_trash()
+    except Exception:  # pragma: no cover
+        pass

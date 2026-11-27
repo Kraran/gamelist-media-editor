@@ -178,6 +178,7 @@ function applyI18n() {
   } catch (_) {}
   try { updateFilterCounts(); } catch (_) {}
   try { initCodeSelects(); renderRating(); renderReleaseDate(); updateUnsavedUi(); } catch (_) {}
+  setTimeout(() => { try { renderHistory(historyState); } catch (_) {} }, 0);   // Undo / Redo tooltips
   try { updateScrapeButton(); } catch (_) {}
   try { fillSsRegions(); } catch (_) {}
   try { fillColFilter(); } catch (_) {}
@@ -434,6 +435,11 @@ async function apiFetchInner(url, options = {}) {
       if (text) data = { error: text.slice(0, 400) };
     } catch (_) {}
   }
+
+  const historyRevision = res.headers.get("X-GME-History");
+  if (historyRevision !== null) noteHistoryRev(historyRevision);
+  const historyStep = res.headers.get("X-GME-History-Step");
+  if (historyStep && data && typeof data === "object") data._historyStep = historyStep;
 
   if (!res.ok) {
     const serverMsg = data && (data.error || data.message);
@@ -948,6 +954,7 @@ async function loadGames() {
       renderList();
     }
     await refreshSavedBatch();
+    refreshHistory();
     setStatus(t("status.ready", { n: games.length }));
   } catch (e) {
     handleError(e, t("errors.load"));
@@ -2110,6 +2117,15 @@ document.addEventListener("keydown", e => {
     return;
   }
 
+  // Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z: undo / redo a gamelist step. Never in a
+  // text field: there the browser undoes the typing.
+  if (ctrl && !e.altKey && !typing && ["z", "y"].includes(e.key.toLowerCase())) {
+    e.preventDefault();
+    if (e.repeat) return;
+    if (e.key.toLowerCase() === "y" || e.shiftKey) historyRedo(); else historyUndo();
+    return;
+  }
+
   // Ctrl+F or / : focus search (when not typing in another field)
   if ((ctrl && e.key.toLowerCase() === "f") || (e.key === "/" && !typing)) {
     e.preventDefault();
@@ -2537,6 +2553,7 @@ const CHECKS = {
   roms: {
     title: "romcheck.title",
     url: "/api/check-roms",
+    scanUrl: "/api/check-roms/scan",
     applyUrl: "/api/check-roms/apply",
     options: [{ id: "backup", label: "romcheck.backup", on: true }],
     stats: r => [
@@ -2573,6 +2590,7 @@ const CHECKS = {
   media: {
     title: "mediacheck.title",
     url: "/api/check-media",
+    scanUrl: "/api/check-media/scan",
     applyUrl: "/api/check-media/apply",
     options: [
       { id: "trash", label: "mediacheck.trash", on: true },
@@ -2631,12 +2649,29 @@ async function openCheck(id) {
     `<span>${escapeHtml(t(o.label))}</span></label>`).join("");
   document.getElementById("check-apply").disabled = true;
   document.getElementById("check-modal").classList.add("open");
+  await scanCheck();
+}
+/** Scan in the background (progress and Stop after a short delay), then show the report. */
+async function scanCheck() {
+  const def = check.def, mine = check;
   setStatus(t("romcheck.scanning"));
+  document.getElementById("check-apply").disabled = true;
+  const intro = document.getElementById("check-intro");
+  if (mine.report) intro.innerHTML = busyHtml(t("romcheck.scanning"), "", "span");
   try {
-    setCheckReport(await apiFetch(def.url));
+    const job = await runScanJob(def.scanUrl, {}, intro, t("romcheck.scanning"));
+    if (check !== mine) return;
+    if (!job) {
+      closeCheck();
+      toast(t("jobs.stopped"), "info");
+      setStatus(t("jobs.stopped"));
+      return;
+    }
+    check.job = job.id;
+    setCheckReport(job.result);
     setStatus(t("status.done"));
   } catch (e) {
-    closeCheck();
+    if (check === mine) closeCheck();
     handleError(e);
   }
 }
@@ -2644,6 +2679,7 @@ function closeCheck() {
   const modal = document.getElementById("check-modal");
   if (!modal.classList.contains("open")) return;
   modal.classList.remove("open");
+  stopScanJobs();
   check = null;
   document.getElementById("btn-actions").focus();
 }
@@ -2745,13 +2781,22 @@ async function applyCheck() {
     const data = await apiFetch(def.applyUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(def.body(check.selected, checkOptions())),
+      body: JSON.stringify({ ...def.body(check.selected, checkOptions()), job: check.job }),
     });
     toast(def.done(data), data.failed && data.failed.length ? "warning" : "success");
     await loadGames();
-    if (check && check.def === def) setCheckReport(data.report);
+    if (check && check.def === def) {
+      if (data.report) setCheckReport(data.report);
+      else { setBusy(applyBtn, false, { restore: false }); await scanCheck(); }
+    }
     setStatus(t("status.done"));
   } catch (e) {
+    if (e.code === "scan_stale" && check && check.def === def) {
+      toast(t("jobs.stale_rescan"), "info");     // the gamelist changed since: review again
+      setBusy(applyBtn, false, { restore: false });
+      await scanCheck();
+      return;
+    }
     handleError(e);
   } finally {
     setBusy(applyBtn, false, { restore: false });
@@ -5089,6 +5134,7 @@ function closeBulk() {
   const modal = document.getElementById("bulk-modal");
   if (!modal.classList.contains("open")) return;
   modal.classList.remove("open");
+  stopScanJobs();
   bulk = null;
   document.getElementById("bulk-form").innerHTML = "";
   document.getElementById("bulk-preview").innerHTML = "";
@@ -5303,12 +5349,17 @@ async function runBulkPreview() {
       box.innerHTML = bulkDeletePreviewHtml(data, media);
     } else if (tab === "solid") {
       const op = bulkOp();
-      data = await apiFetch("/api/solid-images/preview", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ paths, fields: op.fields, files: op.files }),
-      });
+      const job = await runScanJob("/api/solid-images/scan", { paths, fields: op.fields, files: op.files },
+        box, t("bulk.solid_scanning"));
       if (!bulk || bulk.tab !== tab) return;
-      bulk.preview = data.total ? { paths, op, data } : null;
+      if (!job) {                     // stopped: nothing was changed
+        bulk.preview = null;
+        box.innerHTML = `<p class="bulk-empty">${escapeHtml(t("jobs.stopped"))}</p>`;
+        document.getElementById("bulk-apply").disabled = true;
+        return;
+      }
+      data = job.result;
+      bulk.preview = data.total ? { paths, op, data, job: job.id } : null;
       box.innerHTML = bulkSolidPreviewHtml(data, op.files);
     } else if (tab === "images") {
       const op = bulkOp();
@@ -5483,10 +5534,21 @@ async function applyBulk() {
       if (res.failed_files.length) msg += " " + t("bulk.failed_files", { n: fmtCount(res.failed_files.length) });
     } else if (tab === "solid") {
       const op = bulk.preview.op;
-      res = await apiFetch("/api/solid-images", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ paths, fields: op.fields, files: op.files }),
-      });
+      try {
+        res = await apiFetch("/api/solid-images", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ paths, fields: op.fields, files: op.files, job: bulk.preview.job }),
+        });
+      } catch (e) {
+        if (e.code !== "scan_stale") throw e;
+        // The gamelist or an image changed since the preview: scan again, then review.
+        toast(t("jobs.stale_rescan"), "info");
+        bulk.busy = false;
+        setBusy(applyBtn, false, { restore: false });
+        invalidateBulkPreview();
+        setTimeout(runBulkPreview, 0);
+        return;
+      }
       msg = t("bulk.solid_applied", { n: fmtCount(res.removed), games: fmtCount(res.games) });
       if (res.deleted_files.length) msg += " " + t("bulk.removed_files", { n: fmtCount(res.deleted_files.length) });
       if (res.failed_files.length) msg += " " + t("bulk.failed_files", { n: fmtCount(res.failed_files.length) });
@@ -5502,9 +5564,9 @@ async function applyBulk() {
       if (res.failed.length) msg += " " + t("imgedit.batch_failed", { n: fmtCount(res.failed.length) });
       closeBulk();
       await loadGames();
-      const undo = res.undo, renamed = !!res.renamed;
+      const undo = res.undo, renamed = !!res.renamed, step = res._historyStep;
       toast(msg, res.failed.length ? "warning" : "success",
-        undo ? { label: t("bulk.undo"), run: () => undoImageEdit(undo, renamed) } : null);
+        undo ? { label: t("bulk.undo"), run: () => undoImageEdit(undo, renamed, step) } : null);
       return;
     } else {
       res = await apiFetch("/api/bulk", {
@@ -5516,9 +5578,9 @@ async function applyBulk() {
     closeBulk();
     if (tab === "delete") resetEditorSelection();
     await loadGames();
-    const snapshot = res.snapshot;
+    const snapshot = res.snapshot, step = res._historyStep;
     toast(msg, res.failed_files && res.failed_files.length ? "warning" : "success",
-      snapshot ? { label: t("bulk.undo"), run: () => undoBulk(snapshot, (tab === "delete" || tab === "solid") && res.deleted_files.length) } : null);
+      snapshot ? { label: t("bulk.undo"), run: () => undoBulk(snapshot, (tab === "delete" || tab === "solid") && res.deleted_files.length, step) } : null);
   } catch (e) {
     handleError(e);
     if (bulk) { bulk.busy = false; invalidateBulkPreview(); }
@@ -5527,7 +5589,10 @@ async function applyBulk() {
     setBusy(applyBtn, false, { restore: false });
   }
 }
-async function undoBulk(snapshot, filesInTrash) {
+/** The toast's Undo: the history step of that action when it is still the last
+ * one (Redo stays possible), else its dated snapshot (older server). */
+async function undoBulk(snapshot, filesInTrash, step) {
+  if (step) { await historyUndo({ expect: step }); return; }
   if (changedFields().length) {
     const choice = await askConfirm({ title: t("bulk.undo"), bodyHtml: `<p>${escapeHtml(t("bulk.undo_unsaved"))}</p>`,
       showBackup: false, okLabel: t("bulk.undo") });
@@ -5841,8 +5906,9 @@ async function saveImageEdit() {
     renderList(document.getElementById("search").value);
     closeImageEditor();
     const msg = d.shared ? t("imgedit.saved_shared", { file: baseName(d.path) }) : t("imgedit.saved", { file: baseName(d.path) });
+    const step = d._historyStep;
     toast(msg, d.shared ? "info" : "success",
-      { label: t("bulk.undo"), run: () => undoImageEdit(d.undo, d.path_changed) });
+      { label: t("bulk.undo"), run: () => undoImageEdit(d.undo, d.path_changed, step) });
     setStatus(t("status.saved"));
   } catch (e) {
     handleError(e);
@@ -5852,7 +5918,8 @@ async function saveImageEdit() {
 }
 /** Puts the originals back; when the gamelist changed (new file, new format)
  * its snapshot is restored too, which reloads the list. */
-async function undoImageEdit(id, xmlChanged) {
+async function undoImageEdit(id, xmlChanged, step) {
+  if (step) { await historyUndo({ expect: step }); return; }
   if (xmlChanged && changedFields().length) {
     const choice = await askConfirm({ title: t("bulk.undo"), bodyHtml: `<p>${escapeHtml(t("bulk.undo_unsaved"))}</p>`,
       showBackup: false, okLabel: t("bulk.undo") });
@@ -6124,8 +6191,11 @@ function renderDatState(d) {
     const j = d.job;
     const pct = j.total ? Math.min(100, Math.round(j.done * 100 / j.total)) : 0;
     document.getElementById("dat-bar").style.width = pct + "%";
-    const amount = j.unit === "files" ? t("dat.progress_files", { done: fmtCount(j.done), total: fmtCount(j.total) })
+    let amount = j.unit === "files" ? t("dat.progress_files", { done: fmtCount(j.done), total: fmtCount(j.total) })
       : t("dat.progress_bytes", { done: fmtSize(j.done), total: fmtSize(j.total) });
+    if (j.unit === "bytes" && j.files_total) {     // hashing: which file of how many
+      amount += " · " + t("dat.progress_files", { done: fmtCount(Math.min(j.files_total, (j.files_done || 0) + 1)), total: fmtCount(j.files_total) });
+    }
     document.getElementById("dat-progress-text").textContent =
       t(j.kind === "load" ? "dat.loading" : "dat.comparing", { pct }) + " · " + amount + (j.current ? " · " + j.current : "");
   }
@@ -7134,6 +7204,264 @@ async function reattachMultiBatch() {
     mbatch.options = d.options;
     if (d.state === "running") showMultiBatchRun(d);
   } catch (_) { /* older server */ }
+}
+
+/* ========== Undo / redo history (gme/history.py) ==========
+ * The server keeps the last steps of the open gamelist (one per action: a save,
+ * a bulk edit, a whole batch scrape…). Every API answer carries the history's
+ * revision (X-GME-History): when it moves, the Undo / Redo buttons refresh.
+ * Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z undo / redo, except in a text field, where
+ * the browser's own undo of the typing stays.
+ */
+let historyState = null, historyRev = null, historyBusy = false, _historyTimer = null;
+
+function noteHistoryRev(rev) {
+  if (rev === historyRev) return;
+  historyRev = rev;
+  clearTimeout(_historyTimer);
+  _historyTimer = setTimeout(refreshHistory, 60);
+}
+async function refreshHistory() {
+  if (!window.__gmeLoaded) { renderHistory(null); return; }
+  try { renderHistory(await apiFetch("/api/history")); } catch (_) { /* the next answer retries */ }
+}
+/** The step's name, in the interface language ("Enregistrement : Sonic"…). */
+function historyLabel(e) {
+  if (!e || !e.label) return "";
+  const p = { ...(e.label.params || {}) };
+  if (p.field) p.field = fieldLabel(p.field);
+  if (p.source) p.source = { screenscraper: "ScreenScraper", arcadeitalia: "ArcadeItalia", steam: "Steam" }[p.source] || p.source;
+  if (p.date && /^\d{8}T\d{6}/.test(p.date)) {
+    const d = p.date;
+    const when = new Date(Date.UTC(+d.slice(0, 4), +d.slice(4, 6) - 1, +d.slice(6, 8), +d.slice(9, 11), +d.slice(11, 13), +d.slice(13, 15)));
+    p.date = when.toLocaleString(currentLocale || "fr");
+  }
+  const key = e.label.key === "bulk" && !p.field ? "bulk_any" : e.label.key;
+  let text = t("history." + key, p);
+  if (text === "history." + key) text = t("history.change");
+  if (e.merged > 1) text += " " + t("history.merged", { n: fmtCount(e.merged) });
+  return text;
+}
+/** What undoing ``e`` does not put back (files), for tooltips and toasts. */
+function historyEffects(e, undoing = true) {
+  const out = [];
+  if (e.trashed) out.push(t("history.effect_trashed", { n: fmtCount(e.trashed) }));
+  if (e.deleted) out.push(t("history.effect_deleted", { n: fmtCount(e.deleted) }));
+  if (e.written) out.push(t("history.effect_written", { n: fmtCount(e.written) }));
+  if (e.image_edit) out.push(t(undoing ? "history.effect_image" : "history.effect_image_redo"));
+  return out;
+}
+function renderHistory(h) {
+  historyState = h;
+  const undo = document.getElementById("btn-undo"), redo = document.getElementById("btn-redo");
+  const more = document.getElementById("btn-history");
+  const u = h && h.undo, r = h && h.redo;
+  undo.disabled = !u || historyBusy;
+  redo.disabled = !r || historyBusy;
+  more.disabled = !h || !h.entries.length;
+  const tip = (base, e, undoing) => e
+    ? [t(base, { what: historyLabel(e) }), ...historyEffects(e, undoing)].join("\n")
+    : t(base + "_none");
+  undo.title = tip("history.undo_title", u, true);
+  redo.title = tip("history.redo_title", r, false);
+  undo.setAttribute("aria-label", undo.title.split("\n")[0]);
+  redo.setAttribute("aria-label", redo.title.split("\n")[0]);
+  const pop = document.getElementById("history-menu");
+  if (pop && !pop.hidden) renderHistoryMenu();
+}
+function renderHistoryMenu() {
+  const list = document.getElementById("history-list");
+  const h = historyState;
+  if (!h || !h.entries.length) {
+    list.innerHTML = `<p class="history-empty">${escapeHtml(t("history.empty"))}</p>`;
+    return;
+  }
+  // Undone steps (newest first, at the top) are reachable by redo up to the
+  // first one that cannot be redone (an image edit whose originals went back).
+  const reachable = new Set();
+  let blocked = false;
+  for (let i = h.entries.length - 1; i >= 0; i--) {
+    const e = h.entries[i];
+    if (e.done) continue;
+    if (e.redo_blocked) blocked = true;
+    if (!blocked) reachable.add(e.id);
+  }
+  const item = (e, current) => {
+    const effects = historyEffects(e, e.done);
+    const when = new Date(e.created * 1000).toLocaleTimeString(currentLocale || "fr", { hour: "2-digit", minute: "2-digit" });
+    const off = !e.done && !reachable.has(e.id);
+    const sub = [when, current ? t("history.current") : (e.done ? "" : t(off ? "history.lost_tag" : "history.undone_tag")),
+      ...effects].filter(Boolean).join(" · ");
+    return `<button type="button" class="menu-item history-item${e.done ? "" : " is-undone"}${current ? " is-current" : ""}" role="menuitem"` +
+      ` data-history-id="${escapeHtml(e.id)}" data-history-done="${e.done ? 1 : 0}"${off ? " disabled" : ""}` +
+      `${current ? ' aria-current="step"' : ""} title="${escapeHtml([historyLabel(e), ...effects].join("\n"))}">` +
+      icon(current ? "circle-check" : e.done ? "check" : "arrow-back-up") +
+      `<span class="menu-item-text"><span class="menu-item-title">${escapeHtml(historyLabel(e))}</span>` +
+      `<span class="menu-item-sub">${escapeHtml(sub)}</span></span></button>`;
+  };
+  const firstDone = h.entries.findIndex(e => e.done);
+  const anyDone = firstDone >= 0;
+  list.innerHTML = h.entries.map((e, i) => item(e, i === firstDone)).join("") +
+    `<button type="button" class="menu-item history-item history-origin${anyDone ? "" : " is-current"}" role="menuitem" data-history-origin="1"` +
+    `${anyDone ? "" : ' aria-current="step"'}>${icon(anyDone ? "arrow-back-up" : "circle-check")}` +
+    `<span class="menu-item-text"><span class="menu-item-title">${escapeHtml(t("history.origin"))}</span>` +
+    `<span class="menu-item-sub">${escapeHtml(t("history.origin_sub"))}</span></span></button>`;
+}
+/** Undo (-1) or redo (+1): one step, up to ``to`` (an entry id) or the step ``expect`` only. */
+async function historyMove(direction, { to = null, expect = null } = {}) {
+  if (historyBusy || !window.__gmeLoaded) return false;
+  const h = historyState;
+  if (!to && !expect && !(h && (direction < 0 ? h.undo : h.redo))) {
+    toast(t(direction < 0 ? "history.nothing_undo" : "history.nothing_redo"), "info");
+    return false;
+  }
+  historyBusy = true;
+  renderHistory(h);
+  try {
+    const d = await apiFetch(direction < 0 ? "/api/history/undo" : "/api/history/redo", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(direction < 0 ? { to, expect } : { to }),
+    });
+    window.__gmeSession = d.session_id;     // same gamelist: the open game stays, by its path
+    if (d.paths && d.paths.length) stampMedia(d.paths);
+    await loadGames();
+    const names = d.steps.map(historyLabel);
+    let msg = t(direction < 0 ? "history.undone" : "history.redone", {
+      what: names.length > 1 ? t("history.n_steps", { n: fmtCount(names.length) }) : names[0] || "" });
+    const notes = [];
+    if (direction < 0) {
+      if (d.trashed) notes.push(t("history.left_trashed", { n: fmtCount(d.trashed) }));
+      if (d.deleted) notes.push(t("history.left_deleted", { n: fmtCount(d.deleted) }));
+      if (d.written) notes.push(t("history.left_written", { n: fmtCount(d.written) }));
+      if (d.restored) notes.push(t("history.restored_images", { n: fmtCount(d.restored) }));
+    } else if (d.trashed || d.deleted) {
+      notes.push(t("history.redo_files"));
+    }
+    (d.warnings || []).forEach(w => notes.push(w));
+    if (notes.length) msg += " " + notes.join(" ");
+    renderHistory(d);
+    toast(msg, d.trashed || d.deleted || d.written || (d.warnings || []).length ? "warning" : "success",
+      direction < 0 && d.redo ? { label: t("history.redo"), run: () => historyMove(1) } : null);
+    return true;
+  } catch (e) {
+    if (e.code === "history_external") { toast(e.message, "warning"); }
+    else handleError(e);
+    refreshHistory();
+    return false;
+  } finally {
+    historyBusy = false;
+    renderHistory(historyState);
+  }
+}
+function historyUndo(opts) { return historyMove(-1, opts); }
+function historyRedo(opts) { return historyMove(1, opts); }
+
+document.getElementById("btn-undo").addEventListener("click", () => historyUndo());
+document.getElementById("btn-redo").addEventListener("click", () => historyRedo());
+setupMenu("history-menu", "btn-history", renderHistoryMenu);
+document.getElementById("history-list").addEventListener("click", e => {
+  const item = e.target.closest("[data-history-id], [data-history-origin]");
+  if (!item || item.disabled || item.classList.contains("is-current")) return;
+  closeMenu("history-menu", true);
+  const h = historyState;
+  if (item.dataset.historyOrigin) {          // before every step kept: undo them all
+    const done = h.entries.filter(x => x.done);
+    if (done.length) historyUndo({ to: done[done.length - 1].id });
+    return;
+  }
+  const done = item.dataset.historyDone === "1";
+  const id = item.dataset.historyId;
+  if (done) {
+    // back to the state right after this step: undo the ones above it
+    const idx = h.entries.findIndex(x => x.id === id);
+    const above = h.entries.slice(0, idx).filter(x => x.done);
+    if (above.length) historyUndo({ to: above[above.length - 1].id });
+  } else {
+    historyRedo({ to: id });
+  }
+});
+
+/* ========== Background analyses: progress and Stop (gme/jobs.py) ==========
+ * A long scan (solid images, ROM check, media check) runs on the server as a
+ * job: the page polls it and, after a short delay (a small gamelist answers
+ * before), shows a bar with "X / Y", the item being read and Stop. A scan only
+ * reads: stopping it leaves every file as it was; the apply that follows reuses
+ * its report when the gamelist did not change since (else the server answers
+ * 409 scan_stale and the page scans again).
+ */
+const JOB_BAR_DELAY = 350;
+const runningJobs = new Set();
+
+function jobSleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function jobBarHtml(label) {
+  return `<div class="dat-progress job-progress" data-job-progress>` +
+    `<span class="spinner spinner-sm" aria-hidden="true"></span>` +
+    `<div class="dat-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-label="${escapeHtml(label)}"><span></span></div>` +
+    `<button type="button" class="btn btn-sm job-stop">${icon("player-stop")}<span>${escapeHtml(t("dat.stop"))}</span></button>` +
+    `<span class="dat-progress-text" role="status" aria-live="polite"></span></div>`;
+}
+function updateJobBar(el, job, label) {
+  const bar = el.querySelector(".dat-bar"), fill = bar.querySelector("span");
+  const known = job.total > 0;
+  const pct = known ? Math.min(100, Math.round(job.done * 100 / job.total)) : 0;
+  bar.classList.toggle("is-indeterminate", !known);
+  fill.style.width = known ? pct + "%" : "";
+  if (known) bar.setAttribute("aria-valuenow", String(pct)); else bar.removeAttribute("aria-valuenow");
+  const parts = [label];
+  if (known) parts.push(t("jobs.count", { done: fmtCount(job.done), total: fmtCount(job.total) }) + ` (${pct} %)`);
+  else if (job.done) parts.push(t("jobs.folders", { n: fmtCount(job.done) }));
+  if (job.phase) parts.push(t("jobs.phase_" + job.phase));
+  if (job.current) parts.push(job.current);
+  el.querySelector(".dat-progress-text").textContent = parts.join(" · ");
+  el.querySelector(".dat-progress-text").title = job.current || "";
+}
+
+/** POST ``url`` (a scan route), then follow the job; the bar goes in ``host``.
+ * Returns the finished job (``job.result``), or null when stopped. */
+async function runScanJob(url, body, host, label) {
+  const started = await apiFetch(url, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}),
+  });
+  let job = started.job;
+  const handle = { id: job.id, stop: false };
+  runningJobs.add(handle);
+  const t0 = Date.now();
+  let bar = null;
+  try {
+    while (job.state === "running") {
+      await jobSleep(Date.now() - t0 < 1000 ? 60 : 200);
+      if (handle.stop) {
+        try { await apiFetch(`/api/jobs/${job.id}/stop`, { method: "POST" }); } catch (_) { /* ended meanwhile */ }
+        handle.stop = false;
+      }
+      job = (await apiFetch(`/api/jobs/${job.id}`)).job;
+      if (!bar && job.state === "running" && Date.now() - t0 >= JOB_BAR_DELAY && host && host.isConnected) {
+        host.innerHTML = jobBarHtml(label);
+        bar = host.querySelector("[data-job-progress]");
+        bar.querySelector(".job-stop").addEventListener("click", e => {
+          handle.stop = true;
+          setBusy(e.currentTarget, true);
+          bar.querySelector(".dat-progress-text").textContent = t("jobs.stopping");
+        });
+      }
+      if (bar && job.state === "running" && !handle.stop) updateJobBar(bar, job, label);
+    }
+  } finally {
+    runningJobs.delete(handle);
+    if (bar && bar.isConnected) bar.remove();
+  }
+  if (job.state === "done" && !("result" in job)) job = (await apiFetch(`/api/jobs/${job.id}`)).job;
+  if (job.state === "done") return job;
+  if (job.state === "stopped") return null;
+  throw new Error(job.error || t("errors.internal", { status: 500 }));
+}
+/** Stop the scans in progress (their dialog was closed). */
+function stopScanJobs() {
+  runningJobs.forEach(h => {
+    h.stop = true;
+    apiFetch(`/api/jobs/${h.id}/stop`, { method: "POST" }).catch(() => {});
+  });
 }
 
 boot();

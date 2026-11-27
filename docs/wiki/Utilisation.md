@@ -173,6 +173,22 @@ Pour tout le gamelist :
 
 Ces réglages (et la langue) sont gardés dans `ui_settings.json`, à côté de l’exe.
 
+## Annuler / Rétablir
+
+Les boutons **↶ Annuler** et **↷ Rétablir** en haut à droite reviennent en arrière ou en avant d’une étape ; leur infobulle dit laquelle (*Annuler : Enregistrement : Sonic*). Le bouton **Historique** à côté liste les étapes de la session (les plus récentes en haut, les étapes annulées barrées) : un clic sur l’une d’elles y revient directement, *Avant ces modifications* annule tout.
+
+- Une étape = une action : un enregistrement, une modification en masse sur 2 000 jeux, une vérification des ROMs, un scrap, **un scrap par lot entier**, une retouche d’image, une restauration de sauvegarde.
+- 30 étapes par gamelist ouvert, en mémoire pour la session (les **sauvegardes datées** restent la protection durable).
+- Une nouvelle modification après une annulation efface ce qui pouvait être rétabli.
+- Si le gamelist.xml a été modifié **en dehors de GME** entre-temps (autre outil, EmulationStation), l’annulation est refusée et l’historique remis à zéro, pour ne pas écraser ce changement.
+- Seul le **gamelist.xml** revient en arrière : les fichiers mis à la Corbeille se récupèrent depuis la Corbeille, les médias téléchargés restent sur le disque (l’étape l’indique avant d’annuler). Exception : une **retouche d’image** remet l’image d’origine (cette étape ne peut ensuite pas être rétablie).
+- Impossible pendant un scrap par lot ou des actions sur plusieurs systèmes.
+- Le bouton *Annuler* des notifications (modifier en masse, images unies, éditeur d’image) annule l’étape correspondante.
+
+## Analyses longues
+
+Les images unies, la vérification des ROMs et celle des médias tournent en arrière-plan. Si l’analyse dure, une **barre de progression** apparaît avec *X / Y*, l’élément en cours et **Arrêter** (sur un petit gamelist, le résultat arrive avant). Une analyse ne fait que lire : l’arrêter ne modifie rien. *Appliquer* réutilise l’analyse vérifiée tant que rien n’a changé ; sinon GME analyse à nouveau et te laisse vérifier le résultat.
+
 ## Raccourcis
 
 | Touche | Action |
@@ -186,6 +202,8 @@ Ces réglages (et la langue) sont gardés dans `ui_settings.json`, à côté de 
 | `X` | Cocher / décocher le jeu ouvert pour le scrape par lot (`Maj`+clic : tous jusqu’à ce jeu, `Échap` : tout décocher) |
 | Entrée | Appliquer le scrape (fenêtre de comparaison) |
 | `Ctrl+S` | Enregistrer |
+| `Ctrl+Z` | Annuler la dernière modification du gamelist (dans un champ de saisie : annule la frappe, comme d’habitude) |
+| `Ctrl+Y` ou `Ctrl+Maj+Z` | Rétablir |
 | `Ctrl+F` ou `/` | Rechercher |
 | Échap | Fermer une fenêtre ou un menu |
 | `?` | Liste des raccourcis |

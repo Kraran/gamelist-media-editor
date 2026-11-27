@@ -334,11 +334,13 @@ def _compare(job, dat, files, base, mode, session):
     else:
         total = len(files)
     job["total"] = total
+    job["files_total"] = len(files)            # "file 12 / 340" next to the bytes hashed
     rows, seen = [], set()
-    for f in files:
+    for n, f in enumerate(files):
         if _stop.is_set():
             return
         job["current"] = f["name"]
+        job["files_done"] = n
         game = dat.find(f["name"])
         status, detail, flags = "unknown", "", []
         hashed = False

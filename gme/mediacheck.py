@@ -2,6 +2,8 @@
 
 GET  /api/check-media         report: media files no game uses (orphans), and
                               media tags pointing to a file that is gone
+POST /api/check-media/scan    the same report as a background job (progress,
+                              Stop: gme.jobs) → {"job": {...}}
 POST /api/check-media/apply   {"delete": [relative paths], "unlink": [{"path": game path,
                                "tag": tag}], "trash": true, "backup": true}
 
@@ -13,11 +15,12 @@ deletes files the scan confirms are orphans; with "trash" they go to the
 Recycle Bin (recoverable).
 """
 
+import copy
 import os
 
 from flask import Blueprint, jsonify, request
 
-from gme import esde, fsutil, xml_store
+from gme import esde, fsutil, history, jobs, xml_store
 from gme.http import api_err
 from gme.i18n import st
 from gme.log import log
@@ -81,11 +84,15 @@ def _esde_rom_stems():
     return stems
 
 
-def scan(tree=None):
+def scan(tree=None, progress=None):
+    """``progress(done, total, current, phase)`` may raise ``jobs.Cancelled``."""
     tree = tree if tree is not None else load_xml()
     games = tree.getroot().findall("game")
+    tick = progress or (lambda *a: None)
     used, broken = set(), []
     for i, game in enumerate(games):
+        if i % 20 == 0:
+            tick(i, len(games), game.findtext("path", "") or "", "games")
         for child in game:
             if child.tag in NOT_FILES or not isinstance(child.tag, str):
                 continue
@@ -104,9 +111,12 @@ def scan(tree=None):
 
     files, orphans, orphan_bytes = 0, [], 0
     rom_stems = _esde_rom_stems() if xml_store.PROFILE is not None else None
-    for folder, top in _folders():
+    folders = _folders()
+    for n, (folder, top) in enumerate(folders):
+        tick(n, len(folders), folder, "folders")
         for dirpath, dirnames, filenames in os.walk(top):
             dirnames[:] = sorted(d for d in dirnames if not d.startswith("."))
+            tick(n, len(folders), os.path.relpath(dirpath, os.path.dirname(top)), "folders")
             for name in sorted(filenames, key=str.lower):
                 if name.startswith(".") or os.path.splitext(name)[1].lower() not in MEDIA_EXTS:
                     continue
@@ -147,6 +157,15 @@ def api_check_media():
     return jsonify(scan())
 
 
+@bp.route("/api/check-media/scan", methods=["POST"])
+def api_check_media_scan():
+    err = require_gamelist()
+    if err:
+        return err
+    tree = copy.deepcopy(load_xml())        # the editor may change the cached tree meanwhile
+    return jsonify({"job": jobs.start("mediacheck", lambda job: scan(tree, progress=job.tick)).public(with_result=True)})
+
+
 @bp.route("/api/check-media/apply", methods=["POST"])
 def api_check_media_apply():
     err = require_gamelist()
@@ -161,7 +180,13 @@ def api_check_media_apply():
     use_trash = bool(body.get("trash", True))
 
     tree = load_xml()
-    report = scan(tree)
+    job_id = body.get("job")
+    if job_id:                              # the report the user reviewed, if still true
+        report = jobs.reusable(job_id, "mediacheck")
+        if report is None:
+            return api_err(st("jobs.stale"), 409, code="scan_stale")
+    else:
+        report = scan(tree)
     games = tree.getroot().findall("game")
 
     # Broken links: remove the tag (the file is already gone)
@@ -181,6 +206,7 @@ def api_check_media_apply():
                 backup = backup_xml()
             except Exception as e:
                 return api_err(str(e), 500, code="backup_failed")
+        history.label("mediacheck", n=unlinked)
         save_xml(tree)
 
     # Orphans: only files the scan confirms no game uses
@@ -194,6 +220,7 @@ def api_check_media_apply():
                 _trash(full)
             else:
                 os.remove(full)
+                history.note_deleted()
             deleted += 1
             freed += o["size"]
         except Exception as e:  # trash unavailable (network drive…), locked file
@@ -207,5 +234,5 @@ def api_check_media_apply():
         "unlinked": unlinked,
         "trash": use_trash,
         "backup": backup,
-        "report": scan(),
+        "report": None if job_id else scan(),     # with a job, the page scans again (progress)
     })

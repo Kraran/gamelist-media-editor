@@ -523,6 +523,7 @@ def download_remote_media(url, media_dir, base_name, field, headers=None, timeou
     ext = resolve_media_ext(url, content_type, field, data[:64])
     filename = filename_for(ext) if filename_for else f"{base_name}-{field}{ext}"
     atomic_write(os.path.join(media_dir, filename), data)
+    _note_written()
     return filename
 
 
@@ -559,4 +560,14 @@ def download_pad2key(url, dest):
         os.makedirs(parent, exist_ok=True)
     with open(dest, "wb") as f:
         f.write(data)
+    _note_written()
     return dest
+
+
+def _note_written():
+    """The undo step of this request says media files were written (gme.history)."""
+    try:
+        from gme import history
+        history.note_written()
+    except Exception:  # pragma: no cover
+        pass

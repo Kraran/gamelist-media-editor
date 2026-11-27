@@ -16,7 +16,7 @@ from concurrent.futures import TimeoutError as FutureTimeout
 
 from flask import Blueprint, current_app, jsonify, request
 
-from gme import remote_cache, xml_store
+from gme import history, remote_cache, xml_store
 from gme.fsutil import atomic_write
 from gme.http import api_err
 from gme.i18n import get_request_locale, locale_scope, st
@@ -530,6 +530,8 @@ def step_batch():
     if body.get("i") != job["i"] or job["halted"] or job["i"] >= len(job["targets"]):
         return jsonify({"job": _public(job)})
     target = job["targets"][job["i"]]
+    history.scope("batch:" + job["id"])     # the whole batch is one undo step
+    history.label("batch", source=job["source"])
     pf = None
     try:
         if job["source"] in LOOKUPS:

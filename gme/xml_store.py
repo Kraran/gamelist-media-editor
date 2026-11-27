@@ -175,7 +175,9 @@ def save_xml(tree):
             raise ValueError(st("server.stale_gamelist"))
         try:
             out = esde.strip_for_save(tree, MEDIA_DIRS) if PROFILE is not None else tree
-            atomic_write(XML_PATH, etree.tostring(out, pretty_print=True, xml_declaration=True, encoding="UTF-8"))
+            data = etree.tostring(out, pretty_print=True, xml_declaration=True, encoding="UTF-8")
+            _history_hook("before_write", XML_PATH)
+            atomic_write(XML_PATH, data)
         except Exception:
             # Callers modified the cached tree before saving. A refused write
             # must not make those unsaved edits appear committed on the next read.
@@ -187,8 +189,19 @@ def save_xml(tree):
         except OSError:
             _xml_cache["mtime"] = None
             _xml_cache["tree"] = None
+        _history_hook("after_write", XML_PATH, data)
         from gme import network
         network.after_save(XML_PATH)
+
+
+def _history_hook(name, *args):
+    """Undo / redo bookkeeping (gme.history); never makes a save fail."""
+    try:
+        from gme import history
+        getattr(history, name)(*args)
+    except Exception:  # pragma: no cover - logged, the save itself succeeded
+        import logging
+        logging.getLogger("gme").exception("history.%s failed", name)
 
 
 def backup_xml():

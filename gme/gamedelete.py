@@ -16,7 +16,7 @@ import shutil
 
 from flask import Blueprint, jsonify, request
 
-from gme import esde, fsutil, xml_store
+from gme import esde, fsutil, history, xml_store
 from gme.http import api_err
 from gme.i18n import st
 from gme.log import log
@@ -118,8 +118,10 @@ def _remove(full, use_trash):
         fsutil.trash(full)
     elif os.path.isdir(full):
         shutil.rmtree(full)
+        history.note_deleted()
     else:
         os.remove(full)
+        history.note_deleted()
 
 
 @bp.route("/api/delete-game/<int:index>/preview", methods=["POST"])
@@ -171,6 +173,7 @@ def api_delete_game(index):
                 return api_err(st("server.rom_not_deleted", path=entry["path"], detail=e),
                                409, code="rom_not_deleted")
             failed.append(entry["path"])
+    history.label("delete_game", game=history.game_name(game))
     tree.getroot().remove(game)
     save_xml(tree)
     return jsonify({

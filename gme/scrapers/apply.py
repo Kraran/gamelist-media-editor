@@ -15,7 +15,7 @@ back (thumbnail, bezel and Pad2Key are rows of the dialog like the others).
 from flask import jsonify, request
 from lxml import etree
 
-from gme import xml_store
+from gme import history, xml_store
 from gme.fields import FieldError, clean_meta, set_desc, set_name
 from gme.http import api_err
 from gme.i18n import st
@@ -158,5 +158,6 @@ def apply_route(index, source, headers=None, media_handlers=None, no_url_key="se
         game, fields, proposed, headers=headers, media_handlers=media_handlers, no_url_key=no_url_key
     )
     if applied:
+        history.label("scrape", weak=True, source=source, game=history.game_name(game), n=len(applied))
         save_xml(tree)
     return jsonify({"success": True, "applied": applied, "errors": errors, "source": source})
