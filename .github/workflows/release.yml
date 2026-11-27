@@ -1,0 +1,73 @@
+name: Release
+
+# Push a tag vX.Y.Z (gme/version.py must say X.Y.Z): builds the Windows .exe,
+# zips it and publishes GamelistMediaEditor-Windows-vX.Y.Z.zip + SHA256SUMS.txt
+# on the GitHub release (created as a draft first, published once both files
+# are attached, so the in-app updater never sees a release without its checksum).
+# For an existing release: Actions › Release › Run workflow with the tag; the
+# two files are (re)attached.
+
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag, e.g. v1.8.0"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  windows-release:
+    name: Build and publish the Windows release
+    runs-on: windows-latest
+    env:
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Check the version
+        shell: pwsh
+        run: |
+          $v = python -c "from gme.version import APP_VERSION; print(APP_VERSION)"
+          if ("v$v" -ne $env:TAG) { throw "gme/version.py says $v, tag is $env:TAG" }
+          "VERSION=$v" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Build with PyInstaller
+        run: |
+          python -m pip install -r requirements.txt pyinstaller
+          python -m PyInstaller --noconfirm GamelistMediaEditor.spec
+
+      - name: Zip and checksum
+        run: python tools/release_assets.py dist/GamelistMediaEditor.exe ${{ env.VERSION }} release-out
+
+      - name: Publish on the release
+        shell: pwsh
+        run: |
+          $zip = "release-out/GamelistMediaEditor-Windows-v$env:VERSION.zip"
+          $sums = "release-out/SHA256SUMS.txt"
+          Get-Content $sums
+          gh release view $env:TAG *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $env:TAG $zip $sums --clobber
+          } else {
+            $notes = "docs/release-notes/RELEASE_NOTES_$env:TAG.md"
+            if (Test-Path $notes) {
+              gh release create $env:TAG $zip $sums --draft --title "Gamelist Media Editor $env:TAG" --notes-file $notes
+            } else {
+              gh release create $env:TAG $zip $sums --draft --title "Gamelist Media Editor $env:TAG" --generate-notes
+            }
+            gh release edit $env:TAG --draft=false --latest
+          }
+          if ($LASTEXITCODE -ne 0) { throw "gh failed" }

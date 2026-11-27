@@ -130,11 +130,56 @@ jobs:
             if ($thumb.Headers["Content-Type"] -notmatch "image/webp") { throw "thumbnail not WebP: $($thumb.Headers['Content-Type'])" }
             $detail = Invoke-RestMethod "$base/api/game/0?path=./a.zip"
             if ($detail.name -ne "Alpha") { throw "game detail failed" }
+            # Self-update is offered by the frozen exe (no request to GitHub here)
+            $u = Invoke-RestMethod "$base/api/update"
+            if (-not $u.can_install -or $u.current -ne $s.version) { throw "updater: $($u | ConvertTo-Json -Compress)" }
             Write-Host "OK: frozen exe serves UI, assets, API and thumbnails (v$($s.version), system $($s.system.folder)=$($s.system.id))"
           } finally {
             try { Invoke-RestMethod -Method Post "$base/api/shutdown" -Headers @{ Origin = $base } | Out-Null } catch {}
             if (-not $exe.WaitForExit(10000)) { Stop-Process -Id $exe.Id -Force }
             Get-Content exe-out.log, exe-err.log -ErrorAction SilentlyContinue
+          }
+
+      - name: Self-update helper on the real .exe (fake install)
+        shell: pwsh
+        run: |
+          # The PowerShell helper of gme/updater.py swaps a running onefile .exe:
+          # it waits for GME to exit, keeps the previous .exe, restarts it and
+          # checks the new version answers. User files next to the .exe stay.
+          $app = Join-Path $env:RUNNER_TEMP "Gamelist Media Editor"
+          $work = Join-Path $app ".gme-update"
+          New-Item -ItemType Directory -Force (Join-Path $work "staging") | Out-Null
+          $exe = Join-Path $app "GamelistMediaEditor.exe"
+          $new = Join-Path $work "staging\GamelistMediaEditor.exe"
+          Copy-Item dist\GamelistMediaEditor.exe $exe
+          Copy-Item dist\GamelistMediaEditor.exe $new
+          Set-Content -Path (Join-Path $app "ui_settings.json") -Value '{"theme": "light"}' -Encoding utf8
+          $ps1 = Join-Path $work "gme-update.ps1"
+          python -c "import sys; from gme.updater import HELPER_PS1; open(sys.argv[1], 'w', encoding='utf-8-sig').write(HELPER_PS1)" $ps1
+          $base = "http://127.0.0.1:5050"
+          function Wait-Up { for ($i = 0; $i -lt 80; $i++) { try { return Invoke-RestMethod "$base/api/session" } catch { Start-Sleep -Milliseconds 500 } }; throw "GME did not answer" }
+          $gme = Start-Process -FilePath $exe -ArgumentList "--no-browser" -WorkingDirectory $app -PassThru
+          $version = (Wait-Up).version
+          $log = Join-Path $work "update.log"
+          $helper = Start-Process -FilePath "powershell.exe" -PassThru -ArgumentList @(
+            "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", "`"$ps1`"",
+            "-Target", "`"$exe`"", "-NewFile", "`"$new`"", "-BackupDir", "`"$(Join-Path $work 'previous')`"",
+            "-LogFile", "`"$log`"", "-Pids", "$($gme.Id)", "-ExpectVersion", $version, "-HealthUrl", "$base/api/session")
+          Start-Sleep -Seconds 2
+          try { Invoke-RestMethod -Method Post "$base/api/shutdown" -Headers @{ Origin = $base } | Out-Null } catch {}
+          try {
+            if (-not $helper.WaitForExit(150000)) { throw "helper still running" }
+            Get-Content $log
+            if ($helper.ExitCode -ne 0) { throw "helper exit code $($helper.ExitCode)" }
+            if (-not (Test-Path (Join-Path $work "previous\GamelistMediaEditor.exe"))) { throw "previous version not kept" }
+            if (Test-Path $new) { throw "staged exe still there" }
+            if ((Get-Content (Join-Path $app "ui_settings.json") -Raw) -notmatch "light") { throw "user settings changed" }
+            if (-not (Select-String -Path $log -Pattern "started" -Quiet)) { throw "restart not confirmed" }
+            Write-Host "OK: .exe swapped, v$version restarted and answered, previous .exe kept"
+          } finally {
+            try { Invoke-RestMethod -Method Post "$base/api/shutdown" -Headers @{ Origin = $base } | Out-Null } catch {}
+            Start-Sleep -Seconds 2
+            Get-Process GamelistMediaEditor -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
           }
 
       - uses: actions/upload-artifact@v4
