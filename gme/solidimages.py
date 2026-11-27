@@ -1,7 +1,12 @@
 """Images of a single colour (Actions › Edit in bulk › Solid images).
 
 POST /api/solid-images/preview  {"paths": [...], "fields": ["image", …], "files": false}
-POST /api/solid-images          same body: removes the tags (one backup, one write)
+POST /api/solid-images/scan     same body: the preview as a background job
+                                (progress, Stop: gme.jobs) → {"job": {...}}
+POST /api/solid-images          same body: removes the tags (one backup, one write);
+                                ``"job": id`` reuses that finished scan when the
+                                gamelist and the images did not change since,
+                                else answers 409 ``scan_stale`` (scan again)
 
 A media is "solid" when ``gme.media.uniform_colour`` says so: on a 64 px copy
 (averaging removes JPEG noise) the picture is fully transparent, or every
@@ -16,14 +21,15 @@ kept and listed. ROMs are never deleted. Undo restores the gamelist, not the
 files: they are recovered from the Recycle Bin.
 """
 
+import copy
 import os
 import threading
 import warnings
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from flask import Blueprint, jsonify, request
 
-from gme import fsutil, xml_store
+from gme import fsutil, history, jobs, xml_store
 from gme.http import api_err
 from gme.i18n import st
 from gme.log import log
@@ -91,10 +97,11 @@ def _body():
     return set(paths), fields, with_files
 
 
-def scan(tree, paths, fields):
+def scan(tree, paths, fields, progress=None):
     """Solid image tags of the games whose <path> is in ``paths``.
 
-    Returns (hits, stats): hits are (game, elem, full, colour, w, h)."""
+    Returns (hits, stats): hits are (game, elem, full, colour, w, h).
+    ``progress(done, total, current)`` may raise ``jobs.Cancelled``."""
     entries, missing = [], 0
     for game in tree.getroot().findall("game"):
         if (game.findtext("path", "") or "") not in paths:
@@ -110,8 +117,18 @@ def scan(tree, paths, fields):
                     continue
                 entries.append((game, elem, full))
     files = sorted({e[2] for e in entries})
-    with ThreadPoolExecutor(max_workers=WORKERS) as pool:
-        colours = dict(zip(files, pool.map(file_colour, files)))
+    colours = {}
+    if progress:
+        progress(0, len(files), "")
+    pool = ThreadPoolExecutor(max_workers=WORKERS)
+    try:
+        futures = {pool.submit(file_colour, f): f for f in files}
+        for n, future in enumerate(as_completed(futures), 1):
+            colours[futures[future]] = future.result()
+            if progress:
+                progress(n, len(files), os.path.basename(futures[future]))
+    finally:
+        pool.shutdown(wait=True, cancel_futures=True)
     hits = []
     for game, elem, full in entries:
         colour, w, h = colours[full]
@@ -163,6 +180,49 @@ def _error(e):
     return api_err(st(e.key), 400, code=e.key.replace(".", "_"))
 
 
+def _preview(tree, hits, stats, with_files):
+    out = dict(stats, total=len(hits), games=len({id(h[0]) for h in hits}),
+               rows=[_row(g, e, c, w, h) for g, e, _f, c, w, h in hits[:PREVIEW_ROWS]])
+    if with_files:
+        delete, kept = file_plan(tree, hits)
+        out.update(delete=_public(delete), delete_total=len(delete), delete_bytes=sum(e["size"] for e in delete),
+                   kept=_public(kept), kept_total=len(kept))
+    return out
+
+
+def _stamp_file(full):
+    try:
+        st_ = os.stat(full)
+        return st_.st_mtime_ns, st_.st_size
+    except OSError:
+        return None
+
+
+def _locate(tree, hits):
+    """Hits as positions (game index, tag, n-th tag, value, file, stamp, colour, w, h)."""
+    games = tree.getroot().findall("game")
+    where = {id(g): i for i, g in enumerate(games)}
+    out = []
+    for game, elem, full, colour, w, h in hits:
+        same = game.findall(elem.tag)
+        out.append((where[id(game)], elem.tag, same.index(elem), elem.text, full, _stamp_file(full), colour, w, h))
+    return out
+
+
+def _relocate(tree, located):
+    """Hits back from ``_locate`` positions; None when anything changed."""
+    games = tree.getroot().findall("game")
+    hits = []
+    for gi, tag, k, text, full, stamp, colour, w, h in located:
+        if gi >= len(games):
+            return None
+        same = games[gi].findall(tag)
+        if k >= len(same) or same[k].text != text or _stamp_file(full) != stamp:
+            return None
+        hits.append((games[gi], same[k], full, colour, w, h))
+    return hits
+
+
 @bp.route("/api/solid-images/preview", methods=["POST"])
 def api_solid_preview():
     err = require_gamelist()
@@ -174,13 +234,27 @@ def api_solid_preview():
         return _error(e)
     tree = load_xml()
     hits, stats = scan(tree, paths, fields)
-    out = dict(stats, total=len(hits), games=len({id(h[0]) for h in hits}),
-               rows=[_row(g, e, c, w, h) for g, e, _f, c, w, h in hits[:PREVIEW_ROWS]])
-    if with_files:
-        delete, kept = file_plan(tree, hits)
-        out.update(delete=_public(delete), delete_total=len(delete), delete_bytes=sum(e["size"] for e in delete),
-                   kept=_public(kept), kept_total=len(kept))
-    return jsonify(out)
+    return jsonify(_preview(tree, hits, stats, with_files))
+
+
+@bp.route("/api/solid-images/scan", methods=["POST"])
+def api_solid_scan():
+    err = require_gamelist()
+    if err:
+        return err
+    try:
+        paths, fields, with_files = _body()
+    except SolidError as e:
+        return _error(e)
+    tree = copy.deepcopy(load_xml())        # the editor may change the cached tree meanwhile
+    params = {"paths": sorted(paths), "fields": fields, "files": with_files}
+
+    def run(job):
+        hits, stats = scan(tree, paths, fields, progress=lambda d, t, c: job.tick(d, t, c))
+        job.located = _locate(tree, hits)
+        return _preview(tree, hits, stats, with_files)
+
+    return jsonify({"job": jobs.start("solid", run, params).public(with_result=True)})
 
 
 @bp.route("/api/solid-images", methods=["POST"])
@@ -193,7 +267,17 @@ def api_solid_apply():
     except SolidError as e:
         return _error(e)
     tree = load_xml()
-    hits, _stats = scan(tree, paths, fields)                # scanned again: what is on disk now
+    job_id = (request.get_json(silent=True) or {}).get("job")
+    if job_id:
+        params = {"paths": sorted(paths), "fields": fields, "files": with_files}
+        job = jobs.get(job_id)
+        hits = None
+        if jobs.reusable(job_id, "solid", params) is not None:
+            hits = _relocate(tree, getattr(job, "located", []))
+        if hits is None:
+            return api_err(st("jobs.stale"), 409, code="scan_stale")
+    else:
+        hits, _stats = scan(tree, paths, fields)            # scanned again: what is on disk now
     if not hits:
         return jsonify({"success": True, "removed": 0, "games": 0, "deleted_files": [], "failed_files": [],
                         "kept_files": [], "snapshot": None})
@@ -202,6 +286,7 @@ def api_solid_apply():
         _bak, snapshot = xml_store.backup_xml_snapshot()
     except Exception as e:
         return api_err(str(e), 500, code="backup_failed")
+    history.label("solid", n=len(hits))
     for game, elem, *_rest in hits:
         game.remove(elem)
     save_xml(tree)

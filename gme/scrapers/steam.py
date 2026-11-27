@@ -466,6 +466,8 @@ def steam_download_video(game, field, info):
                         raise ValueError("too_large")
                     f.write(chunk)
             os.replace(tmp, dest)
+            from gme import history
+            history.note_written()
             return rel_value
         except ValueError:
             last_err = st("server.file_too_large", n=MAX_DOWNLOAD_BYTES // (1024 * 1024))

@@ -53,6 +53,18 @@
     </div>
 
     <div class="app-actions">
+      <div class="history-group" id="history-group" role="group" data-i18n-aria="history.group" aria-label="Historique des modifications">
+        <button type="button" class="btn btn-ghost btn-icon" id="btn-undo" disabled aria-label="Annuler" title="Rien à annuler">{{ icon("arrow-back-up") }}</button>
+        <button type="button" class="btn btn-ghost btn-icon" id="btn-redo" disabled aria-label="Rétablir" title="Rien à rétablir">{{ icon("arrow-forward-up") }}</button>
+        <div class="menu-wrap">
+          <button type="button" class="btn btn-ghost btn-icon" id="btn-history" disabled aria-haspopup="menu" aria-expanded="false" aria-controls="history-menu" data-i18n-title="history.open_title" title="Historique des modifications" data-i18n-aria="history.open_title" aria-label="Historique des modifications">{{ icon("history") }}</button>
+          <div class="menu menu-right history-menu" id="history-menu" role="menu" aria-labelledby="btn-history" hidden>
+            <div class="menu-label" data-i18n="history.menu_label">Historique (cette session)</div>
+            <div class="history-list" id="history-list"></div>
+            <p class="history-foot" data-i18n="history.menu_foot">Annuler remet le gamelist.xml tel qu'il était. Les fichiers envoyés à la Corbeille restent à récupérer depuis la Corbeille ; les sauvegardes datées (Actions › Sauvegardes) restent disponibles.</p>
+          </div>
+        </div>
+      </div>
       <button type="button" class="btn btn-ghost" id="btn-open-gamelist" data-i18n-title="header.open_gamelist_title" title="Ouvrir un autre gamelist.xml">
         {{ icon("folder-open") }}<span class="btn-label" data-i18n="header.open_gamelist">Gamelist…</span>
       </button>
@@ -1042,6 +1054,8 @@
               <tr><td class="keys-combo"><kbd>X</kbd> <kbd data-i18n="settings.k_shift_click">Maj+clic</kbd></td><td data-i18n="settings.key_select">Cocher le jeu pour le scrape par lot (Maj+clic : jusqu’à ce jeu)</td></tr>
               <tr><td class="keys-combo"><kbd>Ctrl</kbd>+<kbd>A</kbd></td><td data-i18n="settings.key_select_all">Cocher tous les jeux affichés</td></tr>
               <tr><td class="keys-combo"><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td data-i18n="settings.key_save">Enregistrer les modifications</td></tr>
+              <tr><td class="keys-combo"><kbd>Ctrl</kbd>+<kbd>Z</kbd></td><td data-i18n="history.key_undo">Annuler la dernière modification du gamelist (hors champ de saisie)</td></tr>
+              <tr><td class="keys-combo"><kbd>Ctrl</kbd>+<kbd>Y</kbd> <kbd>Ctrl</kbd>+<kbd>⇧</kbd>+<kbd>Z</kbd></td><td data-i18n="history.key_redo">Rétablir</td></tr>
               <tr><td class="keys-combo"><kbd>Ctrl</kbd>+<kbd>F</kbd> <kbd>/</kbd></td><td data-i18n="settings.key_search">Rechercher un jeu</td></tr>
               <tr><td class="keys-combo"><kbd data-i18n="settings.k_enter">Entrée</kbd></td><td data-i18n="settings.key_apply">Appliquer le scrape (fenêtre de comparaison)</td></tr>
               <tr><td class="keys-combo"><kbd data-i18n="settings.k_esc">Échap</kbd></td><td data-i18n="settings.key_close">Fermer une fenêtre ou un menu</td></tr>

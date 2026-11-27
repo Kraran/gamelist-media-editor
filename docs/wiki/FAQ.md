@@ -59,4 +59,8 @@ Le bouton Scraper choisit la source selon le dossier du système (arcade → Arc
 
 Filtre sur un média manquant, puis `N` (jeu incomplet suivant), `S` (scraper), Entrée (appliquer), et ainsi de suite.
 
+### Puis-je annuler plusieurs modifications ?
+
+Oui : **↶ Annuler** / **↷ Rétablir** en haut (ou `Ctrl+Z` / `Ctrl+Y` hors des champs de saisie), et le bouton **Historique** pour revenir directement à une étape. 30 étapes par gamelist pendant la session ; le gamelist.xml revient octet pour octet. Les fichiers mis à la Corbeille se récupèrent depuis la Corbeille. Pour revenir plus loin ou après avoir relancé GME : *Actions › Sauvegardes*.
+
 **Gamelist Media Editor** · v1.7.5

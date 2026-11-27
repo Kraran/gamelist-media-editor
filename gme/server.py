@@ -2,13 +2,15 @@
 
 from flask import Flask
 
-from gme import security
+from gme import history, security
 from gme.backups import bp as backups_bp
 from gme.batch_jobs import bp as batch_bp
 from gme.bulk import bp as bulk_bp
 from gme.dattool import bp as dattool_bp
 from gme.editor import bp as editor_bp
 from gme.gamedelete import bp as gamedelete_bp
+from gme.history import bp as history_bp
+from gme.jobs import bp as jobs_bp
 from gme.paths import resource_path
 from gme.mediacheck import bp as mediacheck_bp
 from gme.newgamelist import bp as newgamelist_bp
@@ -44,7 +46,9 @@ app.before_request(security.guard_local_requests)
 app.before_request(security.begin_gamelist_request)
 app.before_request(security.check_game_identity)
 app.after_request(security.flag_reindexed)
+app.after_request(history.add_revision_header)
 app.teardown_request(security.end_gamelist_request)
+app.teardown_request(history.finish)   # the request's writes become one undo step
 
-for blueprint in (editor_bp, gamedelete_bp, ss_bp, adb_bp, steam_bp, thumbs_bp, remote_cache_bp, recent_bp, romcheck_bp, mediacheck_bp, settings_bp, backups_bp, batch_bp, bulk_bp, stats_bp, dattool_bp, newgamelist_bp, imageedit_bp, solidimages_bp, overview_bp, multibatch_bp, sources_bp, network_bp):
+for blueprint in (editor_bp, gamedelete_bp, ss_bp, adb_bp, steam_bp, thumbs_bp, remote_cache_bp, recent_bp, romcheck_bp, mediacheck_bp, settings_bp, backups_bp, batch_bp, bulk_bp, stats_bp, dattool_bp, newgamelist_bp, imageedit_bp, solidimages_bp, overview_bp, multibatch_bp, sources_bp, network_bp, history_bp, jobs_bp):
     app.register_blueprint(blueprint)

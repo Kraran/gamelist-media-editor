@@ -270,3 +270,32 @@ def test_old_edits_are_pruned(client, media, gamelist, tmp_path, monkeypatch):
            .get_json()["undo"] for _ in range(3)]
     root = tmp_path / ".gme-backups" / "gamelist.xml" / "media"
     assert sorted(os.listdir(root)) == sorted(ids[1:])
+
+
+# --- Through the undo history (gme/history.py) -----------------------------------------
+
+def test_history_undo_puts_the_original_back(client, media, gamelist):
+    original = (media / "alpha-image.png").read_bytes()
+    r = post(client, "/api/image-edit/0/image?path=./alpha.zip",
+             {"ops": {"trim": {"tolerance": 5}}, "mode": "overwrite"})
+    assert r.status_code == 200
+    h = client.get("/api/history", headers=LOCAL).get_json()
+    step = h["undo"]
+    assert step["label"]["key"] == "image_edit" and step["image_edit"] and not step["xml"]
+    assert r.headers["X-GME-History-Step"] == step["id"]
+    u = post(client, "/api/history/undo", {"expect": step["id"]}).get_json()
+    assert u["restored"] == 1 and u["paths"] == ["./images/alpha-image.png"]
+    assert (media / "alpha-image.png").read_bytes() == original
+    assert u["redo"] is None                       # the originals went back: no redo
+    assert post(client, "/api/history/redo", {}).status_code == 409
+
+
+def test_history_undo_of_a_format_change(client, media, gamelist, trashed):
+    original = (media / "alpha-wheel.png").read_bytes()
+    post(client, "/api/image-edit/0/wheel?path=./alpha.zip", {"ops": {"format": "jpg", "quality": 70}, "mode": "overwrite"})
+    assert tag(gamelist, 0, "wheel") == "./images/alpha-wheel.jpg"
+    u = post(client, "/api/history/undo", {}).get_json()
+    assert u["success"]
+    assert tag(gamelist, 0, "wheel") == "./images/alpha-wheel.png"
+    assert (media / "alpha-wheel.png").read_bytes() == original
+    assert not (media / "alpha-wheel.jpg").exists()

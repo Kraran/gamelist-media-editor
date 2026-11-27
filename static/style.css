@@ -305,6 +305,25 @@ input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px;
 .ctx-count { font-size: var(--fs-sm); white-space: nowrap; }
 
 .app-actions { display: flex; align-items: center; gap: var(--s1); margin-left: auto; }
+/* Undo / Redo / history (gme/history.py) */
+.history-group { display: inline-flex; align-items: center; gap: 2px; padding-right: var(--s1); margin-right: var(--s1); border-right: 1px solid var(--line); }
+.history-group .btn-icon:disabled { opacity: .4; }
+.history-menu { width: min(420px, calc(100vw - 32px)); max-width: min(420px, calc(100vw - 32px)); }
+.history-list { display: grid; gap: 2px; max-height: min(60vh, 460px); overflow-y: auto; }
+.history-item .menu-item-sub { white-space: normal; }
+.history-item.is-undone .menu-item-title { color: var(--text-3); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--text-3) 60%, transparent); }
+.history-item.is-current { background: var(--accent-soft); }
+.history-item.is-current > .icon { color: var(--accent-text); }
+.history-origin { border-top: 1px solid var(--line); border-radius: 0 0 var(--r-control) var(--r-control); }
+.history-empty, .history-foot { margin: 0; padding: var(--s2); color: var(--text-3); font-size: var(--fs-sm); }
+.history-foot { border-top: 1px solid var(--line); margin-top: var(--s1); }
+/* Background analyses (gme/jobs.py): the DAT bar, unknown total = moving stripe */
+.job-progress { padding: var(--s2) 0; }
+.job-progress .dat-progress-text { flex: 1 1 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.job-progress .dat-bar { background: var(--line); }
+.dat-bar.is-indeterminate span { width: 30%; animation: job-indeterminate 1.2s ease-in-out infinite; }
+@keyframes job-indeterminate { 0% { transform: translateX(-100%); } 100% { transform: translateX(340%); } }
+@media (prefers-reduced-motion: reduce) { .dat-bar.is-indeterminate span { animation: none; width: 100%; opacity: .5; } }
 .bar-divider { width: 1px; height: 22px; margin: 0 var(--s1); background: var(--line); }
 .btn-quit { background: transparent; border-color: transparent; color: var(--text-2); }
 .btn-quit:hover:not(:disabled) { background: var(--danger-fill); border-color: var(--danger-fill); color: #fff; }

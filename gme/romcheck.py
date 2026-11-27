@@ -2,6 +2,8 @@
 
 GET  /api/check-roms         report: ROMs not in the gamelist, entries whose
                              ROM is gone, entries listed twice
+POST /api/check-roms/scan    the same report as a background job (progress,
+                             Stop: gme.jobs) → {"job": {...}}
 POST /api/check-roms/apply   {"add": [paths], "remove": [paths], "merge": [paths],
                               "backup": true, "delete_media": false}
 
@@ -17,13 +19,14 @@ ROM really is gone, and merges entries that really share a path. Entries are
 identified by their <path>, never by position.
 """
 
+import copy
 import os
 import re
 
 from flask import Blueprint, jsonify, request
 from lxml import etree
 
-from gme import fsutil, xml_store
+from gme import fsutil, history, jobs, xml_store
 from gme.http import api_err
 from gme.i18n import st
 from gme.log import log
@@ -116,13 +119,15 @@ def is_arcade_folder(folder_name):
     return folder_name in ARCADE_DB_FOLDERS or folder_name.startswith("mame")
 
 
-def find_roms(base, listed_keys=(), used_exts=(), folder_name="", nested=False, exts=None, xml_path=None):
+def find_roms(base, listed_keys=(), used_exts=(), folder_name="", nested=False, exts=None, xml_path=None,
+              on_folder=None):
     """The ROM files (and one-game folders) under ``base``: ``(paths, arcade)``.
 
     ``listed_keys``: keys (``_key``) of the paths the gamelist already lists,
     always kept; ``used_exts``: extensions the gamelist already uses; ``exts``:
     an explicit extension set (new gamelist for a known system) that replaces
     the defaults, in sub-folders too. Nothing is opened but .cue/.gdi/.m3u.
+    ``on_folder(path)`` is called for each folder read (progress, Stop).
     """
     listed_keys = set(listed_keys)
     used_exts = set(used_exts)
@@ -146,6 +151,8 @@ def find_roms(base, listed_keys=(), used_exts=(), folder_name="", nested=False, 
 
     def walk(folder, depth):
         exts_here = root_exts if depth == 1 else sub_exts
+        if on_folder:
+            on_folder(folder)
         try:
             entries = sorted(os.scandir(folder), key=lambda e: e.name.lower())
         except OSError:
@@ -176,17 +183,23 @@ def find_roms(base, listed_keys=(), used_exts=(), folder_name="", nested=False, 
     return [p for p in found if _key(p) not in parts or _key(p) in listed_keys], arcade
 
 
-def scan(tree=None):
-    """Compare the open gamelist with its folder. Returns a report dict."""
+def scan(tree=None, progress=None):
+    """Compare the open gamelist with its folder. Returns a report dict.
+
+    ``progress(done, total, current, phase)`` may raise ``jobs.Cancelled``."""
     tree = tree if tree is not None else load_xml()
     base = xml_store.rom_dir()
     games = tree.getroot().findall("game")
+    tick = progress or (lambda *a: None)
+    tick(0, len(games), "", "games")
 
     used_exts = set()
     by_key = {}                                  # ROM key -> [(xml index, game)]
     missing, non_file = [], 0
     for i, game in enumerate(games):
         path = (game.findtext("path", "") or "").strip()
+        if i % 20 == 0:
+            tick(i, len(games), path)
         full = _entry_full(path)
         if full is None:
             non_file += 1
@@ -204,7 +217,15 @@ def scan(tree=None):
 
     _, folder_name = detect_system_id()
     nested = any("/" in (g.findtext("path", "") or "").strip().lstrip("./").replace("\\", "/") for g in games)
-    roms, arcade = find_roms(base, set(by_key), used_exts, folder_name, nested, xml_path=xml_store.XML_PATH)
+    tick(len(games), len(games), "", "games")
+    found = [0]
+
+    def on_folder(folder):
+        found[0] += 1
+        tick(found[0], 0, os.path.relpath(folder, base) if folder != base else "", "folders")
+
+    roms, arcade = find_roms(base, set(by_key), used_exts, folder_name, nested, xml_path=xml_store.XML_PATH,
+                             on_folder=on_folder if progress else None)
     unlisted = []
     for full in roms:
         if _key(full) in by_key:
@@ -284,6 +305,15 @@ def api_check_roms():
     return jsonify(scan())
 
 
+@bp.route("/api/check-roms/scan", methods=["POST"])
+def api_check_roms_scan():
+    err = require_gamelist()
+    if err:
+        return err
+    tree = copy.deepcopy(load_xml())        # the editor may change the cached tree meanwhile
+    return jsonify({"job": jobs.start("romcheck", lambda job: scan(tree, progress=job.tick)).public(with_result=True)})
+
+
 @bp.route("/api/check-roms/apply", methods=["POST"])
 def api_check_roms_apply():
     err = require_gamelist()
@@ -298,7 +328,13 @@ def api_check_roms_apply():
 
     tree = load_xml()
     root = tree.getroot()
-    report = scan(tree)
+    job_id = body.get("job")
+    if job_id:                              # the report the user reviewed, if still true
+        report = jobs.reusable(job_id, "romcheck")
+        if report is None:
+            return api_err(st("jobs.stale"), 409, code="scan_stale")
+    else:
+        report = scan(tree)
     games = root.findall("game")
 
     backup = None
@@ -354,6 +390,7 @@ def api_check_roms_apply():
         added += 1
 
     if added or removed or merged:
+        history.label("romcheck", added=added, removed=len(removed), merged=merged)
         save_xml(tree)
     return jsonify({
         "success": True,
@@ -362,5 +399,5 @@ def api_check_roms_apply():
         "merged": merged,
         "media_deleted": media_deleted,
         "backup": backup,
-        "report": scan(),
+        "report": None if job_id else scan(),     # with a job, the page scans again (progress)
     })

@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from flask import Blueprint, jsonify, request
 from lxml import etree
 
-from gme import network, xml_store
+from gme import history, network, xml_store
 from gme.fsutil import atomic_write
 from gme.http import api_err
 from gme.i18n import st
@@ -130,7 +130,9 @@ def restore_snapshot(name):
         raise ValueError(st("backups.invalid"))
     # Read the selected bytes first: pruning can remove the oldest snapshot.
     previous = create_snapshot("restore")
+    xml_store._history_hook("before_write", xml_store.XML_PATH)
     atomic_write(xml_store.XML_PATH, data)
+    xml_store._history_hook("after_write", xml_store.XML_PATH, data)
     xml_store.set_gamelist_path(xml_store.XML_PATH)
     return previous
 
@@ -157,6 +159,7 @@ def restore_backup():
     if not isinstance(name, str) or not _ID.fullmatch(name):
         return api_err(st("backups.invalid"), 400, code="invalid_backup")
     try:
+        history.label("restore", date=name[:15])
         previous = restore_snapshot(name)
         if previous is None:
             return api_err(st("backups.invalid"), 404, code="backup_missing")

@@ -126,7 +126,7 @@ def test_dat_tool_compares_by_crc_then_names_come_from_the_dat(page, gamelist, t
     names = xml_names(gamelist)
     assert names["./bravo.sfc"] == "Bravo Racing (USA)" and names["./homebrew.sfc"] == "My Homebrew"
     page.click("#toast .toast-action")
-    page.wait_for_function("document.getElementById('toast').textContent.includes('restaur')")
+    page.wait_for_function("document.getElementById('toast').textContent.includes('Annulé')")
     assert xml_names(gamelist)["./bravo.sfc"] == "bravo"
     assert rom_bytes(gamelist.parent) == before                    # ROM files untouched
     assert (gamelist.parent / "bravo.sfc").exists()

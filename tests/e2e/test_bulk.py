@@ -54,7 +54,7 @@ def run_preview(page):
 
 def undo(page):
     page.click("#toast .toast-action")
-    page.wait_for_function("document.getElementById('toast').textContent.includes('restaur')")
+    page.wait_for_function("document.getElementById('toast').textContent.includes('Annulé')")
 
 
 def test_set_a_field_on_the_ticked_games_then_undo(page, gamelist):

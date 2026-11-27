@@ -10,7 +10,7 @@ import requests
 from flask import Blueprint, Response, jsonify, render_template, request, send_from_directory
 from lxml import etree
 
-from gme import csv_export, esde, network, recent, settings, xml_store
+from gme import csv_export, esde, history, network, recent, settings, xml_store
 from gme.arcade import find_mame_listxml, index_mame_listxml, pretty_arcade_system
 from gme.fields import FieldError, clean_meta, set_desc, set_meta, set_name
 from gme.fsutil import atomic_write
@@ -347,6 +347,7 @@ def upload(index, field):
         tree, game = get_game_elem(index)
     except IndexError:
         return api_err(st("server.invalid_index"), 404, code="invalid_index")
+    history.label("media", game=history.game_name(game), field=field)
     try:
         base_name = get_base_name(game)
         dest = {}
@@ -379,6 +380,7 @@ def upload(index, field):
             if len(data) > MAX_DOWNLOAD_BYTES:
                 return api_err(st("server.file_too_large", n=MAX_DOWNLOAD_BYTES // (1024*1024)), 400, code="file_too_large")
             atomic_write(dest_for(ext), data)
+            history.note_written()
             new_filename, rel_path = os.path.basename(dest["full"]), dest["value"]
         elif url:
             try:
@@ -432,6 +434,7 @@ def clear_field(index, field):
         tree, game = get_game_elem(index)
     except IndexError:
         return api_err(st("server.invalid_index"), 404, code="invalid_index")
+    history.label("clear", game=history.game_name(game), field=field)
     try:
         trashed = remove_media(game, field)          # ES-DE: the media is its file
         elem = game.find(field)
@@ -477,6 +480,7 @@ def save_game(index):
         updated["desc"] = data.get("desc") or ""
         set_desc(game, updated["desc"])
     set_meta(game, cleaned)
+    history.label("save", game=history.game_name(game))
     try:
         save_xml(tree)
     except Exception as e:
@@ -542,6 +546,7 @@ def fill_arcadesystem():
         elem.text = name
         filled += 1
     if filled:
+        history.label("arcade", n=filled)
         save_xml(tree)
     return jsonify({
         "success": True,

@@ -5,7 +5,7 @@ import shutil
 
 import pytest
 
-from gme import fsutil, recent, settings, xml_store
+from gme import fsutil, history, jobs, recent, settings, xml_store
 from gme import batch_jobs
 from gme.server import app
 
@@ -110,6 +110,16 @@ def fallback_sources_offline(monkeypatch, tmp_path):
 
 
 @pytest.fixture(autouse=True)
+def fresh_history():
+    """Each test starts with no undo history and no background scan."""
+    history.reset_all()
+    jobs.reset()
+    yield
+    jobs.reset()
+    history.reset_all()
+
+
+@pytest.fixture(autouse=True)
 def trashed(monkeypatch):
     """Nothing goes to the real Recycle Bin: what would is recorded, then removed."""
     paths = []
@@ -122,6 +132,7 @@ def trashed(monkeypatch):
             shutil.rmtree(path)
         else:
             os.remove(path)
+        history.note_trash()                   # like fsutil.trash: the undo step says so
 
     monkeypatch.setattr(fsutil, "trash", fake_trash)
     return paths

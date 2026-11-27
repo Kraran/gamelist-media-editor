@@ -56,13 +56,15 @@ Version documentée : **1.7.5**
 - **Outil DAT** (No-Intro, Redump, FBNeo, MAME) : comparaison par nom, CRC32 ou SHA1, rapport filtrable et export CSV ; ROMs jamais modifiées
 - **Créer un gamelist ici…** à partir d’un dossier de ROMs (extensions du système)
 - **Statistiques** et **Sauvegardes** (30 copies datées, restaurables)
+- **Annuler / Rétablir sur plusieurs niveaux** : boutons ↶ ↷ en haut (l’infobulle dit ce qui sera annulé), menu **Historique** (les étapes de la session, saut direct à l’une d’elles ou *Avant ces modifications*), `Ctrl+Z` / `Ctrl+Y` / `Ctrl+Maj+Z` hors des champs de saisie ; 30 étapes par gamelist, une par action (un enregistrement, une modification en masse, un scrap par lot entier…) ; une nouvelle modification efface ce qui pouvait être rétabli ; un gamelist modifié hors de GME remet l’historique à zéro au lieu d’écraser ce changement ; les fichiers mis à la Corbeille ne reviennent pas (sauf les retouches d’image)
+- **Barre de progression et Arrêter** sur les analyses longues (images unies, vérification des ROMs et des médias) : *X / Y*, élément en cours ; affichée seulement après un court délai ; arrêter ne modifie rien
 - Fenêtre Chromium `--app=` (pas de barre d’adresse)
 
 ## Interface
 
 - Thème **sombre** (par défaut), **clair** ou **comme le système** (Réglages › Général) ; polices et icônes intégrées (fonctionne hors ligne)
 - **Réglages** : langue, ScreenScraper, sources de scrape, médias requis, raccourcis ; gardés dans `ui_settings.json` à côté de l’exe
-- **Clavier** : `J`/`K`, `N`, `S`, `Ctrl+S`, `Ctrl+F`, `?`
+- **Clavier** : `J`/`K`, `N`, `S`, `Ctrl+S`, `Ctrl+Z` / `Ctrl+Y`, `Ctrl+F`, `?`
 - 13 langues
 - À propos (clic logo), Quitter
 

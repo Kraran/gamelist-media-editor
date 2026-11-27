@@ -90,7 +90,7 @@ def test_folder_browser_spinner_clears_on_error(page):
 
 def test_solid_images_scan_busy_button_then_result(page):
     open_bulk_solid(page)
-    held = Held(page, "**/api/solid-images/preview")
+    held = Held(page, "**/api/solid-images/scan")
     page.click("#bulk-preview-btn")
     held.wait()
     btn = page.locator("#bulk-preview-btn")
@@ -108,7 +108,7 @@ def test_solid_images_scan_busy_button_then_result(page):
 
 def test_solid_images_scan_error_clears_the_spinner(page):
     open_bulk_solid(page)
-    held = Held(page, "**/api/solid-images/preview")
+    held = Held(page, "**/api/solid-images/scan")
     page.click("#bulk-preview-btn")
     held.fail(message="Analyse impossible")
     page.wait_for_selector("#bulk-preview .bulk-error")
@@ -156,7 +156,7 @@ def test_spinners_wait_200ms_so_quick_actions_do_not_flicker(page):
 
 
 def test_rom_check_scan_shows_a_spinner(page):
-    held = Held(page, "**/api/check-roms*")
+    held = Held(page, "**/api/check-roms/scan")
     page.click("#btn-actions")
     page.click("#btn-rom-check")
     held.wait()
