@@ -59,7 +59,7 @@ let currentLocale = DEFAULT_LOCALE;
  * ui_settings.json next to the app (gme/settings.py), not in the browser,
  * whose storage the app window can lose.
  */
-let SETTINGS = { locale: null, theme: "dark", list_width: null, search_all_fields: false, scrapers: {}, required_media: {} };
+let SETTINGS = { locale: null, theme: "dark", list_width: null, search_all_fields: false, update_check: true, scrapers: {}, required_media: {} };
 
 /* Theme: dark (default), light, or as the system (follows Windows while open).
  * The page arrives with the saved theme already applied (templates/index.html). */
@@ -2387,6 +2387,7 @@ function openSettings(pane) {
   wireLanguageControls();
   loadSsConfig();
   loadFallbackConfig();
+  loadUpdateSettings();
   renderScrapeSources();
   renderRequiredMedia();
   document.getElementById("settings-modal").classList.add("open");
@@ -7409,7 +7410,8 @@ function updateJobBar(el, job, label) {
   fill.style.width = known ? pct + "%" : "";
   if (known) bar.setAttribute("aria-valuenow", String(pct)); else bar.removeAttribute("aria-valuenow");
   const parts = [label];
-  if (known) parts.push(t("jobs.count", { done: fmtCount(job.done), total: fmtCount(job.total) }) + ` (${pct} %)`);
+  if (known && job.unit === "MB") parts.push(t("jobs.count_mb", { done: fmtMB(job.done), total: fmtMB(job.total) }) + ` (${pct} %)`);
+  else if (known) parts.push(t("jobs.count", { done: fmtCount(job.done), total: fmtCount(job.total) }) + ` (${pct} %)`);
   else if (job.done) parts.push(t("jobs.folders", { n: fmtCount(job.done) }));
   if (job.phase) parts.push(t("jobs.phase_" + job.phase));
   if (job.current) parts.push(job.current);
@@ -7464,4 +7466,203 @@ function stopScanJobs() {
   });
 }
 
-boot();
+/* ========== Updates (gme/updater.py) ==========
+ * At start-up (setting "update_check", at most once a day on the server side)
+ * and from Actions › Check for updates. A newer release opens a dialog with
+ * its notes; "Update now" downloads and checks it in a background job (bar +
+ * Stop), then the server starts its helper and exits: this page waits for the
+ * new version to answer and reloads. Source runs only get a link.
+ */
+let updateInfo = null;
+let updateBusy = false;
+
+function fmtMB(n) {
+  return Number(n || 0).toLocaleString(currentLocale || "fr", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+}
+function fmtDay(iso) {
+  if (!iso) return "";
+  const d = new Date(iso.length === 10 ? iso + "T12:00:00" : iso);
+  return isNaN(d) ? iso : d.toLocaleDateString(currentLocale || "fr", { year: "numeric", month: "long", day: "numeric" });
+}
+/** Release notes (Markdown) as safe, simple HTML: headings, lists, paragraphs. */
+function releaseNotesHtml(md) {
+  const inline = txt => escapeHtml(txt
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/(\*\*|__|`)/g, ""));
+  const out = [];
+  let list = false;
+  for (const raw of String(md || "").split(/\r?\n/)) {
+    const line = raw.trim();
+    const item = line.match(/^[-*+]\s+(.*)$/);
+    if (!item && list) { out.push("</ul>"); list = false; }
+    if (!line) continue;
+    if (item) {
+      if (!list) { out.push("<ul>"); list = true; }
+      out.push(`<li>${inline(item[1])}</li>`);
+    } else if (/^#{1,6}\s/.test(line)) {
+      out.push(`<p class="update-notes-sub">${inline(line.replace(/^#+\s*/, ""))}</p>`);
+    } else {
+      out.push(`<p>${inline(line)}</p>`);
+    }
+  }
+  if (list) out.push("</ul>");
+  return out.join("");
+}
+
+function renderUpdateModal(info) {
+  const latest = info.latest || {};
+  document.getElementById("update-version").textContent =
+    t("update.version_line", { version: "v" + latest.version, current: "v" + info.current });
+  document.getElementById("update-date").textContent = latest.published ? t("update.published", { date: fmtDay(latest.published) }) : "";
+  const link = document.getElementById("update-link");
+  link.href = latest.url || info.releases_page;
+  document.getElementById("update-notes").innerHTML = releaseNotesHtml(latest.notes) || "<p>—</p>";
+  const hint = info.installable ? "update.install_hint" : (info.reason === "no_checksum" ? "update.no_checksum_hint" : "update.source_hint");
+  const hintEl = document.getElementById("update-hint");
+  hintEl.textContent = (info.ignored ? t("update.ignored_note") + " " : "") + t(hint);
+  hintEl.classList.toggle("is-warn", info.reason === "no_checksum");
+  document.getElementById("update-now-label").textContent = t(info.installable ? "update.now" : "update.download_page");
+  document.getElementById("update-ignore").hidden = !!info.ignored;
+}
+function openUpdateModal(info) {
+  updateInfo = info;
+  renderUpdateModal(info);
+  document.getElementById("update-progress").innerHTML = "";
+  document.getElementById("update-modal").classList.add("open");
+  document.getElementById("update-now").focus();
+}
+function closeUpdateModal() {
+  if (updateBusy) stopScanJobs();
+  document.getElementById("update-modal").classList.remove("open");
+}
+
+/** ``manual``: the user asked (toast when up to date, errors shown). */
+async function checkForUpdates(manual) {
+  let info;
+  try {
+    info = await apiFetch("/api/update/check", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(manual ? { force: true } : { auto: true }),
+    });
+  } catch (e) {
+    if (manual) handleError(e);
+    return null;
+  }
+  renderUpdateStatus(info);
+  if (!info.available) {
+    if (manual) toast(t("update.up_to_date", { version: "v" + info.current }));
+    return info;
+  }
+  if (!manual && info.ignored) return info;
+  if (!manual) await whenNoDialog();
+  openUpdateModal(info);
+  return info;
+}
+/** The start-up notice waits for the dialog in front (gamelist picker…) to close. */
+async function whenNoDialog() {
+  for (let i = 0; i < 600 && document.querySelector(".modal-overlay.open"); i++) {
+    await new Promise(r => setTimeout(r, 1000));
+  }
+}
+
+async function installUpdate() {
+  const info = updateInfo;
+  if (!info || updateBusy) return;
+  if (!info.installable) {
+    window.open((info.latest && info.latest.url) || info.releases_page, "_blank", "noopener");
+    return;
+  }
+  if (!(await confirmLeaveEditor())) return;
+  const btn = document.getElementById("update-now");
+  updateBusy = true;
+  setBusy(btn, true);
+  document.getElementById("update-ignore").disabled = true;
+  let job = null;
+  try {
+    job = await runScanJob("/api/update/download", {}, document.getElementById("update-progress"), t("update.downloading"));
+    if (!job) { toast(t("jobs.stopped")); return; }
+    await apiFetch("/api/update/apply", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ job: job.id }),
+    });
+  } catch (e) {
+    handleError(e);
+    return;
+  } finally {
+    updateBusy = false;
+    setBusy(btn, false);
+    document.getElementById("update-ignore").disabled = false;
+  }
+  showUpdateRestart(job.result.version);
+}
+
+/** The server is gone: wait for the new version, then reload. */
+function showUpdateRestart(version) {
+  // On top of the page (left in place, inert): its observers keep their elements
+  document.querySelectorAll(".modal-overlay.open").forEach(m => m.classList.remove("open"));
+  Array.from(document.body.children).forEach(el => { el.inert = true; });
+  document.body.insertAdjacentHTML("beforeend",
+    '<div class="shutdown-screen update-restart" role="status" aria-live="polite">' +
+    '<span class="spinner update-spinner" aria-hidden="true"></span>' +
+    `<div class="shutdown-title">${escapeHtml(t("update.restarting_title", { version: "v" + version }))}</div>` +
+    `<div class="shutdown-msg" id="update-restart-msg">${escapeHtml(t("update.restarting_msg"))}</div></div>`);
+  const t0 = Date.now();
+  const slowMsg = t("update.restart_slow");
+  const poll = async () => {
+    try {
+      const res = await fetch("/api/session", { cache: "no-store" });
+      const data = await res.json();
+      if (data.version === version) { location.reload(); return; }
+    } catch (_) { /* restarting */ }
+    if (Date.now() - t0 > 75000) {
+      const msg = document.getElementById("update-restart-msg");
+      if (msg) msg.textContent = slowMsg;
+    }
+    setTimeout(poll, 1500);
+  };
+  setTimeout(poll, 2500);
+}
+
+function renderUpdateStatus(info) {
+  const el = document.getElementById("update-status");
+  if (!el || !info) return;
+  const parts = [];
+  if (info.available) parts.push(t("update.version_line", { version: "v" + info.latest.version, current: "v" + info.current }));
+  else if (info.checked_at) parts.push(t("update.up_to_date", { version: "v" + info.current }));
+  if (info.checked_at) parts.push(t("update.last_check", { date: new Date(info.checked_at * 1000).toLocaleString(currentLocale || "fr") }));
+  el.textContent = parts.join("\n");
+}
+async function loadUpdateSettings() {
+  document.getElementById("update-auto").checked = SETTINGS.update_check !== false;
+  try { renderUpdateStatus(await apiFetch("/api/update")); } catch (_) { /* shown on demand */ }
+}
+
+document.getElementById("update-auto").addEventListener("change", e => saveSettings({ update_check: e.target.checked }));
+document.getElementById("btn-update-check").addEventListener("click", e =>
+  withBusy(e.currentTarget, () => checkForUpdates(true)));
+document.getElementById("btn-update-check-menu").addEventListener("click", () =>
+  withBusy(document.getElementById("btn-actions"), () => checkForUpdates(true)));
+document.getElementById("update-now").addEventListener("click", installUpdate);
+document.getElementById("update-later").addEventListener("click", closeUpdateModal);
+document.getElementById("update-close").addEventListener("click", closeUpdateModal);
+document.getElementById("update-ignore").addEventListener("click", async () => {
+  const version = updateInfo && updateInfo.latest && updateInfo.latest.version;
+  if (version) {
+    try {
+      await apiFetch("/api/update/ignore", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ version }),
+      });
+    } catch (e) { handleError(e); return; }
+  }
+  closeUpdateModal();
+});
+document.getElementById("update-modal").addEventListener("keydown", e => {
+  if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); closeUpdateModal(); }
+});
+document.getElementById("update-modal").addEventListener("click", e => {
+  if (e.target.id === "update-modal" && !updateBusy) closeUpdateModal();
+});
+
+boot().then(() => setTimeout(() => {
+  if (SETTINGS.update_check !== false) checkForUpdates(false);
+}, 2500));

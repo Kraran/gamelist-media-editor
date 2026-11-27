@@ -107,6 +107,10 @@
           <button type="button" class="menu-item" role="menuitem" id="btn-export-csv">
             {{ icon("file-spreadsheet") }}<span class="menu-item-text"><span class="menu-item-title" data-i18n="actions.export_csv">Exporter la liste (CSV)</span><span class="menu-item-sub" data-i18n="actions.export_csv_sub">Les jeux affichés dans la liste, pour Excel ou LibreOffice</span></span>
           </button>
+          <div class="menu-sep" role="separator"></div>
+          <button type="button" class="menu-item" role="menuitem" id="btn-update-check-menu">
+            {{ icon("download") }}<span class="menu-item-text"><span class="menu-item-title" data-i18n="update.menu">Vérifier les mises à jour</span><span class="menu-item-sub" data-i18n="update.menu_sub">Nouvelle version de Gamelist Media Editor sur GitHub</span></span>
+          </button>
         </div>
       </div>
       <button type="button" class="btn btn-ghost" id="btn-settings" data-i18n-title="header.settings_title" title="Langue, ScreenScraper, sources, raccourcis">
@@ -869,6 +873,28 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="update-modal" role="dialog" aria-modal="true" aria-labelledby="update-title">
+    <div class="modal update-modal">
+      <div class="tools-header">
+        <h3 class="modal-title" id="update-title">{{ icon("download") }}<span data-i18n="update.title">Mise à jour disponible</span></h3>
+        <button type="button" class="btn btn-icon" id="update-close" title="Fermer" data-i18n-title="tools.close">{{ icon("x") }}</button>
+      </div>
+      <div class="update-body">
+        <p class="update-version" id="update-version"></p>
+        <p class="update-meta"><span id="update-date"></span><a id="update-link" href="https://github.com/Kraran/gamelist-media-editor/releases" target="_blank" rel="noopener">{{ icon("external-link") }}<span data-i18n="update.full_notes">Notes complètes sur GitHub</span></a></p>
+        <h4 class="update-notes-h" data-i18n="update.notes_title">Nouveautés</h4>
+        <div class="update-notes" id="update-notes"></div>
+        <p class="update-hint" id="update-hint"></p>
+        <div class="update-progress" id="update-progress"></div>
+      </div>
+      <div class="modal-actions update-actions">
+        <button type="button" class="btn btn-ghost update-ignore" id="update-ignore" data-i18n="update.ignore">Ignorer cette version</button>
+        <button type="button" class="btn" id="update-later" data-i18n="update.later">Plus tard</button>
+        <button type="button" class="btn btn-accent" id="update-now">{{ icon("download") }}<span id="update-now-label" data-i18n="update.now">Mettre à jour maintenant</span></button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
     <div class="modal settings-modal">
       <div class="tools-header">
@@ -915,6 +941,16 @@
                 <option value="da">Dansk</option>
                 <option value="ru">Русский</option>
               </select>
+            </div>
+
+            <h4 class="settings-h" id="settings-update-title" data-i18n="update.settings_title">Mises à jour</h4>
+            <p class="settings-desc" data-i18n="update.settings_desc">Au démarrage, GME regarde au plus une fois par jour s'il existe une nouvelle version sur GitHub. Aucune donnée personnelle n'est envoyée.</p>
+            <div class="settings-field update-settings">
+              <label class="check-option"><input type="checkbox" id="update-auto" checked /><span data-i18n="update.settings_auto">Vérifier les mises à jour au démarrage</span></label>
+              <div class="ss-form-actions">
+                <button type="button" class="btn" id="btn-update-check">{{ icon("refresh") }}<span data-i18n="update.check_now">Vérifier maintenant</span></button>
+                <span class="ss-status" id="update-status" role="status"></span>
+              </div>
             </div>
           </section>
 

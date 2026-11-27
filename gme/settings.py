@@ -8,6 +8,8 @@ POST /api/settings   the same keys, each optional: ``locale`` and ``theme`` (dar
                      list in pixels (dragged by the user), ``null`` for the default;
                      ``search_all_fields`` (bool) makes the list search look in every
                      field (genre, developer…) instead of the name and ROM path only;
+                     ``update_check`` (bool, default on) looks for a new version on
+                     GitHub at start-up, at most once a day (gme/updater.py);
                      ``scrapers`` / ``required_media`` update one system folder at a time,
                      a ``null`` value going back to the automatic choice.
 
@@ -45,7 +47,7 @@ def _clean(data):
     """Only the known settings, with valid values."""
     data = data if isinstance(data, dict) else {}
     out = {"locale": None, "theme": "dark", "list_width": None, "search_all_fields": False,
-           "scrapers": {}, "required_media": {}}
+           "update_check": True, "scrapers": {}, "required_media": {}}
     if isinstance(data.get("locale"), str) and _LOCALE.match(data["locale"]):
         out["locale"] = data["locale"]
     if data.get("theme") in THEMES:
@@ -54,6 +56,8 @@ def _clean(data):
         out["list_width"] = data["list_width"]
     if isinstance(data.get("search_all_fields"), bool):
         out["search_all_fields"] = data["search_all_fields"]
+    if isinstance(data.get("update_check"), bool):
+        out["update_check"] = data["update_check"]
     for folder, source in (data.get("scrapers") or {}).items():
         if isinstance(folder, str) and _FOLDER.match(folder) and source in SCRAPERS:
             out["scrapers"][folder] = source
@@ -93,10 +97,11 @@ def update(patch):
             if not (patch["list_width"] is None or _valid_list_width(patch["list_width"])):
                 raise ValueError("list_width")
             cur["list_width"] = patch["list_width"]
-        if "search_all_fields" in patch:
-            if not isinstance(patch["search_all_fields"], bool):
-                raise ValueError("search_all_fields")
-            cur["search_all_fields"] = patch["search_all_fields"]
+        for key in ("search_all_fields", "update_check"):
+            if key in patch:
+                if not isinstance(patch[key], bool):
+                    raise ValueError(key)
+                cur[key] = patch[key]
         for key, valid in (("scrapers", lambda v: v in SCRAPERS),
                            ("required_media", lambda v: isinstance(v, list) and all(f in MEDIA_FIELDS for f in v))):
             changes = patch.get(key)

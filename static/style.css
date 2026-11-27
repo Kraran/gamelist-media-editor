@@ -1813,7 +1813,7 @@ ul.batch-warning { margin: 0; padding-left: var(--s4); }
 .stat-value { font: 700 var(--fs-xl)/1.1 var(--font-display); font-variant-numeric: tabular-nums; }
 .stat-label { color: var(--text-2); font-size: var(--fs-sm); }
 .stat-sub { color: var(--text-3); font-size: var(--fs-xs); }
-.stats-h { margin: var(--s4) 0 var(--s2); font-size: var(--fs-md, 15px); }
+.stats-h { margin: var(--s4) 0 var(--s2); font-size: var(--fs-lg); }
 .stats-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
 .stats-table th { padding: 4px var(--s2); color: var(--text-3); font-weight: 600; text-align: left; }
 .stats-table td { height: 34px; padding: 2px var(--s2); border-top: 1px solid var(--line); }
@@ -2082,3 +2082,25 @@ th[aria-sort="ascending"] .ov-sort, th[aria-sort="descending"] .ov-sort { color:
 .network-warn .icon { flex: none; margin-top: 2px; }
 .network-modal { width: min(720px, 100%); height: auto; }
 .network-modal .tools-footer { flex-wrap: wrap; }
+
+/* Updates (gme/updater.py): the "update available" dialog and the restart screen */
+.update-modal { width: min(560px, 100%); max-height: calc(100vh - 2 * var(--s5)); display: flex; flex-direction: column; gap: var(--s3); }
+.update-body { display: flex; flex-direction: column; gap: var(--s2); min-height: 0; overflow: auto; }
+.update-version { margin: 0; color: var(--text); font-size: var(--fs-lg); font-weight: 600; }
+.update-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s1) var(--s4); margin: 0; color: var(--text-3); font-size: var(--fs-sm); }
+.update-meta a { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); text-decoration: none; }
+.update-meta a:hover { text-decoration: underline; }
+.update-meta .icon { width: 14px; height: 14px; }
+.update-notes-h { margin: var(--s2) 0 0; color: var(--text-2); font-size: var(--fs-xs); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+.update-notes { max-height: 220px; overflow: auto; padding: var(--s2) var(--s3); border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--text-2); font-size: var(--fs-sm); line-height: 1.5; }
+.update-notes p { margin: var(--s1) 0; }
+.update-notes ul { margin: var(--s1) 0; padding-left: 1.3em; }
+.update-notes .update-notes-sub { color: var(--text); font-weight: 600; }
+.update-hint { margin: 0; color: var(--text-3); font-size: var(--fs-xs); line-height: 1.45; }
+.update-hint.is-warn { color: var(--warn); }
+.update-progress:empty { display: none; }
+.update-actions .update-ignore { margin-right: auto; }
+.update-settings { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s2); }
+.update-restart { z-index: 100; }
+.update-spinner { width: 34px; height: 34px; border-width: 3px; }
+#update-status { white-space: pre-line; }

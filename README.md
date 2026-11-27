@@ -6,9 +6,11 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
 
 **Version 1.7.5** · [Documentation (Wiki)](https://github.com/Kraran/gamelist-media-editor/wiki) · [Releases](https://github.com/Kraran/gamelist-media-editor/releases) · [Changelog](CHANGELOG.md)
 
-**▶ Demo video (YouTube)**
+**▶ 45-second demo**: browse, edit, scrape with a preview, media, bulk edit, undo, all your systems at a glance
 
-[![Gamelist Media Editor demo video](https://img.youtube.com/vi/Wj3KJ_8RePc/maxresdefault.jpg)](https://youtu.be/Wj3KJ_8RePc)
+[![Gamelist Media Editor in 45 seconds: browse a gamelist, edit and save, scrape with a preview, media, bulk edit, undo, multi-system overview](docs/demo/demo.webp)](docs/demo/demo.mp4)
+
+[Full-quality MP4](docs/demo/demo.mp4) · [Longer video on YouTube](https://youtu.be/Wj3KJ_8RePc)
 
 ![The editor: game list, media of the selected game, description and metadata](docs/screenshots/editor.png)
 
@@ -76,6 +78,7 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
   - *Remove*: take games out of `gamelist.xml` after a confirmation; their media can also go to the Recycle Bin (off by default, files another game uses are kept); **ROMs are never deleted**
   - Every apply makes a dated backup first and its toast has **Undo** (one step of the history below; files sent to the Recycle Bin are recovered from the Recycle Bin)
 - **Undo / Redo, several steps** (the ↶ ↷ buttons at the top, `Ctrl+Z` / `Ctrl+Y` or `Ctrl+Shift+Z`): the last 30 changes of each open gamelist, one step per action (a save, a bulk edit, a ROM / media check, a scrape, a whole batch scrape, an image edit, a backup restored). The tooltip names the step undone or redone; the history button lists them and jumps to any of them, or back to *Before these changes*. A new change drops the steps that were undone. Undo puts `gamelist.xml` back byte for byte (atomic write) and only if nobody else changed it meanwhile: a gamelist edited outside GME resets the history instead of losing that edit. Files are not part of it: what went to the Recycle Bin is recovered there, media files written stay on disk (the step says so before you undo), except image edits, whose originals are put back (that step cannot be redone). In a text field `Ctrl+Z` stays the field's own undo. The history lives in memory, for the session; the dated backups remain the long-term safety net
+- **Automatic updates** (Windows `.exe`): at start-up GME asks GitHub, at most once a day and without an account, whether a newer release exists (silent when offline; *Settings › General › Updates* turns it off, *Actions › Check for updates* asks now). A newer version opens a dialog with its release notes: **Update now**, **Later** or **Skip this version**. *Update now* downloads the release zip with a progress bar and *Stop*, checks its **SHA-256** against the release's `SHA256SUMS.txt` (no checksum or a mismatch: refused), keeps only `GamelistMediaEditor.exe` from it, then GME closes, swaps its `.exe` (the previous one is kept in `.gme-update\previous`), restarts with the same gamelist and checks the new version answers, or puts the previous one back. Only files of the official repository's releases are downloaded, over HTTPS; settings, keys, network passwords, recent lists, caches and backups are never touched. From source, the dialog links to the release page
 - **Progress and Stop on long scans**: the solid images scan, the ROM check and the media check run in the background with a bar, *X / Y*, the item being read and **Stop**, shown only after a short delay so small gamelists stay instant. A scan only reads: stopping it changes nothing, and the apply that follows reuses its result only when the gamelist and the files did not change since (else it scans again and asks you to review). The DAT tool also shows *file X / Y* while hashing
 - **Statistics** (Actions): games, scraped, complete (all required media), with description, rated, dated, favorites, hidden, played and play time; per media present / broken (tag without file) / missing, with *Show* to list the games missing it; main genres
 - **DAT tool** (Actions): load a No-Intro, Redump, FBNeo or MAME DAT you have (Logiqx XML, MAME `-listxml` or ClrMamePro text; nothing is bundled) and compare the system's ROMs with it, by file name or, if you ask, by CRC32 (zip index, fast) / SHA1, in the background with progress: OK, misnamed, bad dump, incomplete romset, unknown and missing games, clone / BIOS / CHD flags, filters and CSV export. It never renames, moves or deletes ROM files; display names can then be taken from the DAT (*Edit in bulk* › *Names*)
@@ -114,6 +117,8 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
 3. The app window opens on http://127.0.0.1:5050 — use **Gamelist…** to open a `gamelist.xml`
 
 Tip: drag a `gamelist.xml` onto the `.exe` to open it directly.
+
+Updates: from the next release on, GME offers new versions itself (see *Automatic updates* above). To go back to the previous version after an update, close GME and copy `.gme-update\previous\GamelistMediaEditor.exe` over `GamelistMediaEditor.exe`.
 
 ### Option B — From source (Python)
 
@@ -215,6 +220,8 @@ Code layout (`app.py` is only the entry point; the overview is in `gme/__init__.
 - `python app.py --no-browser [gamelist.xml]` starts the server without opening a window
 - GitHub Actions runs the tests on Windows and Linux (Python 3.9 and 3.13), the browser tests in Chromium, and builds the Windows `.exe`, starts it and queries it, for every push and pull request (the `.exe` is downloadable from the run for 14 days)
 - Windows executable locally: `BUILD_EXE.bat` (PyInstaller, output in `dist/`)
+- Releases: push a tag `vX.Y.Z` (matching `gme/version.py`); the *Release* workflow builds the `.exe`, zips it with `tools/release_assets.py` and publishes `GamelistMediaEditor-Windows-vX.Y.Z.zip` **and `SHA256SUMS.txt`** on the release (draft until both are attached). The in-app updater refuses a release without that checksum file. *Actions › Release › Run workflow* re-attaches them to an existing tag
+- Demo video: `python tools/record_demo.py <system folder> <out>` records it with Playwright on a copy (fake scraper, offline), `tools/encode_demo.sh <out>/demo.webm docs/demo` makes the README's animated WebP and the MP4
 
 Interface:
 
