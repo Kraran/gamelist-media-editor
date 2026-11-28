@@ -1,4 +1,5 @@
 """Batch scrape: ticking games, complete or replace, uncertain games, stop, quota."""
+import threading
 import time
 
 import pytest
@@ -8,6 +9,27 @@ from gme.scrapers import ss
 from gme.scrapers import apply as scrape_apply
 
 pytestmark = pytest.mark.e2e
+
+
+def hold_first_ss_request(monkeypatch):
+    """Block the first ScreenScraper call until the test releases it.
+
+    Later calls run at once, so a resume can finish the remaining games.
+    """
+    original = ss.ss_request
+    entered = threading.Event()
+    release = threading.Event()
+    calls = []
+
+    def held(endpoint, extra=None, timeout=25):
+        calls.append(endpoint)
+        if not entered.is_set():
+            entered.set()
+            assert release.wait(30)
+        return original(endpoint, extra, timeout)
+
+    monkeypatch.setattr(ss, "ss_request", held)
+    return entered, release, calls
 
 
 def games_by_name(gamelist):
@@ -112,18 +134,15 @@ def test_quota_stops_the_run(page, gamelist, monkeypatch):
 
 
 def test_stop_after_the_game_in_progress(page, gamelist, fake_sources, monkeypatch):
-    slow = ss.ss_request
-
-    def slow_request(*a, **k):
-        time.sleep(0.4)
-        return slow(*a, **k)
-    monkeypatch.setattr(ss, "ss_request", slow_request)
+    entered, release, _ = hold_first_ss_request(monkeypatch)
     page.click("#btn-actions")
     run(page, "#btn-batch-scrape")
     page.click("#batch-start")
+    assert entered.wait(10)                                            # the first game is in progress
     page.wait_for_function("document.getElementById('batch-cancel').textContent === 'Arrêter'")
     assert page.is_hidden("#batch-close")                              # no closing while it runs
     page.click("#batch-cancel")
+    release.set()                                                      # it finishes; the others do not start
     page.wait_for_selector("#batch-export:not([hidden])", timeout=30000)
     assert "Arrêté : 1 / 3" in page.inner_text("#batch-body")
     assert games_by_name(gamelist)["Charlie"].findtext("developer") is None
