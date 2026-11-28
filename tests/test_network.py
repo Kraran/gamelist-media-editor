@@ -156,27 +156,67 @@ def test_reload_games_uses_the_documented_endpoint(fake_es):
     assert not result["ok"] and result["error"]
 
 
+class _HeldTimer:
+    """A ``threading.Timer`` that runs only when the test fires it."""
+
+    def __init__(self, interval, function, args=None, kwargs=None):
+        self.interval = interval
+        self.function = function
+        self.args = args or ()
+        self.kwargs = kwargs or {}
+        self.cancelled = False
+        self.started = False
+
+    def start(self):
+        self.started = True
+
+    def cancel(self):
+        self.cancelled = True
+
+    def fire(self):
+        if not self.cancelled:
+            return self.function(*self.args, **self.kwargs)
+
+
+def _hold_reload_timers(monkeypatch):
+    """Replace the reload debounce timer: no real delay, no sleep in the test."""
+    timers = []
+
+    def factory(*args, **kwargs):
+        timer = _HeldTimer(*args, **kwargs)
+        timers.append(timer)
+        return timer
+
+    monkeypatch.setattr(network, "_Timer", factory)
+    return timers
+
+
 def test_saves_in_a_row_trigger_one_reload(gamelist, monkeypatch, client):
+    # Three saves in a row must share one reload, whatever the wall-clock gap
+    # between the requests (a 0.15 s delay was too short on a slow Windows runner).
     calls = []
-    monkeypatch.setattr(network, "RELOAD_DELAY", 0.15)
+    timers = _hold_reload_timers(monkeypatch)
     monkeypatch.setattr(network, "location", lambda path: {"host": "BATOCERA", "share": "share", "via": "unc"})
     monkeypatch.setattr(network, "reload_games", lambda host: calls.append(host))
     network.set_reload_after_save(True)
     for name in ("One", "Two", "Three"):
         r = client.post("/api/game/0?path=./alpha.zip", json={"name": name}, headers=LOCAL)
         assert r.status_code == 200
-    time.sleep(0.6)
+    assert len(timers) == 3
+    assert all(t.started and t.interval == network.RELOAD_DELAY for t in timers)
+    assert timers[0].cancelled and timers[1].cancelled and not timers[2].cancelled
+    assert calls == []
+    timers[2].fire()
     assert calls == ["BATOCERA"]
 
 
 def test_no_reload_unless_asked(gamelist, monkeypatch, client):
     calls = []
-    monkeypatch.setattr(network, "RELOAD_DELAY", 0.05)
+    timers = _hold_reload_timers(monkeypatch)
     monkeypatch.setattr(network, "location", lambda path: {"host": "BATOCERA", "share": "share", "via": "unc"})
     monkeypatch.setattr(network, "reload_games", lambda host: calls.append(host))
     assert client.post("/api/game/0?path=./alpha.zip", json={"name": "X"}, headers=LOCAL).status_code == 200
-    time.sleep(0.2)
-    assert calls == []
+    assert timers == [] and calls == []
 
 
 def test_reload_route_only_targets_the_open_gamelists_machine(gamelist, client, fake_es, monkeypatch):
