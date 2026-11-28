@@ -1,6 +1,6 @@
 # Scrapers
 
-Version documentée : **1.7.0**
+Version documentée : **1.8.0**
 
 ## Le bouton Scraper
 
@@ -139,4 +139,4 @@ Télécharge une **bande-annonce** (pas une capture SS).
 
 Utile surtout pour les jeux PC / Steam, pas pour une ROM arcade.
 
-**Gamelist Media Editor** · v1.7.0
+**Gamelist Media Editor** · v1.8.0
