@@ -69,6 +69,7 @@ UNREACHABLE_ERRORS = {51, 53, 64, 67, 1222, 1231, 1232}
 _HOST = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,252}$|^\[?[0-9A-Fa-f:]+\]?$")
 _lock = threading.Lock()
 _reload = {"timer": None, "last": None}
+_Timer = threading.Timer          # overridable in tests (no real waiting)
 _connected = set()            # host\share signed in by this process
 
 
@@ -559,7 +560,7 @@ def after_save(xml_path):
     with _lock:
         if _reload["timer"] is not None:
             _reload["timer"].cancel()
-        timer = threading.Timer(RELOAD_DELAY, reload_games, args=(loc["host"],))
+        timer = _Timer(RELOAD_DELAY, reload_games, args=(loc["host"],))
         timer.daemon = True
         _reload["timer"] = timer
         timer.start()
