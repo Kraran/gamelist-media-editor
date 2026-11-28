@@ -37,6 +37,7 @@ Source Python : voir [Installation](Installation).
 | [Scrapers](Scrapers) | Bouton Scraper, comparaison, ScreenScraper, Arcade Database, Steam |
 | [Fonctionnalités](Fonctionnalités) | Liste détaillée (v1.8.0) |
 | [ES-DE](ES-DE) | Gamelists et médias d’ES-DE (EmulationStation Desktop Edition) |
+| [Réseau](Réseau) | Gamelists et médias sur Batocera, Recalbox ou un PC, par le partage réseau |
 | [FAQ](FAQ) | Questions fréquentes |
 | [Dépannage](Dépannage) | Erreurs courantes |
 

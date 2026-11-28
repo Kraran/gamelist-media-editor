@@ -1,6 +1,6 @@
 # Dépannage
 
-Version documentée : **1.7.0**
+Version documentée : **1.8.0**
 
 ### « ModuleNotFoundError: flask » ou « Pillow »
 
@@ -57,4 +57,4 @@ Le `gamelist.xml` a été modifié par un autre programme pendant que l’app é
 
 Elles sont créées au premier affichage dans `cache\thumbs\` à côté de l’exe. Supprimer le dossier `cache` les régénère.
 
-**Gamelist Media Editor** · v1.7.0
+**Gamelist Media Editor** · v1.8.0
