@@ -1,4 +1,4 @@
-**Gamelist Media Editor** · v1.7.5
+**Gamelist Media Editor** · v1.8.0
 
 - [Accueil](Home)
 - [Installation](Installation)
@@ -13,5 +13,5 @@
 ---
 
 [Code source](https://github.com/Kraran/gamelist-media-editor)  
-[Release v1.7.5](https://github.com/Kraran/gamelist-media-editor/releases/tag/v1.7.5)  
+[Release v1.8.0](https://github.com/Kraran/gamelist-media-editor/releases/tag/v1.8.0)  
 [Signaler un bug](https://github.com/Kraran/gamelist-media-editor/issues)

@@ -4,6 +4,10 @@ All notable changes to Gamelist Media Editor are documented in this file.
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-11-28
+
+Multi-level undo/redo, background scans with a progress bar and Stop, automatic updates of the Windows .exe (SHA-256 verified), and a 45-second demo in the README. Release notes: [docs/release-notes/RELEASE_NOTES_v1.8.0.md](docs/release-notes/RELEASE_NOTES_v1.8.0.md).
+
 ### Added
 
 - **Multi-level Undo / Redo** (`gme/history.py`): ↶ / ↷ buttons in the top bar (their tooltip names the next step, e.g. *Undo: Saved: Sonic*), a history menu that lists the steps of the session (done, undone, what each one leaves on disk) and jumps to any of them or back to *Before these changes*, and `Ctrl+Z` / `Ctrl+Y` / `Ctrl+Shift+Z` outside text fields (in an input, a text area or an editable area the browser's own undo of the typing stays). Up to 30 steps per open gamelist (8 gamelists remembered), each the file's bytes before and after, zlib-compressed and shared between neighbouring steps (160 MB at most per gamelist). One step per request (a bulk edit on 2,000 games is one step) and one per batch scrape (its per-game requests are merged). A new change drops the undone steps. Undo / Redo write atomically and only when the file is still exactly the version the step left: a gamelist changed outside GME resets the history (message, nothing overwritten; the dated backups stay). Refused while a batch scrape or multi-system actions run. Steps record what the XML cannot bring back: files sent to the Recycle Bin, files deleted, media files written; image edits are undone with their originals (that step cannot be redone). Restoring a backup is a step too. The toasts' **Undo** (Edit in bulk, solid images, image editor) now undoes their history step (and can be redone); with an older page they still restore the dated snapshot, which every bulk apply keeps making.
