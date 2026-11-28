@@ -163,7 +163,7 @@ Pour tout le gamelist :
 
 | Onglet | Contenu |
 |---|---|
-| Général | Thème (sombre, clair ou comme le système) et langue de l’interface, appliqués immédiatement |
+| Général | Thème (sombre, clair ou comme le système) et langue de l’interface, appliqués immédiatement ; **Mises à jour** : vérification au démarrage (une fois par jour au plus) et *Vérifier maintenant* |
 | ScreenScraper | Compte membre, région préférée, **threads** (Auto ou moins), **cache** des réponses, test de connexion ; chaque réglage est enregistré dès qu’il change |
 | Médias ScreenScraper | Pour chaque média : activé ou non, type ScreenScraper et région essayée en premier |
 | Sources de scrape | Les sources forcées par système depuis le menu ▾ du bouton Scraper, avec retour à l’automatique |
@@ -188,6 +188,10 @@ Les boutons **↶ Annuler** et **↷ Rétablir** en haut à droite reviennent en
 ## Analyses longues
 
 Les images unies, la vérification des ROMs et celle des médias tournent en arrière-plan. Si l’analyse dure, une **barre de progression** apparaît avec *X / Y*, l’élément en cours et **Arrêter** (sur un petit gamelist, le résultat arrive avant). Une analyse ne fait que lire : l’arrêter ne modifie rien. *Appliquer* réutilise l’analyse vérifiée tant que rien n’a changé ; sinon GME analyse à nouveau et te laisse vérifier le résultat.
+
+## Mises à jour
+
+**Actions › Vérifier les mises à jour** (ou la vérification au démarrage) : si une version plus récente existe, une fenêtre montre sa version, sa date et ses nouveautés, avec **Mettre à jour maintenant**, **Plus tard** et **Ignorer cette version** (la vérification au démarrage ne la propose plus ; une vérification à la main la montre encore). La mise à jour télécharge et vérifie la nouvelle version (barre de progression, *Arrêter* : rien n’est gardé), puis GME redémarre tout seul ; la page se recharge quand la nouvelle version répond. Elle attend la fin d’un scrape par lot ou d’actions sur plusieurs systèmes. Depuis les sources Python, la fenêtre donne le lien de la release. Détails : [Installation](Installation#mises-à-jour-automatiques).
 
 ## Raccourcis
 

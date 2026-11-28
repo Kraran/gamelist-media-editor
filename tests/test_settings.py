@@ -12,7 +12,7 @@ def post(client, body):
 
 
 def test_defaults_when_nothing_saved(client):
-    assert get(client) == {"locale": None, "theme": "dark", "list_width": None, "search_all_fields": False, "scrapers": {}, "required_media": {}}
+    assert get(client) == {"locale": None, "theme": "dark", "list_width": None, "search_all_fields": False, "update_check": True, "scrapers": {}, "required_media": {}}
 
 
 def test_partial_updates_are_merged_and_saved(client, settings_file):
@@ -39,13 +39,13 @@ def test_bad_values_are_refused(client):
                  {"required_media": {"snes": ["desc"]}}, {"required_media": ["snes"]}, ["locale"]):
         r = post(client, body)
         assert r.status_code == 400, body
-    assert get(client) == {"locale": None, "theme": "dark", "list_width": None, "search_all_fields": False, "scrapers": {}, "required_media": {}}
+    assert get(client) == {"locale": None, "theme": "dark", "list_width": None, "search_all_fields": False, "update_check": True, "scrapers": {}, "required_media": {}}
 
 
 def test_a_broken_file_gives_the_defaults(client, settings_file):
     settings_file.write_text('{"locale": 5, "scrapers": {"snes": "nope", "nes": "steam"}, "required_media": {"x": "image"}}',
                              encoding="utf-8")
-    assert get(client) == {"locale": None, "theme": "dark", "list_width": None, "search_all_fields": False, "scrapers": {"nes": "steam"}, "required_media": {}}
+    assert get(client) == {"locale": None, "theme": "dark", "list_width": None, "search_all_fields": False, "update_check": True, "scrapers": {"nes": "steam"}, "required_media": {}}
     settings_file.write_text("not json", encoding="utf-8")
     assert settings.load()["scrapers"] == {}
 

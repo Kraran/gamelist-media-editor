@@ -4,6 +4,7 @@ import os
 import shutil
 
 import pytest
+import requests
 
 from gme import fsutil, history, jobs, recent, settings, xml_store
 from gme import batch_jobs
@@ -61,6 +62,21 @@ def network_files(tmp_path, monkeypatch):
     if timer is not None:
         timer.cancel()
     network._reload["timer"] = None
+
+
+@pytest.fixture(autouse=True)
+def no_update_network(tmp_path, monkeypatch):
+    """Update check and download never reach GitHub; their files stay in tmp_path."""
+    from gme import updater
+
+    def offline(url, **kwargs):
+        raise requests.ConnectionError("no network in tests: " + url)
+
+    monkeypatch.setattr(updater, "_get", offline)
+    monkeypatch.setattr(updater, "STATE_FILE", str(tmp_path / "update_state.json"))
+    monkeypatch.setattr(updater, "WORK_DIR", str(tmp_path / ".gme-update"))
+    monkeypatch.setattr(updater, "_spawn", lambda cmd: pytest.fail("update helper started in a test"))
+    monkeypatch.setattr(updater, "_exit_soon", lambda: pytest.fail("GME asked to exit in a test"))
 
 
 @pytest.fixture(autouse=True)

@@ -63,6 +63,8 @@ class Job:
         self.started = time.time()
         self.finished = 0.0
         self.stamp = gamelist_stamp()
+        self.bound = True       # tied to the open gamelist (an update download is not)
+        self.unit = ""          # "MB": done / total are megabytes
         self.stop_event = threading.Event()
 
     def tick(self, done=None, total=None, current=None, phase=None):
@@ -85,17 +87,21 @@ class Job:
         out = {"id": self.id, "kind": self.kind, "state": self.state, "done": self.done, "total": self.total,
                "current": self.current, "phase": self.phase, "error": self.error,
                "elapsed": round((self.finished or time.time()) - self.started, 2)}
+        if self.unit:
+            out["unit"] = self.unit
         if with_result and self.state == "done":
             out["result"] = self.result
         return out
 
 
-def start(kind, fn, params=None):
+def start(kind, fn, params=None, bound=True, unit=""):
     """Run ``fn(job)`` in a thread; its return value becomes ``job.result``.
 
     A running job of the same kind is stopped first (one scan of a kind at once).
+    ``bound=False``: the result stays valid when another gamelist is opened.
     """
     job = Job(kind, params or {})
+    job.bound, job.unit = bound, unit
     locale = get_request_locale()
     with _lock:
         for other in _jobs.values():
@@ -112,7 +118,7 @@ def start(kind, fn, params=None):
                 result = fn(job)
                 if job.stop_event.is_set():
                     job.state = "stopped"
-                elif job.stamp[0] != xml_store.SESSION_ID:
+                elif job.bound and job.stamp[0] != xml_store.SESSION_ID:
                     job.state, job.error = "error", st("server.stale_gamelist")
                 else:
                     job.result, job.state = result, "done"

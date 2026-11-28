@@ -29,6 +29,7 @@ from gme.scrapers.fallback import bp as sources_bp
 from gme.scrapers.ss import bp as ss_bp
 from gme.scrapers.steam import bp as steam_bp
 from gme.thumbs import bp as thumbs_bp
+from gme.updater import bp as updater_bp
 
 
 app = Flask(
@@ -50,5 +51,5 @@ app.after_request(history.add_revision_header)
 app.teardown_request(security.end_gamelist_request)
 app.teardown_request(history.finish)   # the request's writes become one undo step
 
-for blueprint in (editor_bp, gamedelete_bp, ss_bp, adb_bp, steam_bp, thumbs_bp, remote_cache_bp, recent_bp, romcheck_bp, mediacheck_bp, settings_bp, backups_bp, batch_bp, bulk_bp, stats_bp, dattool_bp, newgamelist_bp, imageedit_bp, solidimages_bp, overview_bp, multibatch_bp, sources_bp, network_bp, history_bp, jobs_bp):
+for blueprint in (editor_bp, gamedelete_bp, ss_bp, adb_bp, steam_bp, thumbs_bp, remote_cache_bp, recent_bp, romcheck_bp, mediacheck_bp, settings_bp, backups_bp, batch_bp, bulk_bp, stats_bp, dattool_bp, newgamelist_bp, imageedit_bp, solidimages_bp, overview_bp, multibatch_bp, sources_bp, network_bp, history_bp, jobs_bp, updater_bp):
     app.register_blueprint(blueprint)

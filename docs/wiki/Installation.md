@@ -14,6 +14,17 @@ Fenêtre dédiée (mode application) si Edge / Chrome / Brave est installé. Sin
 
 Au premier lancement : **Gamelist…** pour choisir le XML.
 
+### Mises à jour automatiques
+
+À partir de la prochaine version, l’exe se met à jour tout seul :
+
+- Au démarrage, GME demande à GitHub (sans compte, **au plus une fois par jour**, rien si tu es hors ligne) s’il existe une version plus récente. **Réglages › Général › Mises à jour** désactive cette vérification ; **Actions › Vérifier les mises à jour** la lance quand tu veux.
+- Une nouvelle version ouvre une fenêtre avec ses nouveautés : **Mettre à jour maintenant**, **Plus tard** ou **Ignorer cette version**.
+- *Mettre à jour maintenant* télécharge le zip de la release (barre de progression, *Arrêter*), vérifie son empreinte **SHA-256** avec le fichier `SHA256SUMS.txt` de la release (absent ou différent : refusé), puis GME se ferme, remplace son `.exe` et redémarre sur le même gamelist. Si la nouvelle version ne démarre pas, l’ancienne est remise en place.
+- Seuls les fichiers des releases du dépôt officiel sont téléchargés, en HTTPS. Tes réglages, clés, mots de passe réseau, listes récentes, caches et sauvegardes ne sont pas touchés : seul `GamelistMediaEditor.exe` est remplacé.
+- Revenir à la version précédente : ferme GME et recopie `.gme-update\previous\GamelistMediaEditor.exe` à la place de `GamelistMediaEditor.exe`. Le journal de la mise à jour est dans `.gme-update\update.log`.
+- Si l’exe est dans un dossier protégé (par exemple `C:\Program Files`), la mise à jour est refusée : place GME dans un dossier à toi.
+
 ### Compiler l’exe (développeurs)
 
 Windows + Python 3.9+ :
@@ -24,6 +35,8 @@ BUILD_EXE.bat
 
 Sortie : `dist\GamelistMediaEditor.exe` (dossier ignoré par Git — normal).  
 La CI GitHub construit aussi l’exe à chaque push et le joint au run (14 jours).
+
+Publier une version : pousser un tag `vX.Y.Z` (identique à `gme/version.py`). Le workflow *Release* construit l’exe, le zippe avec `tools/release_assets.py` et joint à la release **`GamelistMediaEditor-Windows-vX.Y.Z.zip` et `SHA256SUMS.txt`** (la mise à jour automatique refuse une release sans ce fichier).
 
 ## Option B — Source Python
 
@@ -68,6 +81,8 @@ Les fichiers **Pad2Key** (`.keys`) vont **à côté de la ROM**, pas dans `image
 | `cache\remote\` | Images proposées par un scrape, gardées un jour (pas de second téléchargement) |
 | `cache\ss-api\` | Réponses ScreenScraper gardées (30 jours par défaut) : rescraper ne consomme pas de quota |
 | `state\batches\` | Lots de scrape à reprendre (*Dernier lot*) |
+| `update_state.json` | Dernière vérification des mises à jour et version ignorée |
+| `.gme-update\` | Mise à jour automatique : nouvelle version téléchargée, version précédente (`previous\`), journal `update.log` |
 
 À côté de chaque gamelist, `.gme-backups\` garde les sauvegardes datées et les originaux des images modifiées.
 

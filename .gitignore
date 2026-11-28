@@ -23,6 +23,9 @@ ui_settings.json
 network_places.json
 network_credentials.json
 app-window/
+update_state.json
+.gme-update/
+release-out/
 
 # PyInstaller output (exe stays on GitHub Releases only)
 build/

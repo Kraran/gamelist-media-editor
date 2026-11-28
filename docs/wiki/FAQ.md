@@ -59,6 +59,10 @@ Le bouton Scraper choisit la source selon le dossier du système (arcade → Arc
 
 Filtre sur un média manquant, puis `N` (jeu incomplet suivant), `S` (scraper), Entrée (appliquer), et ainsi de suite.
 
+### Comment mettre GME à jour ?
+
+L’exe le propose tout seul au démarrage (une fois par jour au plus) ou via **Actions › Vérifier les mises à jour** : *Mettre à jour maintenant* télécharge la release officielle, vérifie son empreinte SHA-256, remplace l’exe et redémarre. Tes réglages et sauvegardes restent. L’ancienne version est gardée dans `.gme-update\previous`. Voir [Installation](Installation#mises-à-jour-automatiques).
+
 ### Puis-je annuler plusieurs modifications ?
 
 Oui : **↶ Annuler** / **↷ Rétablir** en haut (ou `Ctrl+Z` / `Ctrl+Y` hors des champs de saisie), et le bouton **Historique** pour revenir directement à une étape. 30 étapes par gamelist pendant la session ; le gamelist.xml revient octet pour octet. Les fichiers mis à la Corbeille se récupèrent depuis la Corbeille. Pour revenir plus loin ou après avoir relancé GME : *Actions › Sauvegardes*.
