@@ -4,7 +4,7 @@
 
 Local web app to edit the media and metadata of EmulationStation **RetroBat** (and Batocera / Recalbox / **ES-DE**) `gamelist.xml` files, with drag-and-drop and built-in scrapers.
 
-**Version 1.7.5** · [Documentation (Wiki)](https://github.com/Kraran/gamelist-media-editor/wiki) · [Releases](https://github.com/Kraran/gamelist-media-editor/releases) · [Changelog](CHANGELOG.md)
+**Version 1.8.0** · [Documentation (Wiki)](https://github.com/Kraran/gamelist-media-editor/wiki) · [Releases](https://github.com/Kraran/gamelist-media-editor/releases) · [Changelog](CHANGELOG.md)
 
 **▶ 45-second demo**: browse, edit, scrape with a preview, media, bulk edit, undo, all your systems at a glance
 
@@ -112,7 +112,7 @@ Local web app to edit the media and metadata of EmulationStation **RetroBat** (a
 
 ### Option A — Windows executable (recommended)
 
-1. Download **`GamelistMediaEditor-Windows-v1.7.5.zip`** from the [v1.7.5 release](https://github.com/Kraran/gamelist-media-editor/releases/tag/v1.7.5)
+1. Download **`GamelistMediaEditor-Windows-v1.8.0.zip`** from the [v1.8.0 release](https://github.com/Kraran/gamelist-media-editor/releases/tag/v1.8.0)
 2. Extract anywhere and run **`GamelistMediaEditor.exe`** (no Python needed)
 3. The app window opens on http://127.0.0.1:5050 — use **Gamelist…** to open a `gamelist.xml`
 

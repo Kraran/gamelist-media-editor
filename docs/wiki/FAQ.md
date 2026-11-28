@@ -1,6 +1,6 @@
 # FAQ
 
-Version documentée : **1.7.5**
+Version documentée : **1.8.0**
 
 ### Faut-il Python ?
 
@@ -67,4 +67,4 @@ L’exe le propose tout seul au démarrage (une fois par jour au plus) ou via **
 
 Oui : **↶ Annuler** / **↷ Rétablir** en haut (ou `Ctrl+Z` / `Ctrl+Y` hors des champs de saisie), et le bouton **Historique** pour revenir directement à une étape. 30 étapes par gamelist pendant la session ; le gamelist.xml revient octet pour octet. Les fichiers mis à la Corbeille se récupèrent depuis la Corbeille. Pour revenir plus loin ou après avoir relancé GME : *Actions › Sauvegardes*.
 
-**Gamelist Media Editor** · v1.7.5
+**Gamelist Media Editor** · v1.8.0

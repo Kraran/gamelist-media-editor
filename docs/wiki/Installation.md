@@ -1,11 +1,11 @@
 # Installation
 
-Version documentée : **1.7.5**
+Version documentée : **1.8.0**
 
 ## Option A — Exécutable Windows (recommandé)
 
-1. Ouvre la [release v1.7.5](https://github.com/Kraran/gamelist-media-editor/releases/tag/v1.7.5)
-2. Télécharge **`GamelistMediaEditor-Windows-v1.7.5.zip`**
+1. Ouvre la [release v1.8.0](https://github.com/Kraran/gamelist-media-editor/releases/tag/v1.8.0)
+2. Télécharge **`GamelistMediaEditor-Windows-v1.8.0.zip`**
 3. Décompresse où tu veux
 4. Lance **`GamelistMediaEditor.exe`**
 
@@ -88,10 +88,11 @@ Les fichiers **Pad2Key** (`.keys`) vont **à côté de la ROM**, pas dans `image
 
 Le dossier `cache` peut être supprimé sans risque.
 
-## Mise à jour vers 1.7.5
+## Mise à jour vers 1.8.0
 
-- Remplace les fichiers de l’app (garde `screenscraper_config.json`, `ui_settings.json` et `recent_gamelists.json`)
+- Remplace les fichiers de l’app (garde `screenscraper_config.json`, `ui_settings.json`, `recent_gamelists.json`, `sources_config.json` et `network_credentials.json`)
 - Aucune migration du `gamelist.xml` ; aucune nouvelle dépendance depuis la 1.5.0
+- La 1.7.5 ne se met pas à jour toute seule : installe la 1.8.0 à la main. À partir de cette version, l’exe Windows installe les suivantes (empreinte SHA-256 vérifiée avec `SHA256SUMS.txt`). Un dossier `.gme-update\` peut apparaître à côté de l’app.
 - Les types de médias ScreenScraper gardent les valeurs de la 1.6.0 : **wheel** et **titleshot** restent désactivés tant que tu ne les coches pas dans **Réglages › Médias ScreenScraper**
 
 Depuis une version antérieure à la 1.5.0 :
@@ -101,4 +102,4 @@ Depuis une version antérieure à la 1.5.0 :
 
 Depuis la 1.3.0 : les **Outils** sont devenus **Réglages** (roue dentée) et **Actions** (⋯), voir [Utilisation](Utilisation).
 
-**Gamelist Media Editor** · v1.7.5
+**Gamelist Media Editor** · v1.8.0
